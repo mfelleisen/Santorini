@@ -104,9 +104,10 @@
 (define (replace x lox)
   (cons x lox))
 
-;; Posn [Listof Building] -> [Listof Building]
-(define (build-on p lob)
-  lob)
+;; Building -> Building
+(define (build-on b)
+  (match-define (building x y z) b)
+  (building x y (+ z 1)))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; TESTS
