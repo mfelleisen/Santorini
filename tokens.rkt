@@ -8,10 +8,13 @@
 ;; ---------------------------------------------------------------------------------------------------
 
 (define DIM 5)
-(define NORTH (gensym))
-(define SOUTH (gensym))
-(define EAST  (gensym))
-(define WEST  (gensym))
+
+(define NORTH -1)
+(define SOUTH +1)
+(define PUT    0)
+(define EAST  +1)
+(define WEST  -1)
+(define direction/c (or/c NORTH SOUTH PUT EAST WEST))
 
 (provide
  DIM
@@ -21,7 +24,10 @@
  SOUTH
  EAST
  WEST 
- ;; type Direction =  NORTH | SOUTH | EAST | WEST 
+
+ ;; Any -> Boolean
+ ;; is this a linear direction 
+ direction/c
 
  ;; type Token = (token Int Int)
  
@@ -31,10 +37,10 @@
  ;; Token -> (values Range Range)
  token-location
 
- ;; Token Direction -> Token 
+ ;; Token Direction Direction -> Token 
  move-token
 
- ;; Token Direction -> (values Int Int)
+ ;; Token Direction Direction -> (values Int Int)
  position-of)
 
 ;; -----------------------------------------------------------------------------
@@ -47,23 +53,18 @@
 (define (token-location t)
   (with-token t (values x y)))
 
-(define (move-token t d)
-  (define-values (x1 y1) (position-of t d))
+(define (move-token t e-w n-s)
+  (define-values (x1 y1) (position-of t e-w n-s))
   (token x1 y1))
       
-(define (position-of t d)
-  (with-token t
-    (cond
-      [(eq? d NORTH) (values x        (+ y +1))]
-      [(eq? d SOUTH) (values x        (+ y -1))]
-      [(eq? d EAST)  (values (+ x +1) y)]
-      [(eq? d WEST)  (values (+ x -1) y)])))
+(define (position-of t e-w n-s)
+  (with-token t (values (+ x e-w) (+ y n-s))))
 
 ;; -----------------------------------------------------------------------------
 (module+ test
   (define O (token 0 0))
-  (check-equal? (let-values ([(x y) (position-of O NORTH)]) (list x y)) '(0 +1))
-  (check-equal? (let-values ([(x y) (position-of O SOUTH)]) (list x y)) '(0 -1))
-  (check-equal? (let-values ([(x y) (position-of O EAST)]) (list x y)) '(+1 0))
-  (check-equal? (let-values ([(x y) (position-of O WEST)]) (list x y)) '(-1 0)))
+  (check-equal? (let-values ([(x y) (position-of O PUT NORTH)]) (list x y)) '(0 -1))
+  (check-equal? (let-values ([(x y) (position-of O PUT SOUTH)]) (list x y)) '(0 +1))
+  (check-equal? (let-values ([(x y) (position-of O EAST PUT)]) (list x y)) '(+1 0))
+  (check-equal? (let-values ([(x y) (position-of O WEST PUT)]) (list x y)) '(-1 0)))
                   

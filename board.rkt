@@ -22,12 +22,12 @@
  ;; Board -> [Listof Token]
  board-tokens 
 
- ;; Board Token Direction -> Board
+ ;; Board Token Direction Direction -> Board
  ;; move the token one step in the given direction
  ;; ASSUME the token is on the board 
  move
 
- ;; Board Token Direction -> Board
+ ;; Board Token Direction Direction -> Board
  ;; add a level to the buidling that is in the specified direction
  ;; ASSUME the token is on the board 
  build
@@ -67,13 +67,13 @@
 (define (init token1 token2 token3 token4)
   (board (list token1 token2 token3 token4) '()))
 
-(define (move b token direction)
+(define (move b token e-w n-s)
   (with-board b
-    (board (replace (move-token token direction) tokens) buildings)))
+    (board (replace (move-token token n-s e-w) tokens) buildings)))
 
-(define (build b token direction)
+(define (build b token e-w n-s)
   (with-board b
-    (define-values (x-where-to-build y-where-to-build) (position-of token direction))
+    (define-values (x-where-to-build y-where-to-build) (position-of token n-s e-w))
     (define is-there-a-building (find-building buildings x-where-to-build y-where-to-build))
     (define the-building (or is-there-a-building (building x-where-to-build y-where-to-build 0)))
     (board tokens (replace (build-on the-building) buildings))))
@@ -83,7 +83,6 @@
     (define 3-levels  (filter (lambda (b) (= (building-height b) 3)) buildings))
     (define occupied? (filter (lambda (t) (ormap (on? t) 3-levels)) tokens))
     (cons? occupied?)))
-
 
 ;; [Listof Building] Range Range -> (U Building #false)
 (define (find-building buildings x-where-to-build y-where-to-build)
