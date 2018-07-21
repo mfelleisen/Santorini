@@ -40,7 +40,7 @@
 ;; DEPENDENCIES
 
 (require "tokens.rkt")
-(require "Lib/struct-with.rkt")
+(require "../Lib/struct-with.rkt")
 
 (require (for-syntax syntax/parse))
 (module+ test
