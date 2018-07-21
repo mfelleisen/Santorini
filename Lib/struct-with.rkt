@@ -27,13 +27,16 @@
              (syntax-parse stx
                [(_ n:expr e (... ...))
                 (with-syntax ([field (datum->syntax stx 'field)] ...)
-                  #'(let ([v n])
+                  (syntax/loc stx
+                    (let ([v n])
                       (unless (name? v)
                         (error 'with-board "not a ~a: ~e" 'name v))
                       (match-define (name field ...) v)
-                      e (... ...)))]))))]))
+                      e (... ...))))]))))]))
 
 (module+ test
-  (struct-with foo ())
-  (check-equal? (with-foo (foo) 0) 0)
+  (struct-with foo (bar))
+
+  (check-equal? (with-foo (foo 1) 0) 0)
+  (check-equal? (with-foo (foo 1) bar) 1)
   (check-exn exn:fail? (lambda () (convert-compile-time-error  (with-foo 0 (foo))))))

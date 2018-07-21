@@ -20,8 +20,12 @@
  DIM
  ;; type Range = [0,DIM)
 
+ ;; Int -> Boolean
+ in-range? 
+
  NORTH
  SOUTH
+ PUT
  EAST
  WEST 
 
@@ -29,9 +33,10 @@
  ;; is this a linear direction 
  direction/c
 
- ;; type Token = (token Int Int)
+ ;; type Token = (token String Range Range)
  
- ;; Range Range -> Token
+ ;; String Range Range -> Token
+ ;; create a token for a specific place and of a specific name 
  token
 
  ;; Token -> (values Range Range)
@@ -41,14 +46,20 @@
  move-token
 
  ;; Token Direction Direction -> (values Int Int)
- position-of)
+ position-of
+
+ ;; SYNTAX 
+ with-token)
 
 ;; -----------------------------------------------------------------------------
 (require "../Lib/struct-with.rkt")
 (module+ test (require rackunit))
 
 ;; -----------------------------------------------------------------------------
-(struct-with token (x y) #:transparent)
+(define (in-range? i)
+  (<= 0 i DIM))
+
+(struct-with token (color x y) #:transparent)
 
 (define (token-location t)
   (with-token t (values x y)))
@@ -62,7 +73,7 @@
 
 ;; -----------------------------------------------------------------------------
 (module+ test
-  (define O (token 0 0))
+  (define O (token "christos" 0 0))
   (check-equal? (let-values ([(x y) (position-of O PUT NORTH)]) (list x y)) '(0 -1))
   (check-equal? (let-values ([(x y) (position-of O PUT SOUTH)]) (list x y)) '(0 +1))
   (check-equal? (let-values ([(x y) (position-of O EAST PUT)]) (list x y)) '(+1 0))

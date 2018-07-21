@@ -10,11 +10,24 @@
 (provide
  
  ;; type Building = (building Range Range N)
+ MAX-HEIGHT
+ TOP-FLOOR
 
  ;; Token Token Token Token -> Board
  ;; create the board and place the four tokens on it
  ;; ASSUME the tokens occupy four distinct places 
  init
+
+ ;; Board Token -> [Listof [List Range Range]]
+ ;; compute all possible directions to a neighboring field from here
+ pick-all-neighbors
+
+ ;; Board Range Range -> N
+ height-of 
+ 
+ ;; Board Range Range -> N
+ ;; there is no token on (x,y)
+ location-free-of-token?
 
  ;; Board -> [Listof Building]
  board-buildings
@@ -34,12 +47,17 @@
 
  ;; Board -> Boolean
  ;; is any three-story building occupied by a token?
- the-end?)
+ the-end?
+
+ ;; SYNTAX
+ 
+ with-board
+ with-token)
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCIES
 
-(require "tokens.rkt")
+(require "token.rkt")
 (require "../Lib/struct-with.rkt")
 
 (require (for-syntax syntax/parse))
@@ -48,6 +66,10 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; IMPLEMENTATION  
+
+(struct-with building (x y height) #:transparent)
+(define TOP-FLOOR  3)
+(define MAX-HEIGHT 4)
 
 (struct-with board (tokens buildings)
              #:methods gen:equal+hash
@@ -62,10 +84,26 @@
                 (match-define (board t b) bd)
                 (+ (* 100 (length t)) (* 10 (length b))))])
 
-(struct-with building (x y height) #:transparent)
-
 (define (init token1 token2 token3 token4)
   (board (list token1 token2 token3 token4) '()))
+
+(define (pick-all-neighbors t)
+  (with-token t
+    (for*/list ((e-w `(,WEST ,PUT ,EAST))
+                (n-s `(,NORTH ,PUT ,SOUTH))
+                #:when (and (in-range? (+ x e-w)) (in-range? (+ y n-s))))
+      (list e-w n-s))))
+
+(define (height-of b x y)
+  (with-board b
+   (define is-there-a-building (find-building buildings x y))
+   (if (boolean? is-there-a-building)
+       0
+       (building-height is-there-a-building))))
+
+(define (location-free-of-token? b x0 y0)
+  (with-board b
+     (ormap (lambda (t) (with-token t (not (and (= x0 x) (= y0 y))))) tokens)))
 
 (define (move b token e-w n-s)
   (with-board b
@@ -111,4 +149,6 @@
 ;; ---------------------------------------------------------------------------------------------------
 ;; TESTS
 (module+ test
+  (check-equal? (pick-all-neighbors (token "hello" 0 0)) '((0 0) (0 1) (1 0) (1 1)))
+
   (check-equal? (init 't1 't2 't3 't4) (board (list 't1 't2 't3 't4) '())))

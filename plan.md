@@ -22,9 +22,13 @@ means
 - there are players 
 - there is an API for players to interact with the administrator 
 
-Who needs to know what? Both the admin and the players need a
-representation of the basic game entities: a board, the tokens and
-buildings on the board, etc. 
+Questions: 
+
+- Who needs to know what? 
+- What is the common "ontology" "shared data representation and interpretation"? 
+
+Both the admin and the players need a representation of the basic game
+entities: a board, the tokens and buildings on the board, etc.
 
 ### The Board 
 
