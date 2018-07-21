@@ -4,32 +4,33 @@
 
 Your friends love the game. You want to create a set-up where you can
 explore game-playing strategies. You imagine that you, and possibly 
-one of your friends, create players that stick to a specific strategy. Then
-you run thousands of rounds to find out which strategy works well. 
+one of your friends, create players that play specific strategies. Then
+you run thousands of rounds to find out which strategy works best. 
 
 Since your friend's player implementation may accidentally violate the
 rules of the game, you plan on implementing the game in a somewhat
 realistic fashion. 
 
 Of course, deep down you're hoping that Santorini.com will become the next
-Facebook and make you infinitely rich. 
+Facebook and make you infinitely rich.
+
+### A Realistic Game 
+
+means 
+
+- there is an administrator 
+- there are players 
+- there is an API for players to interact with the administrator 
+
+Who needs to know what? Both the admin and the players need a
+representation of the basic game entities: a board, the tokens and
+buildings on the board, etc. 
 
 ### The Board 
 
 - initialize with four unique tokens, two per player 
 - allow players to move to a neighboring place 
 - allow players to build up a house on a neighboring tile 
-
-### The Rules 
-
-- a player can move to a neighboring place if 
-  - there is no other player on that field, 
-  - he is "jumping" down from a building (of arbitrary height), or
-  - the building on this place is only one step taller than the one he is on
-    but not capped (fourth floor). 
-
-- a player can add a level to a neighboring field if the building isn't
-  already 3 storied tall 
 
 ## Stage 2 
 
@@ -46,19 +47,41 @@ knows
 - where each building is 
 - how tall each building is 
 - whose turn it is 
+- whether a player's move is legal 
 
 ### A Player 
 
-knows what to do next when given the current game configuration: 
+wants to pick the next move. It needs to know what the current state of the
+game is. Based on that, it decides 
 
 - to move one of the players according to the rules 
 - to build (optionally) on a neighboring field 
 
 (in that order). 
 
-### The End 
+### The Rules 
 
-The game ends if a player reaches the third level of a building. 
+The game is governed by the following basic rules, including the decision
+to end the game: 
+
+- if it is player's P turn, P must (1) move one token and (2) build up one
+  building after the move 
+
+- a player can move to a neighboring place if 
+  - there is no other player on that field, 
+  - he is "jumping" down from a building (of arbitrary height), or
+  - the building on this place is only one step taller than the one he is on
+    but not capped (fourth floor). 
+
+- a player can add a level to a neighboring field if the building isn't
+  already 3 storied tall 
+
+The game ends
+
+- if player A's token reaches the third level of a building.
+- if player A can't move or, after the move, can't build up a building
+
+How do Players and the Administrator use these rules? 
 
 ## Stage 3
 
