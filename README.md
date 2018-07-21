@@ -4,5 +4,11 @@
 
 - plan.md ~~ how to develop the game for the students 
 
-- board.rkt ~~ the game board, incl. buildings 
-- tokens,rkt ~~ the tokens 
+## Directories 
+
+- Code ~~ game-specific code 
+  - board.rkt ~~ the game board, incl. buildings 
+  - tokens.rkt ~~ the tokens 
+
+- Lib ~~ code that could live in a library 
+
