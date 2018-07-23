@@ -1,58 +1,59 @@
 #lang racket
 
-#|
-if it is player's P turn, P must (1) move one token and (2) build up one building after the move
+#| The Rules
+;; ---------------------------------------------------------------------------------------------------
 
-a player can move to a neighboring place if
+If it is player's P turn, P must (1) move one token and (2) build up one building after the move.
 
-there is no other player on that field,
-he is "jumping" down from a building (of arbitrary height), or
-the building on this place is only one step taller than the one he is on but not capped (4th floor).
-a player can add a level to a neighboring field if the building isn't already 3 storied tall
+A token can move to a neighboring place if
+
+-- there is no other player on that field,
+-- he is "jumping" down from a building (of arbitrary height), or
+-- the building on this place is only one step taller than the one he is on and not capped.
+
+A player can add a level to a neighboring field if the building isn't already capped. 
 
 The game ends
-
-if player A's token reaches the third level of a building.
-if player A can't move or, after the move, can't build up a building
-How do Players and the Administrator use these rules?
+-- if player A can't move or, after moving, can't build up a building
+-- if player A's token reaches the third level of a building
 |#
 
 ;; ---------------------------------------------------------------------------------------------------
 (provide
+ (contract-out
+  (can-move-and-build?
+   ;; can this token move and build up
+   (->i ((b board?) (t (b) (and/c token? (on-board? b)))) (r boolean?)))
 
- ;; Board Token -> Boolean
- ;; can this token move and build up
- ;; ASSUME
- ;; is t on board?
- can-move-and-build?
- 
- ;; Board Token Direction Direction -> Boolean
- ;; ASSUME
- ;; is t on board?
- ;; are the directions on board
- check-move
+ (check-move
+  ;; is this a legal move? 
+  (->i ((b board?) (t (b) (and/c board? (on-board? b))) (e-w direction/c) (n-s direction/c))
+       #:pre (b t e-w n-s) (stay-on-board? b t e-w n-s)
+       (r boolean?)))
 
- ;; Board Token -> Boolean
- ;; does this token end the game? 
- ;; ASSUME
- ;; is t on board?
- check-move-end?
+ (check-move-end?
+  ;; does this token end the game? 
+  (->i ((b board?) (t (b) (and/c board? (on-board? b)))) (r boolean?)))
 
  ;; Board Token Direction Direction -> Boolean
  ;; ASSUME 
  ;; is t on board?
  ;; are the directions on board
- check-build-up)
+ (check-build-up
+  (->i ((b board?) (t (b) (and/c board? (on-board? b)))  (e-w direction/c) (n-s direction/c))
+       #:pre (b t e-w n-s) (stay-on-board? b t e-w n-s)
+       (r boolean?)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "board.rkt")
 (require "token.rkt")
+(require "../Lib/struct-with.rkt")
 (module+ test (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (can-move-and-build? b t)
-  (with-board b
-    (with-token t
+  (with board b
+    (with token t
       (define neighbors (pick-all-neighbors x y))
       (for/or ((n neighbors))
         (match-define `(,e-w ,n-s) n)
@@ -64,18 +65,18 @@ How do Players and the Administrator use these rules?
 (define (check-move b t e-w n-s)
   ;; is the new location free?
   ;; is the location below the current one or only 1 step up?
-  (with-board b
-   (with-token t
+  (with board b
+   (with token t
      (and (location-free-of-token? b x y) (check-height-delta? b x y (+ x e-w) (+ y n-s))))))
 
 (define (check-move-end? b t)
-  (with-board b
-    (with-token t
+  (with board b
+    (with token t
       (= (height-of b x y) TOP-FLOOR))))
 
 (define (check-build-up b t e-w n-s)
-  (with-board b
-    (with-token t
+  (with board b
+    (with token t
       (define x1 (+ x e-w))
       (define y1 (+ y n-s))
       (and (location-free-of-token? b x1 y1) (< (height-of b x1 y1) MAX-HEIGHT)))))

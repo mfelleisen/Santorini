@@ -27,29 +27,39 @@
  SOUTH
  PUT
  EAST
- WEST 
+ WEST
 
  ;; Any -> Boolean
  ;; is this a linear direction 
  direction/c
 
  ;; type Token = (token String Range Range)
- 
- ;; String Range Range -> Token
- ;; create a token for a specific place and of a specific name 
- token
+ token?
 
- ;; Token -> (values Range Range)
- token-location
-
- ;; Token Direction Direction -> Token 
- move-token
-
- ;; Token Direction Direction -> (values Int Int)
  position-of
 
- ;; SYNTAX 
- with-token)
+ #;
+ (token
+   ;; create a token for a specific place and of a specific name 
+   (-> string? in-range? in-range? token?))
+ token
+ 
+ (contract-out
+  
+  (token-location
+   (-> token? (values in-range? in-range?)))
+  
+  (move-token
+   (-> token? direction/c direction/c token?))
+  
+  (at-distinct-places
+   ;; are all tokens at distinct places 
+   (-> (listof token?) boolean?))
+
+  (pick-all-neighbors
+   ;; compute all possible directions to a neighboring field from here
+   ;; ASSUME token is on board? 
+   (-> token? (listof (list/c in-range? in-range?))))))
 
 ;; -----------------------------------------------------------------------------
 (require "../Lib/struct-with.rkt")
@@ -59,17 +69,30 @@
 (define (in-range? i)
   (<= 0 i DIM))
 
-(struct-with token (color x y) #:transparent)
+(struct token (color x y) #:transparent)
 
 (define (token-location t)
-  (with-token t (values x y)))
+  (with token t (values x y)))
 
 (define (move-token t e-w n-s)
   (define-values (x1 y1) (position-of t e-w n-s))
   (token x1 y1))
-      
+
 (define (position-of t e-w n-s)
-  (with-token t (values (+ x e-w) (+ y n-s))))
+  (with token t (values (+ x e-w) (+ y n-s))))
+
+(define (pick-all-neighbors t)
+  (with token t
+    (for*/list ((e-w `(,WEST ,PUT ,EAST))
+                (n-s `(,NORTH ,PUT ,SOUTH))
+                #:when (and (in-range? (+ x e-w)) (in-range? (+ y n-s))))
+      (list e-w n-s))))
+
+(define (at-distinct-places lot)
+  (define L (map (lambda (t) (with token t (list x y))) lot))
+  (define N (length L))
+  (define S (apply set L))
+  (= (set-count S) N))
 
 ;; -----------------------------------------------------------------------------
 (module+ test
@@ -77,5 +100,7 @@
   (check-equal? (let-values ([(x y) (position-of O PUT NORTH)]) (list x y)) '(0 -1))
   (check-equal? (let-values ([(x y) (position-of O PUT SOUTH)]) (list x y)) '(0 +1))
   (check-equal? (let-values ([(x y) (position-of O EAST PUT)]) (list x y)) '(+1 0))
-  (check-equal? (let-values ([(x y) (position-of O WEST PUT)]) (list x y)) '(-1 0)))
-                  
+  (check-equal? (let-values ([(x y) (position-of O WEST PUT)]) (list x y)) '(-1 0))
+
+  (check-true  (at-distinct-places (list (token 'a 1 1) (token 'b 2 2))))
+  (check-false (at-distinct-places (list (token 'a 1 1) (token 'b 1 1))))) 
