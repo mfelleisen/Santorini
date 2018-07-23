@@ -101,4 +101,23 @@ The game ends
 
   (check-true (check-move b t EAST PUT))
   (check-false (check-move-end? b t))
-  (check-true (check-build-up b t EAST PUT)))
+  (check-true (check-build-up b t EAST PUT))
+  
+  #;
+  (check
+   [[3 2x 1x]
+    [3 2p 1o]]
+   (0  1)
+   -1 0
+   check-move
+   (#t))
+
+  #;
+  (check 
+   [[3 2x 1x]
+    [3 2o 1o]]
+   (0  1)
+   -1 0
+   check-build-up
+   (#f))
+  )

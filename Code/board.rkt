@@ -80,6 +80,7 @@
 (define MAX-HEIGHT 4)
 
 (struct board (tokens buildings)
+  #:transparent
   #:methods gen:equal+hash
   [(define (equal-proc b1 b2 equal?)
      (match-define (board b1t b1b) b1)
@@ -155,5 +156,75 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; TESTS
+
 (module+ test
-  (check-equal? (init 't1 't2 't3 't4) (board (list 't1 't2 't3 't4) '())))
+  ; (require syntax/parse)
+  (require (for-syntax racket/list))
+
+  (begin-for-syntax
+    (define CELL #px"(\\d*)([a-z])")
+  
+    (define-syntax-class cell
+      (pattern x:id
+               #:do [(define sym (syntax-e #'x))
+                     (define str (symbol->string sym))
+                     (define mat (regexp-match CELL str))]
+               #:fail-unless (and mat (string->number (second mat))) "not a cell spec"
+               #:attr v #`(list #,(string->number (second mat)) #,(third mat)))
+      (pattern x:integer #:attr v #'x))
+
+    (define-syntax-class literal-board
+      [pattern [[x:cell ...] ...]
+               #:do [(define x-board #'(list (list x.v ...) ...))]
+               #:fail-unless x-board "not a board"
+               #:attr board (datum->syntax #'here x-board)]))
+
+  (define-syntax (board-check stx)
+    (syntax-parse stx
+      [(_ b:literal-board (tx:integer ty:integer) arg ... proc:id (result))
+       #'(check-equal?
+          (proc (->board b.board) (token "x" tx ty) arg ...)
+          result)]))
+
+  ;; [Listof [Listof (U Integer [List Integer Letter])]] -> (U Board  #false)
+  (define (->board x)
+    (define (+token accu cell x y) (if (integer? cell) accu (cons (token (second cell) x y) accu)))
+    (define tokens (traverse-literal-board x +token))
+    (define (+building accu cell x y)
+      (if (integer? cell)
+          (cons (building x y cell) accu)
+          (cons (building x y (first cell)) accu)))
+    (define buildings (traverse-literal-board x +building))
+    (and tokens buildings (2-tokens tokens) (board tokens buildings)))
+
+  ;; [Listof Token] -> Boolean
+  ;; there are exactly four tokens and only two kinds of tokens 
+  (define (2-tokens tokens)
+    (define names (map (lambda (t) (with token t color)) tokens))
+    (and (= (length names) 4)
+         (let ([names-first (remove* (list (first names)) names)])
+           (and (= (length names-first) 2)
+                (let ([names-other (remove* (list (first names-first)) names-first)])
+                  (empty? names-other))))))
+
+  ;; (All X) [Listof [Listof Any]] [(list Any N Letter) N N -> X] -> (U [Listof X] #false)
+  (define (traverse-literal-board x f)
+    (let/ec return
+      (for/fold ([tokens '()]) ([row x][row# (in-naturals)])
+        (for/fold ([tokens tokens]) ([cell row][col# (in-naturals)])
+          (f tokens cell row# col#))))))
+
+(module+ test 
+  (check-equal? (init 't1 't2 't3 't4) (board (list 't1 't2 't3 't4) '()))
+
+  (define (foo b t x y) b)
+  (board-check
+   [[3 2x 1x]
+    [3 2o 1o]]
+   (0 1)
+   2 3
+   foo
+   [(board
+     (list (token "o" 1 2) (token "o" 1 1) (token "x" 0 2) (token "x" 0 1))
+     (list (building 1 2 1) (building 1 1 2) (building 1 0 3)
+           (building 0 2 1) (building 0 1 2) (building 0 0 3)))]))
