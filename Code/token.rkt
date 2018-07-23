@@ -35,13 +35,6 @@
 
  ;; type Token = (token String Range Range)
  token?
-
- position-of
-
- #;
- (token
-   ;; create a token for a specific place and of a specific name 
-   (-> string? in-range? in-range? token?))
  token
  
  (contract-out
@@ -49,6 +42,9 @@
   (token-location
    (-> token? (values in-range? in-range?)))
   
+  (neighbor-location
+   (-> token? in-range? in-range? (values in-range? in-range?)))
+
   (move-token
    (-> token? direction/c direction/c token?))
   
@@ -56,7 +52,7 @@
    ;; are all tokens at distinct places 
    (-> (listof token?) boolean?))
 
-  (pick-all-neighbors
+  (all-neighbors
    ;; compute all possible directions to a neighboring field from here
    ;; ASSUME token is on board? 
    (-> token? (listof (list/c in-range? in-range?))))))
@@ -75,18 +71,18 @@
   (with token t (values x y)))
 
 (define (move-token t e-w n-s)
-  (define-values (x1 y1) (position-of t e-w n-s))
+  (define-values (x1 y1) (neighbor-location t e-w n-s))
   (token x1 y1))
 
-(define (position-of t e-w n-s)
+(define (neighbor-location t e-w n-s)
   (with token t (values (+ x e-w) (+ y n-s))))
 
-(define (pick-all-neighbors t)
+(define (all-neighbors t)
   (with token t
-    (for*/list ((e-w `(,WEST ,PUT ,EAST))
-                (n-s `(,NORTH ,PUT ,SOUTH))
-                #:when (and (in-range? (+ x e-w)) (in-range? (+ y n-s))))
-      (list e-w n-s))))
+        (for*/list ((e-w `(,WEST ,PUT ,EAST))
+                    (n-s `(,NORTH ,PUT ,SOUTH))
+                    #:when (and (in-range? (+ x e-w)) (in-range? (+ y n-s))))
+          (list e-w n-s))))
 
 (define (at-distinct-places lot)
   (define L (map (lambda (t) (with token t (list x y))) lot))
@@ -97,10 +93,12 @@
 ;; -----------------------------------------------------------------------------
 (module+ test
   (define O (token "christos" 0 0))
-  (check-equal? (let-values ([(x y) (position-of O PUT NORTH)]) (list x y)) '(0 -1))
-  (check-equal? (let-values ([(x y) (position-of O PUT SOUTH)]) (list x y)) '(0 +1))
-  (check-equal? (let-values ([(x y) (position-of O EAST PUT)]) (list x y)) '(+1 0))
-  (check-equal? (let-values ([(x y) (position-of O WEST PUT)]) (list x y)) '(-1 0))
+  (check-equal? (let-values ([(x y) (neighbor-location O PUT NORTH)]) (list x y)) '(0 -1))
+  (check-equal? (let-values ([(x y) (neighbor-location O PUT SOUTH)]) (list x y)) '(0 +1))
+  (check-equal? (let-values ([(x y) (neighbor-location O EAST PUT)]) (list x y)) '(+1 0))
+  (check-equal? (let-values ([(x y) (neighbor-location O WEST PUT)]) (list x y)) '(-1 0))
 
+  (check-equal? (all-neighbors (token "hello" 0 0)) '((0 0) (0 1) (1 0) (1 1)))
+  
   (check-true  (at-distinct-places (list (token 'a 1 1) (token 'b 2 2))))
   (check-false (at-distinct-places (list (token 'a 1 1) (token 'b 1 1))))) 

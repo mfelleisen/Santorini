@@ -9,6 +9,8 @@
 ;; -- whether the board is in a "final state"
 ;; ---------------------------------------------------------------------------------------------------
 
+(require (only-in "token.rkt" token? in-range? direction/c at-distinct-places))
+
 (provide
  
  ;; type Building = (building Range Range N)
@@ -63,7 +65,7 @@
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCIES
 
-(require "token.rkt")
+(require (except-in "token.rkt" token? in-range? direction/c at-distinct-places))
 (require "../Lib/struct-with.rkt")
 
 (require (for-syntax syntax/parse))
@@ -116,7 +118,7 @@
 
 (define (build b token e-w n-s)
   (with board b
-        (define-values (x-where-to-build y-where-to-build) (position-of token n-s e-w))
+        (define-values (x-where-to-build y-where-to-build) (neighbor-location token n-s e-w))
         (define is-there-a-building (find-building buildings x-where-to-build y-where-to-build))
         (define the-building (or is-there-a-building (building x-where-to-build y-where-to-build 0)))
         (board tokens (replace (build-on the-building) buildings))))
@@ -154,6 +156,4 @@
 ;; ---------------------------------------------------------------------------------------------------
 ;; TESTS
 (module+ test
-  (check-equal? (pick-all-neighbors (token "hello" 0 0)) '((0 0) (0 1) (1 0) (1 1)))
-
   (check-equal? (init 't1 't2 't3 't4) (board (list 't1 't2 't3 't4) '())))
