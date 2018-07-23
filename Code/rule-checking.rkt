@@ -22,36 +22,29 @@ The game ends
 (require (only-in "token.rkt" token? direction/c))
 (require (only-in "board.rkt" board? on-board? stay-on-board?))
 
+(define simple-checker/c
+  (->i ((b board?) (t (b) (and/c token? (on-board? b)))) (r boolean?)))
+
+(define checker/c
+  (->i ((b board?) (t (b) (and/c token? (on-board? b))) (e-w direction/c) (n-s direction/c))
+       #:pre/name (e-w n-s) "a token can't stay put" (not (and (= e-w PUT) (= n-s PUT)))
+       #:pre/name (b t e-w n-s) "stay on board" (stay-on-board? b t e-w n-s) 
+       (r boolean?)))
+
 (provide
  (contract-out
-  (can-move-and-build?
-   ;; can this token move and build up
-   (->i ((b board?) (t (b) (and/c token? (on-board? b)))) (r boolean?)))
-
-  (check-move
-   ;; is this a legal move? 
-   (->i ((b board?) (t (b) (and/c board? (on-board? b))) (e-w direction/c) (n-s direction/c))
-        #:pre (b t e-w n-s) (stay-on-board? b t e-w n-s)
-        (r boolean?)))
-
-  (check-move-end?
-   ;; does this token end the game? 
-   (->i ((b board?) (t (b) (and/c board? (on-board? b)))) (r boolean?)))
-
-  ;; Board Token Direction Direction -> Boolean
-  ;; ASSUME 
-  ;; is t on board?
-  ;; are the directions on board
-  (check-build-up
-   (->i ((b board?) (t (b) (and/c board? (on-board? b)))  (e-w direction/c) (n-s direction/c))
-        #:pre (b t e-w n-s) (stay-on-board? b t e-w n-s)
-        (r boolean?)))))
+  (can-move-and-build? simple-checker/c)
+  (check-move checker/c)
+  (check-move-end? simple-checker/c)
+  (check-build-up checker/c)))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require (except-in "board.rkt" board? on-board? stay-on-board?))
 (require (except-in "token.rkt" token? direction/c))
 (require "../Lib/struct-with.rkt")
-(module+ test (require rackunit))
+(module+ test
+  (require (submod "board.rkt" test))
+  (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (can-move-and-build? b t)
@@ -96,28 +89,26 @@ The game ends
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
-  (define t (token "a" 1 1))
-  (define b (init t (token "a" 2 2) (token "b" 3 3) (token "b" 4 4)))
-
-  (check-true (check-move b t EAST PUT))
-  (check-false (check-move-end? b t))
-  (check-true (check-build-up b t EAST PUT))
+  (require (submod ".."))
   
-  #;
-  (check
-   [[3 2x 1x]
-    [3 2p 1o]]
-   (0  1)
-   -1 0
-   check-move
-   (#t))
+  (define-syntax-rule
+    (checker r f b (c tx ty) arg ...)
+    (check-equal? (f b (token c tx ty) arg ...) r))
 
-  #;
-  (check 
-   [[3 2x 1x]
-    [3 2o 1o]]
-   (0  1)
-   -1 0
-   check-build-up
-   (#f))
-  )
+  (define-board b1
+    [[3 2x 1x]
+     [3 2o 1o]])
+  
+  (checker #t check-move b1 ("x" 1 0) WEST PUT)
+  (checker #t check-build-up b1 ("x" 1 0) WEST SOUTH)
+
+  (define-board b2
+    [[]
+     [1b]
+     [0 0 0a]
+     [0 0 0 0a]
+     [0 0 0 0 0b]])
+  
+  (checker #t check-move      b2 ("b" 0 1) EAST PUT)
+  (checker #f check-move-end? b2 ("b" 0 1))
+  (checker #t check-build-up  b2 ("b" 0 1) EAST PUT))

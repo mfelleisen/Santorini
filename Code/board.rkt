@@ -62,6 +62,23 @@
    ;; is any three-story building occupied by a token?
    (-> board? boolean?))))
 
+(module+ test
+  (provide
+   ;; SYNTAX
+   #; (define-board name [[x-y ...] ...])
+   ;; defines a literal board with cells x-y ...
+   ;; Each cell must either be an integer or an identifier that combines a natural with a letter.
+   ;; An integer denotes a building of that height.
+   ;; An identifier denotes a building of that height with a token named by the letter atop.
+   ;; The grid's origin is the top left. Moving down is moving south, moving right means moving east.
+   #;[[0 0 1x]
+      [2y]
+      [1x 3 2y]]
+   ;; is a board with two "x" tokens at (2,0) and (0,2), each at height 1,
+   ;; and two "y" tokens at (0,1) and (2,2), each at height 2; 
+   ;; there is one other buildig at (1,2) of height 3. 
+   define-board))
+
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCIES
 
@@ -70,7 +87,8 @@
 
 (require (for-syntax syntax/parse))
 (module+ test
-  (require rackunit))
+  (require rackunit)
+  (require (for-syntax racket/list)))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; IMPLEMENTATION  
@@ -155,23 +173,22 @@
   (building x y (+ z 1)))
 
 ;; ---------------------------------------------------------------------------------------------------
-;; TESTS
+;; TEST FRAMEWORK for Boards
 
 (module+ test
-  ; (require syntax/parse)
-  (require (for-syntax racket/list))
-
   (begin-for-syntax
     (define CELL #px"(\\d*)([a-z])")
   
     (define-syntax-class cell
+      (pattern x:integer #:attr v #'x)
       (pattern x:id
                #:do [(define sym (syntax-e #'x))
                      (define str (symbol->string sym))
                      (define mat (regexp-match CELL str))]
                #:fail-unless (and mat (string->number (second mat))) "not a cell spec"
                #:attr v #`(list #,(string->number (second mat)) #,(third mat)))
-      (pattern x:integer #:attr v #'x))
+      (pattern ((~literal unquote) x)
+               #:attr v #'x))
 
     (define-syntax-class literal-board
       [pattern [[x:cell ...] ...]
@@ -179,52 +196,50 @@
                #:fail-unless x-board "not a board"
                #:attr board (datum->syntax #'here x-board)]))
 
-  (define-syntax (board-check stx)
-    (syntax-parse stx
-      [(_ b:literal-board (tx:integer ty:integer) arg ... proc:id (result))
-       #'(check-equal?
-          (proc (->board b.board) (token "x" tx ty) arg ...)
-          result)]))
+  
+  (define-syntax (define-board stx)
+    (syntax-parse stx [(_ n:id b:literal-board) #'(define n (->board b.board))]))
 
-  ;; [Listof [Listof (U Integer [List Integer Letter])]] -> (U Board  #false)
+  #; ([Listof [Listof (U Integer [List Integer Letter])]] -> (U Board  #false))
   (define (->board x)
-    (define (+token accu cell x y) (if (integer? cell) accu (cons (token (second cell) x y) accu)))
+    (define (+token accu cell x y)
+      (if (integer? cell) accu (cons (token (second cell) x y) accu)))
     (define tokens (traverse-literal-board x +token))
     (define (+building accu cell x y)
-      (if (integer? cell)
-          (cons (building x y cell) accu)
-          (cons (building x y (first cell)) accu)))
+      (cons (building x y (if (integer? cell) cell (first cell))) accu))
     (define buildings (traverse-literal-board x +building))
-    (and tokens buildings (2-tokens tokens) (board tokens buildings)))
-
-  ;; [Listof Token] -> Boolean
-  ;; there are exactly four tokens and only two kinds of tokens 
-  (define (2-tokens tokens)
-    (define names (map (lambda (t) (with token t color)) tokens))
-    (and (= (length names) 4)
-         (let ([names-first (remove* (list (first names)) names)])
-           (and (= (length names-first) 2)
-                (let ([names-other (remove* (list (first names-first)) names-first)])
-                  (empty? names-other))))))
-
-  ;; (All X) [Listof [Listof Any]] [(list Any N Letter) N N -> X] -> (U [Listof X] #false)
+    (and (exactly-2-tokens-of-2-kinds tokens) (board tokens buildings)))
+  
+  #; (All (Y X) [Listof [Listof Y]] [[Listof X] Y N N -> X] -> [Listof X])
   (define (traverse-literal-board x f)
-    (let/ec return
-      (for/fold ([tokens '()]) ([row x][row# (in-naturals)])
-        (for/fold ([tokens tokens]) ([cell row][col# (in-naturals)])
-          (f tokens cell row# col#))))))
+    (for/fold ([tokens '()]) ([row x][n-s (in-naturals)])
+      (for/fold ([tokens tokens]) ([cell row][e-w (in-naturals)])
+        (f tokens cell e-w n-s))))
 
+  #; ([Listof Token] -> Boolean)
+  (define (exactly-2-tokens-of-2-kinds tokens)
+    (define names (map (lambda (t) (with token t color)) tokens))
+    (and (or (= (length names) 4) (error '->board "too few tokens"))
+         (let* ([fst (first names)]
+                [names-first (remove* (list fst) names)])
+           (and (or (= (length names-first) 2) (error '->board "too few tokens of kind ~a" fst))
+                (let* ([snd  (first names-first)]
+                       [names-other (remove* (list snd) names-first)])
+                  (or (empty? names-other) (error '->board "too few tokens of kind ~a" snd))))))))
+
+;; ---------------------------------------------------------------------------------------------------
+;; TESTS 
 (module+ test 
   (check-equal? (init 't1 't2 't3 't4) (board (list 't1 't2 't3 't4) '()))
 
+  (define 2o (list 2 "o"))
   (define (foo b t x y) b)
-  (board-check
-   [[3 2x 1x]
-    [3 2o 1o]]
-   (0 1)
-   2 3
-   foo
-   [(board
-     (list (token "o" 1 2) (token "o" 1 1) (token "x" 0 2) (token "x" 0 1))
-     (list (building 1 2 1) (building 1 1 2) (building 1 0 3)
-           (building 0 2 1) (building 0 1 2) (building 0 0 3)))]))
+  (define-board b 
+    [[3 2x 1x]
+     [3 ,2o 1o]])
+  (check-equal? 
+   b
+   (board
+     (list (token "o" 2 1) (token "o" 1 1) (token "x" 2 0) (token "x" 1 0))
+     (list (building 2 1 1) (building 1 1 2) (building 0 1 3)
+           (building 2 0 1) (building 1 0 2) (building 0 0 3)))))
