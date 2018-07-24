@@ -8,6 +8,7 @@
 ;; ---------------------------------------------------------------------------------------------------
 
 (define DIM 5)
+(define in-range? (integer-in 0 DIM))
 
 (define NORTH -1)
 (define SOUTH +1)
@@ -35,15 +36,17 @@
 
  ;; type Token = (token String Range Range)
  token?
- token
  
  (contract-out
+
+  (token
+   (-> string? in-range? in-range? token?))
   
   (token-location
    (-> token? (values in-range? in-range?)))
   
   (neighbor-location
-   (-> token? in-range? in-range? (values in-range? in-range?)))
+   (-> token? direction/c direction/c (values in-range? in-range?)))
 
   (move-token
    (-> token? direction/c direction/c token?))
@@ -52,19 +55,24 @@
    ;; are all tokens at distinct places 
    (-> (listof token?) boolean?))
 
-  (all-neighbors
-   ;; compute all possible directions to a neighboring field from here
-   ;; ASSUME token is on board? 
-   (-> token? (listof (list/c in-range? in-range?))))))
+  (all-directions-to-neighbors
+   ;; compute all possible directions to a neighboring field from this token
+   ;; GUARANTEE (0,0) is not a part of the directions 
+   (-> token? (listof (list/c direction/c direction/c))))
 
-;; -----------------------------------------------------------------------------
+  (exactly-2-tokens-of-2-kinds
+   (-> (listof token?) boolean?))
+
+  (stay-on-board?
+   ;; does this token stay in range if it moves in the specified direction?
+   ;; ASSUME token is in range 
+   (-> token? direction/c direction/c boolean?))))
+
+;; ---------------------------------------------------------------------------------------------------
 (require "../Lib/struct-with.rkt")
 (module+ test (require rackunit))
 
-;; -----------------------------------------------------------------------------
-(define (in-range? i)
-  (<= 0 i DIM))
-
+;; ---------------------------------------------------------------------------------------------------
 (struct token (color x y) #:transparent)
 
 (define (token-location t)
@@ -72,16 +80,18 @@
 
 (define (move-token t e-w n-s)
   (define-values (x1 y1) (neighbor-location t e-w n-s))
-  (token x1 y1))
+  (token (token-color t) x1 y1))
 
 (define (neighbor-location t e-w n-s)
   (with token t (values (+ x e-w) (+ y n-s))))
 
-(define (all-neighbors t)
+(define (all-directions-to-neighbors t)
   (with token t
         (for*/list ((e-w `(,WEST ,PUT ,EAST))
                     (n-s `(,NORTH ,PUT ,SOUTH))
-                    #:when (and (in-range? (+ x e-w)) (in-range? (+ y n-s))))
+                    (new-e-w (in-value (+ x e-w)))
+                    (new-n-s (in-value (+ y n-s)))
+                    #:when (and (not (= 0 e-w n-s)) (in-range? new-e-w) (in-range? new-n-s)))
           (list e-w n-s))))
 
 (define (at-distinct-places lot)
@@ -90,15 +100,32 @@
   (define S (apply set L))
   (= (set-count S) N))
 
-;; -----------------------------------------------------------------------------
+(define (stay-on-board? t e-w n-s)
+  (with token t (and (in-range? (+ x e-w)) (in-range? (+ y n-s)))))
+
+#; ([Listof Token] -> Boolean)
+(define (exactly-2-tokens-of-2-kinds tokens)
+  (define names (map (lambda (t) (with token t color)) tokens))
+  (and (or (= (length names) 4) (error '->board "too few tokens"))
+       (let* ([fst (first names)]
+              [names-first (remove* (list fst) names)])
+         (and (or (= (length names-first) 2) (error '->board "too few tokens of kind ~a" fst))
+              (let* ([snd  (first names-first)]
+                     [names-other (remove* (list snd) names-first)])
+                (or (empty? names-other) (error '->board "too few tokens of kind ~a" snd)))))))
+
+;; ---------------------------------------------------------------------------------------------------
 (module+ test
+  ; (require (submod "..")) ; some of these calls intentionally break contracts 
+
   (define O (token "christos" 0 0))
   (check-equal? (let-values ([(x y) (neighbor-location O PUT NORTH)]) (list x y)) '(0 -1))
   (check-equal? (let-values ([(x y) (neighbor-location O PUT SOUTH)]) (list x y)) '(0 +1))
   (check-equal? (let-values ([(x y) (neighbor-location O EAST PUT)]) (list x y)) '(+1 0))
   (check-equal? (let-values ([(x y) (neighbor-location O WEST PUT)]) (list x y)) '(-1 0))
-
-  (check-equal? (all-neighbors (token "hello" 0 0)) '((0 0) (0 1) (1 0) (1 1)))
   
   (check-true  (at-distinct-places (list (token 'a 1 1) (token 'b 2 2))))
-  (check-false (at-distinct-places (list (token 'a 1 1) (token 'b 1 1))))) 
+  (check-false (at-distinct-places (list (token 'a 1 1) (token 'b 1 1))))
+
+  (check-equal? (all-directions-to-neighbors O) '((0 1) (1 0) (1 1)))
+  (check-equal? (all-directions-to-neighbors (token "mf" 1 0)) '((-1 0) (-1 1) (0 1) (1 0) (1 1))))

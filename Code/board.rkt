@@ -21,7 +21,7 @@
  board?
 
  ;; Token Token Token Token -> Board
- board
+ ; board
 
  (contract-out 
   (init
@@ -33,12 +33,7 @@
   (on-board?
    ;; does this token exist on the current board?
    (-> board? (-> token? boolean?)))
-
-  (stay-on-board?
-   ;; does this token stay on baord if it moves in the specified direction?
-   ;; (this is called only when on-board? has been confirmed)
-   (-> board? token? direction/c direction/c boolean?))
- 
+  
   (height-of
    (-> board? in-range? in-range? natural-number/c))
  
@@ -117,9 +112,6 @@
 (define ((on-board? b) t)
   (with board b (cons? (member t tokens))))
 
-(define (stay-on-board? b t e-w n-s)
-  (with board b (with token t (and (in-range? (+ x e-w)) (in-range? (+ y n-s))))))
-
 (define (height-of b x y)
   (with board b
         (define is-there-a-building (find-building buildings x y))
@@ -128,12 +120,13 @@
             (building-height is-there-a-building))))
 
 (define (location-free-of-token? b x0 y0)
-  (with board b
-        (ormap (lambda (t) (with token t (not (and (= x0 x) (= y0 y))))) tokens)))
+  (for/and ((t (board-tokens b)))
+    (define-values (x y) (token-location t))
+    (not (and (= x0 x) (= y0 y)))))
 
 (define (move b token e-w n-s)
   (with board b
-        (board (replace (move-token token n-s e-w) tokens) buildings)))
+        (board (replace (move-token token e-w n-s) tokens) buildings)))
 
 (define (build b token e-w n-s)
   (with board b
@@ -152,7 +145,7 @@
 (define (find-building buildings x-where-to-build y-where-to-build)
   (ormap (lambda (b)
            (match-define (building x y _) b)
-           (and (equal? x x-where-to-build) (equal? y y-where-to-build)))
+           (and (equal? x x-where-to-build) (equal? y y-where-to-build) b))
          buildings))
 
 ;; Token -> [Building -> Boolean]
@@ -214,18 +207,7 @@
   (define (traverse-literal-board x f)
     (for/fold ([tokens '()]) ([row x][n-s (in-naturals)])
       (for/fold ([tokens tokens]) ([cell row][e-w (in-naturals)])
-        (f tokens cell e-w n-s))))
-
-  #; ([Listof Token] -> Boolean)
-  (define (exactly-2-tokens-of-2-kinds tokens)
-    (define names (map (lambda (t) (with token t color)) tokens))
-    (and (or (= (length names) 4) (error '->board "too few tokens"))
-         (let* ([fst (first names)]
-                [names-first (remove* (list fst) names)])
-           (and (or (= (length names-first) 2) (error '->board "too few tokens of kind ~a" fst))
-                (let* ([snd  (first names-first)]
-                       [names-other (remove* (list snd) names-first)])
-                  (or (empty? names-other) (error '->board "too few tokens of kind ~a" snd))))))))
+        (f tokens cell e-w n-s)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; TESTS 
@@ -234,12 +216,34 @@
 
   (define 2o (list 2 "o"))
   (define (foo b t x y) b)
-  (define-board b 
-    [[3 2x 1x]
-     [3 ,2o 1o]])
-  (check-equal? 
-   b
-   (board
+
+  
+  (define (board-move ss tt)
+    (define-board b1
+      [[,ss ,tt 1x]
+       [3   2o  1o]])
+    b1)
+
+  (define b1-before (board-move 3 (list 2 "x")))
+  (define b1-after  (board-move (list 3 "x") 2))
+  
+  (define expected-b
+    (board
      (list (token "o" 2 1) (token "o" 1 1) (token "x" 2 0) (token "x" 1 0))
      (list (building 2 1 1) (building 1 1 2) (building 0 1 3)
-           (building 2 0 1) (building 1 0 2) (building 0 0 3)))))
+           (building 2 0 1) (building 1 0 2) (building 0 0 3))))
+  (check-equal? b1-before expected-b)
+
+  (check-false  (find-building (board-buildings b1-before) 0 2))
+  (check-equal? (find-building (board-buildings b1-before) 0 1) (building 0 1 3))
+
+  (check-equal? (height-of b1-before 0 2) 0)
+  (check-equal? (height-of b1-before 0 1) 3)
+
+  (check-equal? (find-building (board-buildings b1-before) (+ 1 PUT) (+ 0 SOUTH)) (building 1 1 2))
+  
+  (check-false (location-free-of-token? b1-before (+ 1 PUT) (+ 0 SOUTH)))
+  (check-true  (location-free-of-token? b1-before (+ 1 WEST) (+ 0 SOUTH)))
+
+  (check-equal? (move b1-before (token "x" 1 0) WEST PUT) b1-after))
+                

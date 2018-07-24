@@ -19,8 +19,8 @@ The game ends
 |#
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (only-in "token.rkt" token? direction/c))
-(require (only-in "board.rkt" board? on-board? stay-on-board?))
+(require (only-in "token.rkt" token? direction/c stay-on-board?))
+(require (only-in "board.rkt" board? on-board?))
 
 (define simple-checker/c
   (->i ((b board?) (t (b) (and/c token? (on-board? b)))) (r boolean?)))
@@ -28,56 +28,54 @@ The game ends
 (define checker/c
   (->i ((b board?) (t (b) (and/c token? (on-board? b))) (e-w direction/c) (n-s direction/c))
        #:pre/name (e-w n-s) "a token can't stay put" (not (and (= e-w PUT) (= n-s PUT)))
-       #:pre/name (b t e-w n-s) "stay on board" (stay-on-board? b t e-w n-s) 
+       #:pre/name (b t e-w n-s) "stay on board" (stay-on-board? t e-w n-s) 
        (r boolean?)))
 
 (provide
  (contract-out
+  ;; can the given token move on this board and then build up a house on this board? 
   (can-move-and-build? simple-checker/c)
+
+  ;; can the given token move in the specified direction on this board? 
   (check-move checker/c)
+
+  ;; did the move of the token end the game on this board? 
   (check-move-end? simple-checker/c)
+
+  ;; can the token build in the specified direction on this board? 
   (check-build-up checker/c)))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (except-in "board.rkt" board? on-board? stay-on-board?))
-(require (except-in "token.rkt" token? direction/c))
-(require "../Lib/struct-with.rkt")
+(require (except-in "board.rkt" board? on-board?))
+(require (except-in "token.rkt" token? direction/c stay-on-board?))
 (module+ test
   (require (submod "board.rkt" test))
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (can-move-and-build? b t)
-  (with board b
-        (with token t
-              (define neighbors (all-neighbors x y))
-              (for/or ((n neighbors))
-                (match-define `(,e-w ,n-s) n)
-                (and (check-move b t e-w n-s)
-                     (for/or ((n (all-neighbors (+ x e-w) (+ y n-s))))
-                       (match-define `(,e-w ,n-s) n)
-                       (check-build-up b t e-w n-s)))))))
+  (for/or ((n (all-directions-to-neighbors t)))
+    (match-define `(,e-w ,n-s) n)
+    (and (check-move b t e-w n-s)
+         (let* ([new-t   (move-token t e-w n-s)]
+                [b-moved (move b t e-w n-s)])
+           (for/or ((n (all-directions-to-neighbors new-t)))
+             (match-define `(,e-w ,n-s) n)
+             (check-build-up b-moved new-t e-w n-s))))))
 
 (define (check-move b t e-w n-s)
-  ;; is the new location free?
-  ;; is the location below the current one or only 1 step up?
-  (with board b
-        (with token t
-              (and (location-free-of-token? b x y)
-                   (check-height-delta? b x y (+ x e-w) (+ y n-s))))))
-
-(define (check-move-end? b t)
-  (with board b
-        (with token t
-              (= (height-of b x y) TOP-FLOOR))))
+  (define-values (x y) (token-location t))
+  (define-values (x1 y1) (neighbor-location t e-w n-s))
+  (and (location-free-of-token? b x1 y1) (check-height-delta? b x y x1 y1)))
 
 (define (check-build-up b t e-w n-s)
-  (with board b
-        (with token t
-              (define x1 (+ x e-w))
-              (define y1 (+ y n-s))
-              (and (location-free-of-token? b x1 y1)
-                   (< (height-of b x1 y1) MAX-HEIGHT)))))
+  (define-values (x y) (token-location t))
+  (define-values (x1 y1) (neighbor-location t e-w n-s))
+  (and (location-free-of-token? b x1 y1) (< (height-of b x1 y1) MAX-HEIGHT)))
+
+(define (check-move-end? b t)
+  (define-values (x y) (token-location t))
+  (= (height-of b x y) TOP-FLOOR))
 
 ;; Board Range Range Range Range -> Board
 ;; is the up-delta <= 1 or is it going down?
@@ -95,20 +93,33 @@ The game ends
     (checker r f b (c tx ty) arg ...)
     (check-equal? (f b (token c tx ty) arg ...) r))
 
-  (define-board b1
-    [[3 2x 1x]
-     [3 2o 1o]])
-  
-  (checker #t check-move b1 ("x" 1 0) WEST PUT)
-  (checker #t check-build-up b1 ("x" 1 0) WEST SOUTH)
+  (define (board-move tt)
+    (define-board b1
+      [[3 ,tt 1x]
+       [3 2o 1o]])
+    b1)
 
+  (define b1-before (board-move (list 2 "x")))
+  (define b1-after  (board-move (list 3 "x")))
+  
   (define-board b2
     [[]
      [1b]
      [0 0 0a]
      [0 0 0 0a]
-     [0 0 0 0 0b]])
+     [0 0 0 1 0b]])
   
-  (checker #t check-move      b2 ("b" 0 1) EAST PUT)
+  (checker #t check-move b1-before ("x" 1 0) WEST PUT)
+  (checker #t check-move b2 ("b" 0 1) EAST PUT)
+  (checker #t check-move b2 ("b" 4 4) WEST PUT)
+  (checker #t check-move b2 ("b" 4 4) PUT NORTH)
+  
+  (checker #t check-move-end? b1-after ("x" 1 0))
   (checker #f check-move-end? b2 ("b" 0 1))
-  (checker #t check-build-up  b2 ("b" 0 1) EAST PUT))
+  
+  (checker #t check-build-up b1-before ("x" 1 0) WEST SOUTH)
+  (checker #f check-build-up b1-before ("x" 1 0) PUT  SOUTH)
+  (checker #t check-build-up b2        ("b" 0 1) EAST PUT)
+
+  (checker #t can-move-and-build? b1-before ("x" 1 0))
+  (checker #f can-move-and-build? (board-move (list 0 "x")) ("x" 1 0)))
