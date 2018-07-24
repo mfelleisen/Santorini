@@ -78,6 +78,7 @@
 ;; DEPENDENCIES
 
 (require (except-in "token.rkt" token? in-range? direction/c at-distinct-places))
+(require "../Lib/set-from.rkt")
 (require "../Lib/struct-with.rkt")
 
 (require (for-syntax syntax/parse))
@@ -92,13 +93,20 @@
 (define TOP-FLOOR  3)
 (define MAX-HEIGHT 4)
 
+(define (same-building b1)
+  (match-define (building x1 y1 z1) b1)
+  (lambda (b2)
+    (match-define (building x2 y2 z2) b2)
+    (and (= x1 x2) (= y1 y2))))
+
 (struct board (tokens buildings)
   #:transparent
   #:methods gen:equal+hash
   [(define (equal-proc b1 b2 equal?)
      (match-define (board b1t b1b) b1)
      (match-define (board b2t b2b) b2)
-     (and (equal? b1t b2t) (equal? b1b b2b)))
+     (and (set=? (first2 b1t) (first2 b2t))
+          (set=? (set-from b1b same-building) (set-from b2b same-building))))
    (define (hash-proc bd rhash)
      (match-define (board t b) bd)
      (+ (* 10 (length t)) (length b)))
@@ -211,12 +219,39 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; TESTS 
-(module+ test 
-  (check-equal? (init 't1 't2 't3 't4) (board (list 't1 't2 't3 't4) '()))
+(module+ test
+  (define board1
+    (board
+     (list
+      (token "x" 0 0)
+      (token "o" 2 1)
+      (token "o" 1 1)
+      (token "x" 2 0)
+      (token "x" 1 0))
+     (list
+      (building 2 1 1)
+      (building 1 1 2)
+      (building 0 1 3)
+      (building 2 0 1)
+      (building 1 0 2)
+      (building 0 0 3))))
 
-  (define 2o (list 2 "o"))
-  (define (foo b t x y) b)
-
+  (define board2
+    (board
+     (list
+      (token "o" 2 1)
+      (token "o" 1 1)
+      (token "x" 2 0)
+      (token "x" 0 0))
+     (list
+      (building 2 1 1)
+      (building 1 1 2)
+      (building 0 1 3)
+      (building 2 0 1)
+      (building 1 0 2)
+      (building 0 0 3))))
+  
+  (check-equal? board1 board2)
   
   (define (board-move ss tt)
     (define-board b1

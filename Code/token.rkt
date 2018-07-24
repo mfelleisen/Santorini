@@ -36,6 +36,9 @@
 
  ;; type Token = (token String Range Range)
  token?
+
+ ;; [Listof Token] -> {Setof Token]
+ first2
  
  (contract-out
 
@@ -75,6 +78,11 @@
 ;; ---------------------------------------------------------------------------------------------------
 (struct token (color x y) #:transparent)
 
+(define (same-token t1)
+  (define name1 (token-color t1))
+  (lambda (t2)
+    (string=? (token-color t2) name1)))
+
 (define (token-location t)
   (with token t (values x y)))
 
@@ -103,6 +111,33 @@
 (define (stay-on-board? t e-w n-s)
   (with token t (and (in-range? (+ x e-w)) (in-range? (+ y n-s)))))
 
+#; ([Listof Token] -> [Setof Token])
+(define (first2 lox0)
+  (define strings (set->list (apply set (map token-color lox0))))
+  (let loop ((L lox0) (string1 (first strings)) (result1 #f) (string2 (second strings)) (result2 #f))
+    (cond
+      [(empty? L) (error "can't happen")]
+      [else (define fst (first L))
+            (define col (token-color fst))
+            (cond
+              [(string=? col string1)
+               (cond
+                 [(and result1 (set? result2))
+                  (set-union (set fst result1) result2)]
+                 [result1
+                  (loop (rest L) string1 (set fst result1) string2 result2)]
+                 [else
+                  (loop (rest L) string1 fst string2 result2)])]
+              [(string=? col string2)
+               (cond
+                 [(and (set? result1) result2)
+                  (set-union result1 (set fst result2))]
+                 [result2
+                  (loop (rest L) string1 result1 string2 (set fst result2))]
+                 [else
+                  (loop (rest L) string1 result1 string2 fst)])]
+              [else (error 'first2 "can't happen ~e" lox0)])])))
+
 #; ([Listof Token] -> Boolean)
 (define (exactly-2-tokens-of-2-kinds tokens)
   (define names (map (lambda (t) (with token t color)) tokens))
@@ -128,4 +163,7 @@
   (check-false (at-distinct-places (list (token 'a 1 1) (token 'b 1 1))))
 
   (check-equal? (all-directions-to-neighbors O) '((0 1) (1 0) (1 1)))
-  (check-equal? (all-directions-to-neighbors (token "mf" 1 0)) '((-1 0) (-1 1) (0 1) (1 0) (1 1))))
+  (check-equal? (all-directions-to-neighbors (token "mf" 1 0)) '((-1 0) (-1 1) (0 1) (1 0) (1 1)))
+
+  (define lox0  (list (token "o" 2 1) (token "o" 1 1) (token "x" 2 0) (token "x" 1 0)))
+  (check-equal? (first2 lox0) (set (token "o" 1 1) (token "x" 1 0) (token "o" 2 1) (token "x" 2 0))))
