@@ -14,8 +14,8 @@ A token can move to a neighboring place if
 A player can add a level to a neighboring field if the building isn't already capped. 
 
 The game ends
--- if player A can't move or, after moving, can't build up a building
--- if player A's token reaches the third level of a building
+-- if player P can't move or, after moving, can't build up a building
+-- if player P's token reaches the third level of a building
 |#
 
 ;; ---------------------------------------------------------------------------------------------------
