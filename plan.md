@@ -36,6 +36,16 @@ entities: a board, the tokens and buildings on the board, etc.
 - allow players to move to a neighboring place 
 - allow players to build up a house on a neighboring tile 
 
+### The Buildings 
+
+Nothing matters about them besides their height and (relative) location on
+the board, so we'll keep them there. 
+
+### The Tokens
+
+These can exist on their own, with relative movements and checks for
+"neighborliness". 
+
 ## Stage 2 
 
 All of your remaining friends are software developers and they all favor
@@ -53,13 +63,19 @@ knows
 - whose turn it is 
 - whether a player's move is legal 
 
+checks each player's behavior (adherence to rules)
+
 ### A Player 
 
-wants to pick the next move. It needs to know what the current state of the
-game is. Based on that, it decides 
+knows 
 
-- to move one of the players according to the rules 
-- to build (optionally) on a neighboring field 
+-- where its tokens are 
+-- where other tokens are 
+-- where buildings are 
+
+It can generate all possible moves and then decide 
+- to move one of the tokens according to the rules 
+- to build on a neighboring field 
 
 (in that order). 
 
