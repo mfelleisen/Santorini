@@ -80,7 +80,8 @@
 (require (for-syntax syntax/parse))
 (module+ test
   (require rackunit)
-  (require (for-syntax racket/list)))
+  (require (for-syntax racket/list))
+  (require syntax/macro-testing))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; IMPLEMENTATION  
@@ -169,12 +170,13 @@
   (building x y (+ z 1)))
 
 ;; ---------------------------------------------------------------------------------------------------
-;; TEST FRAMEWORK for Boards
+;; TEST FRAMEWORK for Boards (needed here to get bindings from top-level modules)
 
 (module* test-support #f
   (provide ->board)
 
   (require "token.rkt")
+  (require rackunit)
   
   #; ([Listof [Listof (U Integer [List Integer Letter])]] -> (U Board  #false))
   (define (->board x)
@@ -201,11 +203,27 @@
   (define (traverse-literal-board x f)
     (for/fold ([tokens '()]) ([row x][n-s (in-naturals)])
       (for/fold ([tokens tokens]) ([cell row][e-w (in-naturals)])
-        (f tokens cell e-w n-s)))))
+        (f tokens cell e-w n-s))))
+
+  (check-exn exn:fail?
+             (lambda ()
+               (define one-missing (list (token "x" 0 0)  (token "x" 0 1) (token "o" 1 1)))
+               (exactly-2-tokens-of-2-kinds one-missing)))
+
+  (check-exn exn:fail?
+             (lambda ()
+               (define xxxo (list (token "x" 0 0)  (token "x" 0 1) (token "x" 0 1) (token "o" 1 1)))
+               (exactly-2-tokens-of-2-kinds xxxo)))
+
+  (check-exn exn:fail?
+             (lambda ()
+               (define ooox `(,(token "x" 0 0) ,(token "x" 0 1) ,(token "o" 0 1) ,(token "y" 1 1)))
+               (exactly-2-tokens-of-2-kinds ooox))))
 
 (module+ test
   (require (submod ".." test-support))
   (require (for-syntax (submod ".." test-support)))
+  
   (begin-for-syntax
     (define CELL #px"(\\d*)([a-z])")
   
@@ -231,7 +249,13 @@
       [pattern [[x:cell ...] ...]
                #:do [(define x-board #'((x.w ...) ...))
                      (define d-board (syntax->datum x-board))
-                     (define checked (->board d-board))]
+                     (define checked
+                       (with-handlers ([exn:fail? (lambda (xn)
+                                                    (define msg (exn-message xn))
+                                                    (define cnm (exn-continuation-marks xn))
+                                                    (define stx (list this-syntax))
+                                                    (raise (exn:fail:syntax msg cnm stx)))])
+                         (->board d-board)))]
                #:fail-unless checked "not a board"
                #:attr lit #'#true
                #:attr board #'(list (list x.v ...) ...)]
@@ -242,12 +266,53 @@
                #:attr board x-board]))
   
   (define-syntax (define-board stx)
-    (syntax-parse stx [(_ n:id b:literal-board) #'(define n (->board b.board))] )))
+    (syntax-parse stx [(_ n:id b:literal-board) #'(define n (->board b.board))]))
+
+  (check-equal? (let ()
+                  (define-board b
+                    [[2x 2o]
+                     [1x 1o 3]])
+                  b)
+                (board (list (token "x" 0 0) (token "o" 1 0) (token "x" 0 1) (token "o" 1 1))
+                       (list (building 0 0 2)
+                             (building 1 0 2)
+                             (building 0 1 1)
+                             (building 1 1 1)
+                             (building 2 1 3))))
+
+  (check-exn exn:fail:syntax?
+             (lambda ()
+               (convert-compile-time-error
+                (let ()
+                  (define-board b
+                    [[2x 2o 1x]
+                     [1x 1o 3]])
+                  b))))
+
+  (check-exn exn:fail:syntax?
+             (lambda ()
+               (convert-compile-time-error
+                (let ()
+                  (define-board b
+                    [[2x]
+                     [1x 1o 3]])
+                  b))))
+
+  (check-exn exn:fail:syntax?
+             (lambda ()
+               (convert-compile-time-error
+                (let ()
+                  (define-board b
+                    [[2x 1x]
+                     [1x 1o 3]])
+                  b)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; TESTS
 (module+ test
   (require (submod ".."))
+
+  (void (hash (board '() '()) 1)) ;; cover first hash code function 
   
   (define lox0 (list (token "o" 2 1) (token "o" 1 1) (token "x" 2 0) (token "x" 1 0)))
   (check-equal? (apply init lox0) (board lox0 '()))
@@ -342,7 +407,6 @@
                 (board-build 3 (list 2 "x")))
 
   (define-board b3-before [[2x 2o]   [2x   2o  1]])
-  b3-before
   (define-board b3-after  [[2x 2o 1] [2x   2o  1]])
   (check-equal? (build b3-before (token "o" 1 0) EAST PUT) b3-after))
                 
