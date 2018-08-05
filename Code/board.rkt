@@ -143,14 +143,14 @@
     (not (and (= x0 x) (= y0 y)))))
 
 (define (move b token e-w n-s)
-  (with board b (board (replace (move-token token e-w n-s) tokens) buildings)))
+  (with board b (board (replace (move-token token e-w n-s) token tokens) buildings)))
 
 (define (build b token e-w n-s)
   (with board b
         (define-values (x-where-to-build y-where-to-build) (neighbor-location token e-w n-s))
         (define is-there-a-building (find-building buildings x-where-to-build y-where-to-build))
         (define the-building (or is-there-a-building (building x-where-to-build y-where-to-build 0)))
-        (board tokens (replace (build-on the-building) buildings))))
+        (board tokens (replace (build-on the-building) the-building buildings))))
 
 ;; [Listof Building] Range Range -> (U Building #false)
 (define (find-building buildings x-where-to-build y-where-to-build)
@@ -159,10 +159,10 @@
            (and (equal? x x-where-to-build) (equal? y y-where-to-build) b))
          buildings))
 
-;; X [Listof X] -> [Listof X]
+;; X X [Listof X] -> [Listof X]
 ;; "replace" an x-es on lox with the same location by x
-(define (replace x lox)
-  (cons x lox))
+(define (replace x old lox)
+  (cons x (remove old lox)))
 
 ;; Building -> Building
 (define (build-on b)

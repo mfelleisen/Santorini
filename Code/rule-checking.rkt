@@ -93,6 +93,10 @@ The game ends
     (checker r f b (c tx ty) arg ...)
     (check-equal? (f b (token c tx ty) arg ...) r))
 
+  (define-syntax-rule
+    (check-fail f b (c tx ty) arg ...)
+    (check-exn exn:fail:contract? (lambda () (f b (token c tx ty) arg ...))))
+
   (define (board-move tt)
     (define-board b1
       [[3 ,tt 1x]
@@ -122,4 +126,6 @@ The game ends
   (checker #t check-build-up b2        ("b" 0 1) EAST PUT)
 
   (checker #t can-move-and-build? b1-before ("x" 1 0))
-  (checker #f can-move-and-build? (board-move (list 0 "x")) ("x" 1 0)))
+  (checker #f can-move-and-build? (board-move (list 0 "x")) ("x" 1 0))
+  
+  (check-fail check-move (move b2 (token "b" 0 1) PUT SOUTH) ("b" 0 1) EAST PUT))
