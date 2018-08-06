@@ -30,7 +30,7 @@ The game ends
   (generate
    ;; the game tree starting from this board with player making the first move, other responds
    ;; ASSUME player and other are the two tokens on this board  
-   (-> board? string? string? tree?))
+   (->i ((b board?) (p (b) (and/c string? (on? b))) (o (b) (and/c string? (on? b)))) (r tree?)))
   
   (step
    ;; the game tree for a specific action by token t, yielding the decision node for the other player

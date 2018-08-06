@@ -33,9 +33,13 @@
   (board-tokens
    ;; retrieve the current four tokens 
    (-> board? (list/c token? token? token? token?)))
- 
+
+  (on?
+   ;; is this the name of a player on this boar? 
+   (-> board? (-> string? boolean?)))
+  
   (on-board?
-   ;; does this token exist on the current board?
+   ;; does this token exist on this board?
    (-> board? (-> token? boolean?)))
   
   (height-of
@@ -114,6 +118,9 @@
 
 (define (init token1 token2 token3 token4)
   (board (list token1 token2 token3 token4) '()))
+
+(define ((on? b) n)
+  (with board b (cons? (member n (map token-name tokens)))))
 
 (define ((on-board? b) t)
   (with board b (cons? (member t tokens))))
@@ -297,7 +304,7 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; TESTS
-(module+ test
+(module+ test ;; basic functions 
   (require (submod ".."))
 
   (void (hash (board '() '()) 1)) ;; cover first hash code function 
@@ -308,10 +315,12 @@
   (define board0 (apply init lox0))
   
   (check-true  ((on-board? board0) (first lox0)))
-  (check-false ((on-board? board0) (token "o" 3 3))))
+  (check-false ((on-board? board0) (token "o" 3 3)))
 
-(module+ test
-  (define board1
+  (check-true  ((on? board0) "o"))
+  (check-false ((on? board0) "xxx"))
+
+    (define board1
     (board
      (list
       (token "x" 0 0)
@@ -341,8 +350,9 @@
       (building 1 0 2)
       (building 0 0 3))))
   
-  (check-equal? board1 board2)
-  
+  (check-equal? board1 board2))
+
+(module+ test ;; complex functions, including define-board 
   (define (board-move ss tt)
     (define-board b1
       [[,ss ,tt 1x]
