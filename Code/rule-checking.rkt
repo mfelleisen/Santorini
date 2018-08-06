@@ -19,8 +19,7 @@ The game ends
 |#
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (only-in "token.rkt" token? east-west/c north-south/c stay-on-board?))
-(require (only-in "board.rkt" board? on-board?))
+(require (only-in "board.rkt" board? on-board? token? east-west/c north-south/c stay-on-board? PUT))
 
 (define simple-checker/c
   (->i ((b board?) (t (b) (and/c token? (on-board? b)))) (r boolean?)))
@@ -43,8 +42,7 @@ The game ends
   (check-build-up checker/c)))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (except-in "board.rkt" board? on-board?))
-(require (except-in "token.rkt" token? east-west/c north-south/c stay-on-board?))
+(require (except-in "board.rkt" board? on-board? token? east-west/c north-south/c stay-on-board? PUT))
 (module+ test
   (require (submod "board.rkt" test))
   (require rackunit))
@@ -61,19 +59,16 @@ The game ends
              (check-build-up b-moved new-t e-w n-s))))))
 
 (define (check-move b t e-w n-s)
-  (define-values (x y) (token-location t))
-  (define-values (x1 y1) (neighbor-location t e-w n-s))
-  (and (location-free-of-token? b x1 y1) (check-height-delta? b x y x1 y1)))
+  (and (location-free-of-token? b t e-w n-s) (check-height-delta? b t e-w n-s)))
 
 (define (check-build-up b t e-w n-s)
-  (define-values (x1 y1) (neighbor-location t e-w n-s))
-  (and (location-free-of-token? b x1 y1) (< (height-of b x1 y1) MAX-HEIGHT)))
+  (and (location-free-of-token? b t e-w n-s) (< (height-of b t e-w n-s) MAX-HEIGHT)))
 
-;; Board Range Range Range Range -> Board
+;; Board Token E-W-Dir N-S-Dir -> Boolean
 ;; is the up-delta <= 1 or is it going down?
-(define (check-height-delta? b x0 y0 x1 y1)
-  (define z0 (height-of b x0 y0))
-  (define z1 (height-of b x1 y1))
+(define (check-height-delta? b t e-w n-s)
+  (define z0 (height-of b t))
+  (define z1 (height-of b t e-w n-s))
   (define delta (- z1 z0))
   (or (<= delta 0) (= delta 1)))
 

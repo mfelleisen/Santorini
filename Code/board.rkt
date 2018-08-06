@@ -12,6 +12,12 @@
 (require (only-in "token.rkt" token? in-range? east-west/c north-south/c at-distinct-places))
 
 (provide
+
+ ;; type directions
+ east-west/c north-south/c EAST WEST NORTH SOUTH PUT
+
+ ;; type token and operations on tokens 
+ token token? all-directions-to-neighbors move-token stay-on-board?
  
  ;; type Building = (building Range Range N)
  MAX-HEIGHT ; a buidling is called 'capped' if its MAX-HEIGHT stories tall. 
@@ -43,11 +49,11 @@
    (-> board? (-> token? boolean?)))
   
   (height-of
-   (-> board? in-range? in-range? natural-number/c))
+   (->* (board? token?) (east-west/c north-south/c) natural-number/c))
  
   (location-free-of-token?
    ;; there is no token on (x,y)
-   (-> board? in-range? in-range? boolean?))
+   (-> board? token? east-west/c north-south/c boolean?))
 
   (is-token-a-winner?
    ;; did the move of the token end the game on this board? 
@@ -133,17 +139,18 @@
   (with board b (cons? (member t tokens))))
 
 (define (is-token-a-winner? b t)
-  (define-values (x y) (token-location t))
-  (= (height-of b x y) TOP-FLOOR))
+  (= (height-of b t) TOP-FLOOR))
 
-(define (height-of b x y)
+(define (height-of b t (e-w PUT) (n-s PUT))
   (with board b
+        (define-values (xt yt) (token-location t))
+        (define-values (x  y)  (values (+ xt e-w) (+ yt n-s)))
         (define is-there-a-building (find-building buildings x y))
-        (if (boolean? is-there-a-building)
-            0
-            (building-height is-there-a-building))))
+        (if (boolean? is-there-a-building) 0 (building-height is-there-a-building))))
 
-(define (location-free-of-token? b x0 y0)
+(define (location-free-of-token? b t e-w n-s)
+  (define-values (xt yt) (token-location t))
+  (define-values (x0 y0) (values (+ xt e-w) (+ yt n-s)))
   (for/and ((t (board-tokens b)))
     (define-values (x y) (token-location t))
     (not (and (= x0 x) (= y0 y)))))
@@ -388,13 +395,13 @@
   (check-false  (find-building (board-buildings b1-before) 0 2))
   (check-equal? (find-building (board-buildings b1-before) 0 1) (building 0 1 3))
 
-  (check-equal? (height-of b1-before 0 2) 0)
-  (check-equal? (height-of b1-before 0 1) 3)
+  (check-equal? (height-of b1-before (token "x" 0 2)) 0)
+  (check-equal? (height-of b1-before (token "x" 0 1)) 3)
 
   (check-equal? (find-building (board-buildings b1-before) (+ 1 PUT) (+ 0 SOUTH)) (building 1 1 2))
   
-  (check-false (location-free-of-token? b1-before (+ 1 PUT) (+ 0 SOUTH)))
-  (check-true  (location-free-of-token? b1-before (+ 1 WEST) (+ 0 SOUTH)))
+  (check-false (location-free-of-token? b1-before (token "x" 1 0) PUT SOUTH))
+  (check-true  (location-free-of-token? b1-before (token "x" 1 0) WEST SOUTH))
 
   (check-equal? (move b1-before (token "x" 1 0) WEST PUT) b1-after)
 
