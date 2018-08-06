@@ -19,8 +19,7 @@ The game ends
 |#
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (only-in "token.rkt" token? east-west/c north-south/c stay-on-board?))
-(require (only-in "board.rkt" board? on?))
+(require (only-in "board.rkt" board? on? token? east-west/c north-south/c))
 
 (provide
  ;; type Tree 
@@ -41,8 +40,7 @@ The game ends
         (result tree?)))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (except-in "board.rkt" board? on?))
-(require (except-in "token.rkt" token? east-west/c north-south/c stay-on-board?))
+(require (except-in "board.rkt" board? on? token? east-west/c north-south/c))
 (require "rule-checking.rkt")
 (require "../Lib/struct-with.rkt")
 (module+ test
@@ -82,15 +80,53 @@ The game ends
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
   (require (submod ".."))
-  
+
   (define-syntax-rule
-    (checker r f b (c tx ty) arg ...)
-    (check-equal? (f b (token c tx ty) arg ...) r))
+    (check-generate r sel b player other)
+    (check-equal? (sel (generate (let () (define-board name b) name) player other)) r))
+  
+  (check-generate '() 
+                  tree-actions
+                  [[1x 2o]
+                   [2x 1o]
+                   [4  4]]
+                  "x" "o")
 
-  (define-board b0
-    [[1x 2o]
-     [2x 1o]])
+  (define ((directions f) t)
+    (set-count (for/set ((a (tree-actions t))) (f a))))
+    
+  (check-generate 3
+                  (directions (match-lambda [(action _t x y _dx _dy) (list x y)]))
+                  [[2o 1x]
+                   [2x 1o]
+                   [4  4 ]]
+                  "o" "x")
 
-  (define tree1 (generate b0 "x" "o"))
-  (match-define (action t e-w-move n-s-move e-w-build n-s-build) (first (tree-actions tree1)))
-  (step tree1 t e-w-move n-s-move e-w-build n-s-build))
+  (check-generate 8 
+                  (directions (match-lambda [(action _t _x _y dx dy) (list dx dy)]))
+                  [[2o 1x]
+                   [2x 1o]
+                   [4  4 ]]
+                  "o" "x")
+
+  (check-generate 17
+                  (directions values)
+                  [[2o 1x]
+                   [2x 1o]
+                   [4  4 ]]
+                  "o" "x")
+
+  (check-generate 1
+                  (directions (match-lambda [(action _t x y _d _e) (list x y)]))
+                  [[1x 2o 4]
+                   [2x 1o 4]
+                   [4  4  2]]
+                  "o" "x")
+  
+  (check-generate (list (action (token "x" 0 0) 1 1 -1 -1) (action (token "x" 0 1) 1 0 -1 0))
+                  (compose tree-actions (lambda (b) (step b (token "o" 1 1) 1 1 1 0)))
+                  [[1x 2o 4]
+                   [2x 1o 4]
+                   [4  4  2]]
+                  "o" "x")
+  )
