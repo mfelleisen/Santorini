@@ -15,7 +15,6 @@
 (define PUT    0)
 (define EAST  +1)
 (define WEST  -1)
-(define direction/c (or/c NORTH SOUTH PUT EAST WEST))
 (define east-west/c (or/c PUT EAST WEST))
 (define north-south/c (or/c NORTH SOUTH PUT))
 
@@ -34,7 +33,6 @@
 
  ;; Any -> Boolean
  ;; is this a linear direction 
- direction/c
  east-west/c
  north-south/c
 
@@ -53,10 +51,10 @@
    (-> token? string?))
   
   (neighbor-location
-   (-> token? direction/c direction/c (values in-range? in-range?)))
+   (-> token? east-west/c north-south/c (values in-range? in-range?)))
 
   (move-token
-   (-> token? direction/c direction/c token?))
+   (-> token? east-west/c north-south/c token?))
   
   (at-distinct-places
    ;; are all tokens at distinct places 
@@ -65,12 +63,12 @@
   (all-directions-to-neighbors
    ;; compute all possible directions to a neighboring field from this token
    ;; GUARANTEE (0,0) is not a part of the directions 
-   (-> token? (listof (list/c direction/c direction/c))))
+   (-> token? (listof (list/c east-west/c north-south/c))))
 
   (stay-on-board?
    ;; does this token stay in range if it moves in the specified direction?
    ;; ASSUME token is in range 
-   (-> token? direction/c direction/c boolean?))))
+   (-> token? east-west/c north-south/c boolean?))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "../Lib/struct-with.rkt")
