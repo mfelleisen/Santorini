@@ -25,7 +25,14 @@ The game ends
  ;; type Tree 
  tree?
 
+ ;; type Action
+ action?
+ ;; action-as-list
+ 
  (contract-out
+  (tree-actions
+   (-> tree? (listof action?)))
+
   (generate
    ;; the game tree starting from this board with player making the first move, other responds
    ;; ASSUME player and other are the two tokens on this board  
@@ -33,10 +40,8 @@ The game ends
   
   (step
    ;; the game tree for a specific action by token t, yielding the decision node for the other player
-   (->i ((gt tree?) (t token?) (x east-west/c) (y north-south/c) (dx east-west/c) (dy north-south/c))
-        #:pre/name (gt t x y dx dy) "legitimate move and build"
-        (let ((the-action (action t x y dx dy)))
-          (ormap (lambda (a) (equal? a the-action)) (tree-actions gt)))
+   (->i ((gt tree?) (a action?))
+        #:pre/name (gt a) "legitimate move and build" (member a (tree-actions gt))
         (result tree?)))))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -70,7 +75,8 @@ The game ends
                  actions))]))))
   (tree board actions (lambda (board) (generate board other player))))
 
-(define (step gt t e-w-move n-s-move e-w-build n-s-build)
+(define (step gt a)
+  (match-define (action t e-w-move n-s-move e-w-build n-s-build) a)
   (with tree gt
         (define new-t       (move-token t e-w-move n-s-move))
         (define move-board  (move board t e-w-move n-s-move))
@@ -124,7 +130,7 @@ The game ends
                   "o" "x")
   
   (check-generate (list (action (token "x" 0 0) 1 1 -1 -1) (action (token "x" 0 1) 1 0 -1 0))
-                  (compose tree-actions (lambda (b) (step b (token "o" 1 1) 1 1 1 0)))
+                  (compose tree-actions (lambda (b) (step b (action (token "o" 1 1) 1 1 1 0))))
                   [[1x 2o 4]
                    [2x 1o 4]
                    [4  4  2]]
