@@ -30,7 +30,7 @@
         #:pre (t1 t2 t3 t4) (at-distinct-places (list t1 t2 t3 t4))
         (r board?)))
 
-  (board->tokens
+  (board-tokens
    ;; retrieve the current four tokens 
    (-> board? (list/c token? token? token? token?)))
  
@@ -106,33 +106,14 @@
   [(define (equal-proc b1 b2 equal?)
      (match-define (board b1t b1b) b1)
      (match-define (board b2t b2b) b2)
-     (and (set=? (active-tokens b1t) (active-tokens b2t))
+     (and (set=? (apply set b1t) (apply set b2t))
           (set=? (set-from b1b same-building) (set-from b2b same-building))))
    ;; the following two are, well, inappropriate in general 
    (define (hash-proc bd rhash) 0)
    (define (hash2-proc bd rhash2) 1)])
 
-#; ([Listof Token] -> [Setof Token])
-;; extract the first two tokens for each name
-(define (active-tokens lox0)
-  (define names (set->list (apply set (map token-name lox0))))
-  #; ([Listof Token] String (U False Token [Setof Token])  String (U False Token [Setof Token]) -> ..)
-  (let loop ((L lox0) (name1 (first names)) (result1 #f) (name2 (second names)) (result2 #f))
-    (define fst (first L))
-    (define col (token-name fst))
-    (if (string=? col name1)
-        (if (and result1 (set? result2)) 
-            (set-union (set fst result1) result2)
-            (loop (rest L) name1 (if result1 (set fst result1) fst) name2 result2))
-        (if (and (set? result1) result2)
-            (set-union result1 (set fst result2))
-            (loop (rest L) name1 result1 name2 (if result2 (set fst result2) fst))))))
-
 (define (init token1 token2 token3 token4)
   (board (list token1 token2 token3 token4) '()))
-
-(define (board->tokens b)
-  (set-map (active-tokens (board-tokens b)) values))
 
 (define ((on-board? b) t)
   (with board b (cons? (member t tokens))))
@@ -325,23 +306,9 @@
   (check-equal? (apply init lox0) (board lox0 '()))
   
   (define board0 (apply init lox0))
-
-  (check-equal? (apply set (board->tokens board0)) (apply set lox0))
-
+  
   (check-true  ((on-board? board0) (first lox0)))
-  (check-false ((on-board? board0) (token "o" 3 3)))
-
-  (check-equal? (active-tokens lox0) (apply set lox0))
-
-  (define lox1
-    (list (token "o" 2 1) (token "x" 2 1) (token "o" 1 1) (token "x" 2 0) (token "x" 1 0)))
-  (check-equal?
-   (active-tokens lox1) (set (token "o" 2 1) (token "x" 2 1) (token "o" 1 1) (token "x" 2 0)))
-
-  (define lox2
-    (list (token "o" 2 1) (token "x" 2 1) (token "x" 2 0) (token "o" 1 1) (token "x" 1 0)))
-  (check-equal?
-   (active-tokens lox2) (set (token "o" 2 1) (token "x" 2 1) (token "o" 1 1) (token "x" 2 0))))
+  (check-false ((on-board? board0) (token "o" 3 3))))
 
 (module+ test
   (define board1
@@ -350,12 +317,11 @@
       (token "x" 0 0)
       (token "o" 2 1)
       (token "o" 1 1)
-      (token "x" 2 0)
-      (token "x" 1 0))
+      (token "x" 2 0))
      (list
       (building 2 1 1)
-      (building 1 1 2)
       (building 0 1 3)
+      (building 1 1 2)
       (building 2 0 1)
       (building 1 0 2)
       (building 0 0 3))))

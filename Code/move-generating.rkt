@@ -60,7 +60,7 @@ The game ends
 
 (define (generate board player other)
   (define actions
-    (for/fold ((actions '())) ((t (board->tokens board player)))
+    (for/fold ((actions '())) ((t (board-tokens board player)))
       (for/fold ((actions actions)) ((n (all-directions-to-neighbors t)))
         (match-define `(,e-w-move ,n-s-move) n)
         (cond
