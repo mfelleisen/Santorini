@@ -19,8 +19,8 @@ The game ends
 |#
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (only-in "token.rkt" token? direction/c stay-on-board?))
-(require (only-in "board.rkt" board? on-board?))
+(require (only-in "token.rkt" token? east-west/c north-south/c stay-on-board?))
+(require (only-in "board.rkt" board? on?))
 
 (provide
  ;; type Tree 
@@ -34,18 +34,15 @@ The game ends
   
   (step
    ;; the game tree for a specific action by token t, yielding the decision node for the other player
-   (->i ((gt tree?)
-         (t token?)
-         (e-w-move direction/c)  (n-s-move direction/c)
-         (e-w-build direction/c) (n-s-build direction/c))
-        #:pre/name (gt t e-w-move n-s-move e-w-build n-s-build) "legitimate move and build"
-        (let ((the-action (action t e-w-move n-s-move e-w-build n-s-build)))
-          (ormap (lambda (a) (equal? a action)) (tree-actions gt)))
+   (->i ((gt tree?) (t token?) (x east-west/c) (y north-south/c) (dx east-west/c) (dy north-south/c))
+        #:pre/name (gt t x y dx dy) "legitimate move and build"
+        (let ((the-action (action t x y dx dy)))
+          (ormap (lambda (a) (equal? a the-action)) (tree-actions gt)))
         (result tree?)))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (except-in "board.rkt" board? on-board?))
-(require (except-in "token.rkt" token? direction/c stay-on-board?))
+(require (except-in "board.rkt" board? on?))
+(require (except-in "token.rkt" token? east-west/c north-south/c stay-on-board?))
 (require "rule-checking.rkt")
 (require "../Lib/struct-with.rkt")
 (module+ test
@@ -60,7 +57,7 @@ The game ends
 
 (define (generate board player other)
   (define actions
-    (for/fold ((actions '())) ((t (board-tokens board player)))
+    (for/fold ((actions '())) ((t (named-tokens board player)))
       (for/fold ((actions actions)) ((n (all-directions-to-neighbors t)))
         (match-define `(,e-w-move ,n-s-move) n)
         (cond
@@ -89,5 +86,11 @@ The game ends
   (define-syntax-rule
     (checker r f b (c tx ty) arg ...)
     (check-equal? (f b (token c tx ty) arg ...) r))
-  )
 
+  (define-board b0
+    [[1x 2o]
+     [2x 1o]])
+
+  (define tree1 (generate b0 "x" "o"))
+  (match-define (action t e-w-move n-s-move e-w-build n-s-build) (first (tree-actions tree1)))
+  (step tree1 t e-w-move n-s-move e-w-build n-s-build))

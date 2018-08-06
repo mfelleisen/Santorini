@@ -9,7 +9,7 @@
 ;; -- whether the board is in a "final state"
 ;; ---------------------------------------------------------------------------------------------------
 
-(require (only-in "token.rkt" token? in-range? direction/c at-distinct-places))
+(require (only-in "token.rkt" token? in-range? east-west/c north-south/c at-distinct-places))
 
 (provide
  
@@ -30,9 +30,9 @@
         #:pre (t1 t2 t3 t4) (at-distinct-places (list t1 t2 t3 t4))
         (r board?)))
 
-  (board-tokens
+  (named-tokens
    ;; retrieve the current four tokens 
-   (-> board? (list/c token? token? token? token?)))
+   (-> board? string? (list/c token? token?)))
 
   (on?
    ;; is this the name of a player on this boar? 
@@ -52,13 +52,13 @@
   (move
    ;; move the token one step in the given direction
    ;; (move will be called from admin only; no checks needed to ensure legality of move)
-   (->i ((b board?) (t (b) (and/c token? (on-board? b))) (e-w direction/c) (n-s direction/c))
+   (->i ((b board?) (t (b) (and/c token? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
         (r board?)))
  
   (build
    ;; add a level to the buidling that is in the specified direction
    ;; (move will be called from admin only; no checks needed to ensure legality of build
-   (->i ((b board?) (t (b) (and/c token? (on-board? b))) (e-w direction/c) (n-s direction/c))
+   (->i ((b board?) (t (b) (and/c token? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
         (r board?)))))
 
 (module+ test
@@ -81,7 +81,7 @@
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCIES
 
-(require (except-in "token.rkt" token? in-range? direction/c at-distinct-places))
+(require (except-in "token.rkt" token? in-range? east-west/c north-south/c at-distinct-places))
 (require "../Lib/set-from.rkt")
 (require "../Lib/struct-with.rkt")
 
@@ -118,6 +118,9 @@
 
 (define (init token1 token2 token3 token4)
   (board (list token1 token2 token3 token4) '()))
+
+(define (named-tokens b n)
+  (with board b (filter (lambda (t) (string=? (token-name t) n)) tokens)))
 
 (define ((on? b) n)
   (with board b (cons? (member n (map token-name tokens)))))
@@ -313,12 +316,14 @@
   (check-equal? (apply init lox0) (board lox0 '()))
   
   (define board0 (apply init lox0))
-  
+
   (check-true  ((on-board? board0) (first lox0)))
   (check-false ((on-board? board0) (token "o" 3 3)))
 
   (check-true  ((on? board0) "o"))
   (check-false ((on? board0) "xxx"))
+
+  (check-equal? (named-tokens board0 "x") (list (token "x" 2 0) (token "x" 1 0)))
 
     (define board1
     (board

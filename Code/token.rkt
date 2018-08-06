@@ -16,6 +16,8 @@
 (define EAST  +1)
 (define WEST  -1)
 (define direction/c (or/c NORTH SOUTH PUT EAST WEST))
+(define east-west/c (or/c PUT EAST WEST))
+(define north-south/c (or/c NORTH SOUTH PUT))
 
 (provide
  DIM
@@ -33,6 +35,8 @@
  ;; Any -> Boolean
  ;; is this a linear direction 
  direction/c
+ east-west/c
+ north-south/c
 
  ;; type Token = (token String Range Range)
  token?
