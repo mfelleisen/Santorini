@@ -29,6 +29,10 @@
    (->i ((t1 token?) (t2 token?) (t3 token?) (t4 token?))
         #:pre (t1 t2 t3 t4) (at-distinct-places (list t1 t2 t3 t4))
         (r board?)))
+
+  (board->tokens
+   ;; retrieve the current four tokens 
+   (-> board? (list/c token? token? token? token?)))
  
   (on-board?
    ;; does this token exist on the current board?
@@ -126,6 +130,9 @@
 
 (define (init token1 token2 token3 token4)
   (board (list token1 token2 token3 token4) '()))
+
+(define (board->tokens b)
+  (set-map (active-tokens (board-tokens b)) values))
 
 (define ((on-board? b) t)
   (with board b (cons? (member t tokens))))
@@ -316,8 +323,10 @@
   
   (define lox0 (list (token "o" 2 1) (token "o" 1 1) (token "x" 2 0) (token "x" 1 0)))
   (check-equal? (apply init lox0) (board lox0 '()))
-
+  
   (define board0 (apply init lox0))
+
+  (check-equal? (apply set (board->tokens board0)) (apply set lox0))
 
   (check-true  ((on-board? board0) (first lox0)))
   (check-false ((on-board? board0) (token "o" 3 3)))

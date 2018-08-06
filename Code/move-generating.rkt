@@ -52,11 +52,6 @@ The game ends
   (require (submod "board.rkt" test))
   (require rackunit))
 
-;; --- needed
-;; Board String -> [Listof Token]
-;; retrieve the tokens from this board whose name field is n
-(define (board-tokens board n) '())
-
 (struct tree (board actions next))
 (struct action (actor e-w-move n-s-move e-w-build n-s-build) #:transparent)
 ;; GameTree = (tree Board [Listof Action] (Board -> GameTree))
@@ -64,9 +59,8 @@ The game ends
 ;;                     t moves e-w & n-s, then builds in the specified directions
 
 (define (generate board player other)
-  (define tokens  (board-tokens board player))
   (define actions
-    (for/fold ((actions '())) ((t tokens))
+    (for/fold ((actions '())) ((t (board->tokens board player)))
       (for/fold ((actions actions)) ((n (all-directions-to-neighbors t)))
         (match-define `(,e-w-move ,n-s-move) n)
         (cond
