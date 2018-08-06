@@ -19,14 +19,14 @@ The game ends
 |#
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (only-in "token.rkt" token? direction/c stay-on-board?))
+(require (only-in "token.rkt" token? east-west/c north-south/c stay-on-board?))
 (require (only-in "board.rkt" board? on-board?))
 
 (define simple-checker/c
   (->i ((b board?) (t (b) (and/c token? (on-board? b)))) (r boolean?)))
 
 (define checker/c
-  (->i ((b board?) (t (b) (and/c token? (on-board? b))) (e-w direction/c) (n-s direction/c))
+  (->i ((b board?) (t (b) (and/c token? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
        #:pre/name (e-w n-s) "a token can't stay put" (not (and (= e-w PUT) (= n-s PUT)))
        #:pre/name (b t e-w n-s) "stay on board" (stay-on-board? t e-w n-s) 
        (r boolean?)))
@@ -39,15 +39,12 @@ The game ends
   ;; can the given token move in the specified direction on this board? 
   (check-move checker/c)
 
-  ;; did the move of the token end the game on this board? 
-  (check-move-end? simple-checker/c)
-
   ;; can the token build in the specified direction on this board? 
   (check-build-up checker/c)))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require (except-in "board.rkt" board? on-board?))
-(require (except-in "token.rkt" token? direction/c stay-on-board?))
+(require (except-in "token.rkt" token? east-west/c north-south/c stay-on-board?))
 (module+ test
   (require (submod "board.rkt" test))
   (require rackunit))
@@ -69,13 +66,8 @@ The game ends
   (and (location-free-of-token? b x1 y1) (check-height-delta? b x y x1 y1)))
 
 (define (check-build-up b t e-w n-s)
-  (define-values (x y) (token-location t))
   (define-values (x1 y1) (neighbor-location t e-w n-s))
   (and (location-free-of-token? b x1 y1) (< (height-of b x1 y1) MAX-HEIGHT)))
-
-(define (check-move-end? b t)
-  (define-values (x y) (token-location t))
-  (= (height-of b x y) TOP-FLOOR))
 
 ;; Board Range Range Range Range -> Board
 ;; is the up-delta <= 1 or is it going down?
@@ -117,9 +109,6 @@ The game ends
   (checker #t check-move b2 ("b" 0 1) EAST PUT)
   (checker #t check-move b2 ("b" 4 4) WEST PUT)
   (checker #t check-move b2 ("b" 4 4) PUT NORTH)
-  
-  (checker #t check-move-end? b1-after ("x" 1 0))
-  (checker #f check-move-end? b2 ("b" 0 1))
   
   (checker #t check-build-up b1-before ("x" 1 0) WEST SOUTH)
   (checker #f check-build-up b1-before ("x" 1 0) PUT  SOUTH)

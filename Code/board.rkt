@@ -48,6 +48,10 @@
   (location-free-of-token?
    ;; there is no token on (x,y)
    (-> board? in-range? in-range? boolean?))
+
+  (is-token-a-winner?
+   ;; did the move of the token end the game on this board? 
+   (->i ((b board?) (t (b) (and/c token? (on-board? b)))) (r boolean?)))
   
   (move
    ;; move the token one step in the given direction
@@ -127,6 +131,10 @@
 
 (define ((on-board? b) t)
   (with board b (cons? (member t tokens))))
+
+(define (is-token-a-winner? b t)
+  (define-values (x y) (token-location t))
+  (= (height-of b x y) TOP-FLOOR))
 
 (define (height-of b x y)
   (with board b
@@ -325,7 +333,7 @@
 
   (check-equal? (named-tokens board0 "x") (list (token "x" 2 0) (token "x" 1 0)))
 
-    (define board1
+  (define board1
     (board
      (list
       (token "x" 0 0)
@@ -366,7 +374,10 @@
 
   (define b1-before (board-move 3 (list 2 "x")))
   (define b1-after  (board-move (list 3 "x") 2))
-  
+
+  (check-false (is-token-a-winner? b1-before (token "x" 1 0)))
+  (check-true (is-token-a-winner? b1-after (token "x" 0 0)))
+
   (define expected-b
     (board
      (list (token "o" 2 1) (token "o" 1 1) (token "x" 2 0) (token "x" 1 0))
