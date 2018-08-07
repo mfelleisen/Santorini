@@ -25,17 +25,8 @@ The game ends
 (provide
  ;; type Tree 
  tree?
-
- ;; type Action
- action?
- action
  
  (contract-out
-
-  #;
-  (action
-   (-> token? east-west/c north-south/c east-west/c north-south/c action?))
-
   (tree-actions
    (-> tree? (listof action?)))
 
@@ -52,17 +43,16 @@ The game ends
 
 ;; ---------------------------------------------------------------------------------------------------
 (require- "../Common/board.rkt" board? on? token? east-west/c north-south/c)
+(require "../Common/actions.rkt")
 (require "../Admin/rule-checking.rkt")
 (require "../Lib/struct-with.rkt")
 (module+ test
   (require (submod "../Common/board.rkt" test))
   (require rackunit))
 
+;; ---------------------------------------------------------------------------------------------------
 (struct tree (board actions next))
-(struct action (actor e-w-move n-s-move e-w-build n-s-build) #:transparent)
 ;; GameTree = (tree Board [Listof Action] (Board -> GameTree))
-;; Action   = [action Token EWDIR NSDIR EWDIR NSDIR]
-;;                     t moves e-w & n-s, then builds in the specified directions
 
 (define (generate board player other)
   (define actions
@@ -82,12 +72,7 @@ The game ends
   (tree board actions (lambda (board) (generate board other player))))
 
 (define (step gt a)
-  (match-define (action t e-w-move n-s-move e-w-build n-s-build) a)
-  (with tree gt
-        (define new-t       (move-token t e-w-move n-s-move))
-        (define move-board  (move board t e-w-move n-s-move))
-        (define build-board (build move-board new-t e-w-build n-s-build))
-        (next build-board)))
+  (with tree gt (next (apply-action board a))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
