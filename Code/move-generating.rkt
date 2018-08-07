@@ -27,9 +27,14 @@ The game ends
 
  ;; type Action
  action?
- ;; action-as-list
+ action
  
  (contract-out
+
+  #;
+  (action
+   (-> token? east-west/c north-south/c east-west/c north-south/c action?))
+
   (tree-actions
    (-> tree? (listof action?)))
 
