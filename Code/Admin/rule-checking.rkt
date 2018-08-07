@@ -19,7 +19,8 @@ The game ends
 |#
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (only-in "board.rkt" board? on-board? token? east-west/c north-south/c stay-on-board? PUT))
+(require "../Lib/require.rkt")
+(require+ "../Common/board.rkt" board? on-board? token? east-west/c north-south/c stay-on-board? PUT)
 
 (define simple-checker/c
   (->i ((b board?) (t (b) (and/c token? (on-board? b)))) (r boolean?)))
@@ -42,9 +43,10 @@ The game ends
   (check-build-up checker/c)))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (except-in "board.rkt" board? on-board? token? east-west/c north-south/c stay-on-board? PUT))
+(require- "../Common/board.rkt" board? on-board? token? east-west/c north-south/c stay-on-board? PUT)
+
 (module+ test
-  (require (submod "board.rkt" test))
+  (require (submod "../Common/board.rkt" test))
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------

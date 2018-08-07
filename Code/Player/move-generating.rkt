@@ -19,7 +19,8 @@ The game ends
 |#
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (only-in "board.rkt" board? on? token? east-west/c north-south/c))
+(require "../Lib/require.rkt")
+(require+ "../Common/board.rkt" board? on? token? east-west/c north-south/c)
 
 (provide
  ;; type Tree 
@@ -50,11 +51,11 @@ The game ends
         (result tree?)))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (except-in "board.rkt" board? on? token? east-west/c north-south/c))
-(require "rule-checking.rkt")
+(require- "../Common/board.rkt" board? on? token? east-west/c north-south/c)
+(require "../Admin/rule-checking.rkt")
 (require "../Lib/struct-with.rkt")
 (module+ test
-  (require (submod "board.rkt" test))
+  (require (submod "../Common/board.rkt" test))
   (require rackunit))
 
 (struct tree (board actions next))

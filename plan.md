@@ -1,6 +1,6 @@
 # Stages of Santorini Building 
 
-* Plan top down, build bottom up, and fix as you go. * 
+_Plan top down, build bottom up, and fix as you go._
 
 Your friends love the game. You want to create a set-up where you can
 explore game-playing strategies. You imagine that you, and possibly 
@@ -33,7 +33,7 @@ entities: a board, the tokens and buildings on the board.
 
 ## Stage 1 ~~ common ontology 
 
-#### The Board, the Buildings, the Tokens 
+#### The Board
 
 - initialize with four unique tokens, two per player 
 - allow players to move to a neighboring place 

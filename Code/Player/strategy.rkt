@@ -1,6 +1,7 @@
 #lang racket
 
-(require (only-in "board.rkt" board? on?))
+(require "../Lib/require.rkt")
+(require+ "../Common/board.rkt" board? on?)
 
 (define (name/c b) (and/c string? (on? b)))
 
@@ -12,9 +13,9 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "move-generating.rkt")
-(require (except-in "board.rkt" on? board?))
+(require- "../Common/board.rkt" on? board?)
 (module+ test
-  (require (submod "board.rkt" test))
+  (require (submod "../Common/board.rkt" test))
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -38,5 +39,5 @@
      [2x 1o]
      [4  4]])
 
-  (check-false (strategy b "x" "o"))
-  (check-equal? (strategy b "o" "x") (action (token "o" 1 0) 1 1 1 1)))
+  (check-false (safe-strategy b "x" "o"))
+  (check-equal? (safe-strategy b "o" "x") (action (token "o" 1 0) 1 1 1 1)))
