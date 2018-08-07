@@ -1,6 +1,6 @@
 # Stages of Santorini Building 
 
-## Stage 1 
+* Plan top down, build bottom up, and fix as you go. * 
 
 Your friends love the game. You want to create a set-up where you can
 explore game-playing strategies. You imagine that you, and possibly 
@@ -14,7 +14,7 @@ realistic fashion.
 Of course, deep down you're hoping that Santorini.com will become the next
 Facebook and make you infinitely rich.
 
-### A Realistic Game 
+## A Realistic Game 
 
 means 
 
@@ -25,23 +25,26 @@ means
 Questions: 
 
 - Who needs to know what? 
-- What is the common "ontology" "shared data representation and interpretation"? 
+- What is the common "ontology" (*) between admin and players? 
+  (*) "shared data representation and interpretation"
 
 Both the admin and the players need a representation of the basic game
-entities: a board, the tokens and buildings on the board, etc.
+entities: a board, the tokens and buildings on the board. 
 
-### The Board 
+## Stage 1 ~~ common ontology 
+
+#### The Board, the Buildings, the Tokens 
 
 - initialize with four unique tokens, two per player 
 - allow players to move to a neighboring place 
 - allow players to build up a house on a neighboring tile 
 
-### The Buildings 
+#### The Buildings 
 
 Nothing matters about them besides their height and (relative) location on
 the board, so we'll keep them there. 
 
-### The Tokens
+#### The Tokens
 
 These can exist on their own, with relative movements and checks for
 "neighborliness". 
