@@ -10,10 +10,10 @@
 - set up tests for admins 
 
 ### larger things 
-- GUI for watching the game (an observer) 
-- ?? GUI for playing? 
-- best-of N run in admin, instead of a single run 
-- tournament for P players 
-- distributed version 
+- [ ] GUI for watching the game (an observer) 
+- [ ] ?? GUI for playing? 
+- [ ] best-of N run in admin, instead of a single run 
+- [ ] tournament for P players 
+- [ ] distributed version 
 
 
