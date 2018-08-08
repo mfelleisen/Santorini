@@ -2,7 +2,9 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "rule-checking.rkt")
+(require "../Player/player.rkt")
 (require "../Common/board.rkt")
+(require "../Common/actions.rkt")
 
 (define admin%
   (class object% (init-field one two)
@@ -36,30 +38,39 @@
 
     (field [board (setup)])
 
-    (define/private (play-rounds board (one one) (two two))
-      (call-with-values
-       (lambda () (send one take-turn board))
-       (case-lambda
-         [() (get-field name two)]
-         [(token e-w-move n-s-move)
-          (if (and (check-move board token e-w-move n-s-move) (is-token-a-winner? board token))
-              (get-field name one)
-              (get-field name two))]
-         [(token e-w-move n-s-move e-w-build n-s-build)
-          (cond
-            [(not (check-move board token e-w-move n-s-move)) (get-field name two)]
-            [else (define new-token (move-token token e-w-move n-s-move))
-                  (define new-board (move board token e-w-move n-s-move))
-                  (if (not (check-build-up new-board new-token e-w-build n-s-build))
-                      (get-field name two)
-                      (play-rounds new-board two one))])])))
-                                 
     ;; -> (U String)
     ;; determine the winner (and the loser)
     (define/public (play)
-      (if (string? board)
-          board
-          (play-rounds board)))))
+      (if (string? board) board (play-rounds board)))
+
+    (define/private (report winner rule-breaker a)
+      (format "~a\n~a broke the rules\n [~e]" winner rule-breaker a))
+
+    (define/private (play-rounds board (one one) (two two))
+      (define a (send one take-turn board))
+      (displayln a)
+      (match a
+         [(giving-up)
+          (pretty-print board)
+          (format "~a, because ~a gave up" (get-field name two) (get-field name one))]
+         [(winning-move token e-w-move n-s-move)
+          (pretty-print board)
+          (if (and (check-move board token e-w-move n-s-move)
+                   (is-move-a-winner? board token e-w-move n-s-move))
+              (format "~a made a winning move" (get-field name one))
+              (report (get-field name two) (get-field name one) a))]
+         [(move-build token e-w-move n-s-move e-w-build n-s-build)
+          (cond
+            [(not (check-move board token e-w-move n-s-move))
+             (report (get-field name two) (get-field name one) a)]
+            [else (define moved-token (move-token token e-w-move n-s-move))
+                  (define moved-board (move board token e-w-move n-s-move))
+                  (cond
+                    [(not (check-build-up moved-board moved-token e-w-build n-s-build))
+                     (report (get-field name two) (get-field name one) a)]
+                    [else
+                     ;; BUG: I forgot to build
+                     (play-rounds (apply-action board a) two one)])])]))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test

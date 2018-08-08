@@ -13,11 +13,14 @@
 
 (provide
 
+ ;; type initial-placement
+ in-range? 
+
  ;; type directions
  east-west/c north-south/c EAST WEST NORTH SOUTH PUT
 
  ;; type token and operations on tokens 
- token token? all-directions-to-neighbors move-token stay-on-board?
+ token token? all-directions-to-neighbors move-token stay-on-board? 
  
  ;; type Building = (building Range Range N)
  MAX-HEIGHT ; a buidling is called 'capped' if its MAX-HEIGHT stories tall. 
