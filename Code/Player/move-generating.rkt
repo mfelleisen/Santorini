@@ -27,8 +27,7 @@ The game ends
  tree?
  
  (contract-out
-  (tree-actions
-   (-> tree? (listof action?)))
+  (tree-actions (-> tree? (listof action?)))
 
   (generate
    ;; the game tree starting from this board with player making the first move, other responds
@@ -38,7 +37,7 @@ The game ends
   (step
    ;; the game tree for a specific action by token t, yielding the decision node for the other player
    (->i ((gt tree?) (a action?))
-        #:pre/name (gt a) "legitimate move and build" (member a (tree-actions gt))
+        #:pre/name (gt a) "legitimate move and build" (or (giving-up? a) (member a (tree-actions gt)))
         (result tree?)))))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -60,14 +59,17 @@ The game ends
       (for/fold ((actions actions)) ((n (all-directions-to-neighbors t)))
         (match-define `(,e-w-move ,n-s-move) n)
         (cond
-          [(not (check-move board t e-w-move n-s-move)) actions]
+          [(not (check-move board t e-w-move n-s-move))
+           actions]
+          [(is-move-a-winner? board t e-w-move n-s-move)
+           (cons (winning-move t e-w-move n-s-move) actions)]
           [else
            [define new-t   (move-token t e-w-move n-s-move)]
            [define b-moved (move board t e-w-move n-s-move)]
            (for/fold ([actions actions]) ((n (all-directions-to-neighbors new-t)))
              (match-define `(,e-w-build ,n-s-build) n)
              (if (check-build-up b-moved new-t e-w-build n-s-build)
-                 (cons (action t e-w-move n-s-move e-w-build n-s-build) actions)
+                 (cons (move-build t e-w-move n-s-move e-w-build n-s-build) actions)
                  actions))]))))
   (tree board actions (lambda (board) (generate board other player))))
 
@@ -93,14 +95,14 @@ The game ends
     (set-count (for/set ((a (tree-actions t))) (f a))))
     
   (check-generate 3
-                  (directions (match-lambda [(action _t x y _dx _dy) (list x y)]))
+                  (directions (match-lambda [(move-build _t x y _dx _dy) (list x y)]))
                   [[2o 1x]
                    [2x 1o]
                    [4  4 ]]
                   "o" "x")
 
   (check-generate 8 
-                  (directions (match-lambda [(action _t _x _y dx dy) (list dx dy)]))
+                  (directions (match-lambda [(move-build _t _x _y dx dy) (list dx dy)]))
                   [[2o 1x]
                    [2x 1o]
                    [4  4 ]]
@@ -114,16 +116,24 @@ The game ends
                   "o" "x")
 
   (check-generate 1
-                  (directions (match-lambda [(action _t x y _d _e) (list x y)]))
+                  (directions (match-lambda [(move-build _t x y _d _e) (list x y)]))
                   [[1x 2o 4]
                    [2x 1o 4]
                    [4  4  2]]
                   "o" "x")
   
-  (check-generate (list (action (token "x" 0 0) 1 1 -1 -1) (action (token "x" 0 1) 1 0 -1 0))
-                  (compose tree-actions (lambda (b) (step b (action (token "o" 1 1) 1 1 1 0))))
+  (check-generate (list (move-build (token "x" 0 0) EAST SOUTH WEST NORTH)
+                        (move-build (token "x" 0 1) EAST PUT WEST PUT))
+                  (compose tree-actions
+                           (lambda (b) (step b (move-build (token "o" 1 1) EAST SOUTH EAST SOUTH))))
                   [[1x 2o 4]
                    [2x 1o 4]
                    [4  4  2]]
                   "o" "x")
-  )
+
+  (check-generate (list (winning-move (token "o" 1 1) EAST SOUTH))
+                  tree-actions
+                  [[1x 2o 4]
+                   [2x 2o 4]
+                   [4  4  3]]
+                  "o" "x"))

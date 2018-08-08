@@ -55,9 +55,14 @@
    ;; there is no token on (x,y)
    (-> board? token? east-west/c north-south/c boolean?))
 
-  (is-token-a-winner?
-   ;; did the move of the token end the game on this board? 
-   (->i ((b board?) (t (b) (and/c token? (on-board? b)))) (r boolean?)))
+  (is-move-a-winner?
+   ;; did the move of the token end the game on this board?
+   (->i ((b board?) (t (b) (and/c token? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
+        #:pre/name (t e-w n-s) "remains on board"
+        (let*-values ([(new-t) (move-token t e-w n-s)]
+                      [(x y) (token-location new-t)])
+          (and (in-range? x) (in-range? y)))
+        (r boolean?)))
   
   (move
    ;; move the token one step in the given direction
@@ -138,8 +143,8 @@
 (define ((on-board? b) t)
   (with board b (cons? (member t tokens))))
 
-(define (is-token-a-winner? b t)
-  (= (height-of b t) TOP-FLOOR))
+(define (is-move-a-winner? b t e-w n-s)
+  (= (height-of b t e-w n-s) TOP-FLOOR))
 
 (define (height-of b t (e-w PUT) (n-s PUT))
   (with board b
@@ -382,8 +387,8 @@
   (define b1-before (board-move 3 (list 2 "x")))
   (define b1-after  (board-move (list 3 "x") 2))
 
-  (check-false (is-token-a-winner? b1-before (token "x" 1 0)))
-  (check-true (is-token-a-winner? b1-after (token "x" 0 0)))
+  (check-false (is-move-a-winner? b1-before (token "x" 1 0) EAST PUT))
+  (check-true (is-move-a-winner? b1-after (token "x" 0 0) PUT SOUTH))
 
   (define expected-b
     (board
