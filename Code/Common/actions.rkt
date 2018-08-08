@@ -4,7 +4,7 @@
  ;; type Action
  action?
  giving-up giving-up? 
- winning-move
+ winning-move winning-move? 
  move-build
 
  (contract-out 
