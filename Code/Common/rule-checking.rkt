@@ -21,9 +21,14 @@ The game ends
 ;; ---------------------------------------------------------------------------------------------------
 (require "../Lib/require.rkt")
 (require+ "../Common/board.rkt" board? on-board? token? east-west/c north-south/c stay-on-board? PUT)
+(require+ "../Common/actions.rkt" action?)
 
 (provide
  (contract-out
+  (check-action
+   ;; is the given action legal on this board? 
+   (-> board? action? boolean?))
+   
   (can-move-and-build?
    ;; can the given token move on this board and then build up a house on this board? 
    (->i ((b board?) (t (b) (and/c token? (on-board? b)))) (r boolean?)))
