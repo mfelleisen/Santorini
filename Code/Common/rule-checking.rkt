@@ -103,8 +103,8 @@ The game ends
        [4 2o 1o]])
     b1)
 
-  (define b1-before (board-move (list 2 "x")))
-  (define b1-after  (board-move (list 3 "x")))
+  (define b1-before (board-move '2x))
+  (define b1-after  (board-move '3x))
   
   (define-board b2
     [[]
@@ -120,8 +120,9 @@ The game ends
   
   (checker #t check-build-up b2 ("b" 0 1) EAST SOUTH WEST PUT)
   (checker #f check-build-up b1-before ("x" 1 0) WEST PUT PUT SOUTH)
+  (checker #t check-build-up b1-before ("x" 1 0) WEST SOUTH PUT SOUTH)
   
   (checker #t can-move-and-build? b1-before ("x" 2 0))
-  (checker #f can-move-and-build? (board-move (list 0 "x")) ("x" 1 0))
+  (checker #f can-move-and-build? (board-move '0x) ("x" 1 0))
   
   (check-fail check-move (move b2 (token "b" 0 1) PUT SOUTH) ("b" 0 1) EAST PUT))

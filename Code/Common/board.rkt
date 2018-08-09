@@ -194,18 +194,33 @@
 ;; TEST FRAMEWORK for Boards (needed here to get bindings from top-level modules)
 
 (module* test-support #f
-  (provide ->board)
+  (provide ->board CELL)
 
   (require "token.rkt")
   (require rackunit)
+
+  (define CELL #px"(\\d)([a-z])")
   
   #; ([Listof [Listof (U Integer [List Integer Letter])]] -> (U Board  #false))
   (define (->board x)
     (define (+token accu cell x y)
-      (if (integer? cell) accu (cons (token (second cell) x y) accu)))
+      (cond
+        [(integer? cell) accu]
+        [(pair? cell) (cons (token (second cell) x y) accu)]
+        [(and (symbol? cell) (regexp-match CELL (symbol->string cell)))
+         => (match-lambda [`(,_all ,height ,name) (cons (token name x y) accu)])]
+        [else (error '->board "bad Racket value for cell: ~e" cell)]))
     (define tokens (traverse-literal-board x +token))
     (define (+building accu cell x y)
-      (cons (building x y (if (integer? cell) cell (first cell))) accu))
+      (define b
+        (building
+         x y
+         (cond
+           [(integer? cell) cell]
+           [(pair? cell) (first cell)]
+           [(and (symbol? cell) (regexp-match CELL (symbol->string cell)))
+            => (match-lambda [`(,_all ,height ,name) (string->number height)])])))
+      (cons b accu))
     (define buildings (traverse-literal-board x +building))
     (and (exactly-2-tokens-of-2-kinds tokens) (board tokens buildings)))
 
@@ -246,8 +261,7 @@
   (require (for-syntax (submod ".." test-support)))
   
   (begin-for-syntax
-    (define CELL #px"(\\d*)([a-z])")
-  
+    
     (define-syntax-class cell
       (pattern x:integer
                #:attr v #'x
@@ -289,44 +303,33 @@
   (define-syntax (define-board stx)
     (syntax-parse stx [(_ n:id b:literal-board) #'(define n (->board b.board))]))
 
-  (check-equal? (let ()
-                  (define-board b
-                    [[2x 2o]
-                     [1x 1o 3]])
-                  b)
-                (board (list (token "x" 0 0) (token "o" 1 0) (token "x" 0 1) (token "o" 1 1))
-                       (list (building 0 0 2)
-                             (building 1 0 2)
-                             (building 0 1 1)
-                             (building 1 1 1)
-                             (building 2 1 3))))
+  (define expected-board
+    (board (list (token "x" 0 0) (token "o" 1 0) (token "x" 0 1) (token "o" 1 1))
+           (list (building 0 0 2)
+                 (building 1 0 2)
+                 (building 0 1 1)
+                 (building 1 1 1)
+                 (building 2 1 3)))))
 
-  (check-exn exn:fail:syntax?
-             (lambda ()
-               (convert-compile-time-error
-                (let ()
-                  (define-board b
-                    [[2x 2o 1x]
-                     [1x 1o 3]])
-                  b))))
+(module+ test ;; checking define-board at run-time and syntax-time 
+  (check-equal? (let () (define-board b [[2x 2o] [1x 1o 3]]) b) expected-board)
+  (check-equal? (let () (define-board b [[2x 2o] [1x ,'1o 3]]) b) expected-board)
 
-  (check-exn exn:fail:syntax?
-             (lambda ()
-               (convert-compile-time-error
-                (let ()
-                  (define-board b
-                    [[2x]
-                     [1x 1o 3]])
-                  b))))
+  (check-exn exn:fail? (lambda () (define-board b [[2x ,'o1][2o 1x]]) b))
+  (check-exn exn:fail? (lambda () (define-board b [[2x ,'o1][2o 1x]]) b))
+  (check-exn exn:fail? (lambda () (define-board b [[2x ,"o1"][2o 1x]]) b))
 
-  (check-exn exn:fail:syntax?
-             (lambda ()
-               (convert-compile-time-error
-                (let ()
-                  (define-board b
-                    [[2x 1x]
-                     [1x 1o 3]])
-                  b)))))
+  (check-exn
+   exn:fail:syntax?
+   (lambda () (convert-compile-time-error (let () (define-board b [[2x 2o 1x] [1x 1o 3]]) b))))
+
+  (check-exn
+   exn:fail:syntax?
+   (lambda () (convert-compile-time-error (let () (define-board b [[2x] [1x 1o 3]]) b))))
+
+  (check-exn
+   exn:fail:syntax?
+   (lambda () (convert-compile-time-error (let () (define-board b [[2x 1x] [1x 1o 3]]) b)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; TESTS
@@ -348,20 +351,9 @@
 
   (check-equal? (named-tokens board0 "x") (list (token "x" 2 0) (token "x" 1 0)))
 
-  (define board1
-    (board
-     (list
-      (token "x" 0 0)
-      (token "o" 2 1)
-      (token "o" 1 1)
-      (token "x" 2 0))
-     (list
-      (building 2 1 1)
-      (building 0 1 3)
-      (building 1 1 2)
-      (building 2 0 1)
-      (building 1 0 2)
-      (building 0 0 3))))
+  (define-board board1
+    [[3x 2  1x]
+     [3  2o 1o]])
 
   (define board2
     (board
@@ -386,30 +378,22 @@
       [[,ss ,tt 1x]
        [3   2o  1o]])
     b1)
-
-  (define b1-before (board-move 3 (list 2 "x")))
-  (define b1-after  (board-move (list 3 "x") 2))
+  
+  (define b1-before (board-move 3 '2x))
+  (define b1-after  (board-move '3x 2))
 
   (check-false (is-move-a-winner? b1-before (token "x" 1 0) EAST PUT))
-  (check-true (is-move-a-winner? b1-after (token "x" 0 0) PUT SOUTH))
-
-  (define expected-b
-    (board
-     (list (token "o" 2 1) (token "o" 1 1) (token "x" 2 0) (token "x" 1 0))
-     (list (building 2 1 1) (building 1 1 2) (building 0 1 3)
-           (building 2 0 1) (building 1 0 2) (building 0 0 3))))
-  (check-equal? b1-before expected-b)
-
+  (check-true  (is-move-a-winner? b1-after (token "x" 0 0) PUT SOUTH))
+  
   (check-false  (find-building (board-buildings b1-before) 0 2))
   (check-equal? (find-building (board-buildings b1-before) 0 1) (building 0 1 3))
+  (check-equal? (find-building (board-buildings b1-before) (+ 1 PUT) (+ 0 SOUTH)) (building 1 1 2))
 
   (check-equal? (height-of b1-before (token "x" 0 2)) 0)
   (check-equal? (height-of b1-before (token "x" 0 1)) 3)
-
-  (check-equal? (find-building (board-buildings b1-before) (+ 1 PUT) (+ 0 SOUTH)) (building 1 1 2))
   
-  (check-false (location-free-of-token? b1-before (token "x" 1 0) PUT SOUTH))
-  (check-true  (location-free-of-token? b1-before (token "x" 1 0) WEST SOUTH))
+  (check-false  (location-free-of-token? b1-before (token "x" 1 0) PUT SOUTH))
+  (check-true   (location-free-of-token? b1-before (token "x" 1 0) WEST SOUTH))
 
   (check-equal? (move b1-before (token "x" 1 0) WEST PUT) b1-after)
 
@@ -419,8 +403,7 @@
        [2x   2o  1o]])
     b1)
   
-  (check-equal? (build (board-build 2 (list 2 "x")) (token "x" 1 0) WEST PUT)
-                (board-build 3 (list 2 "x")))
+  (check-equal? (build (board-build 2 '2x) (token "x" 1 0) WEST PUT) (board-build 3 '2x))
 
   (define-board b3-before [[2x 2o]   [2x   2o  1]])
   (define-board b3-after  [[2x 2o 1] [2x   2o  1]])

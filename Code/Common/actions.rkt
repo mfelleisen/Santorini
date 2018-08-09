@@ -70,12 +70,12 @@
 
   (define t1 (token "o" 1 1))
 
-  (check-apply (make-board (list 2 "o") 4) (giving-up) (make-board (list 2 "o") 4))
-  (check-apply (make-board (list 2 "o") 3) (winning-move t1 EAST SOUTH) (make-board 2 (list 3 "o")))
-  (check-apply (make-board (list 2 "o") 2) (move-build t1 EAST SOUTH WEST NORTH) (make-board 3 (list 2 "o")))
+  (check-apply (make-board '2o 4) (giving-up) (make-board '2o 4))
+  (check-apply (make-board '2o 3) (winning-move t1 EAST SOUTH) (make-board 2 '3o))
+  (check-apply (make-board '2o 2) (move-build t1 EAST SOUTH WEST NORTH) (make-board 3 '2o))
   
-  (check-check (make-board (list 2 "o") 4) (giving-up) #t)
-  (check-check (make-board (list 2 "o") 3) (winning-move t1 EAST SOUTH) #t)
-  (check-check (make-board (list 2 "o") 2) (move-build t1 EAST SOUTH WEST NORTH) #t)
-  (check-check (make-board (list 2 "o") 3) (winning-move t1 WEST PUT) #f)
-  (check-check (make-board (list 2 "o") 2) (move-build t1 EAST SOUTH PUT NORTH) #f))
+  (check-check (make-board '2o 4) (giving-up) #t)
+  (check-check (make-board '2o 3) (winning-move t1 EAST SOUTH) #t)
+  (check-check (make-board '2o 2) (move-build t1 EAST SOUTH WEST NORTH) #t)
+  (check-check (make-board '2o 3) (winning-move t1 WEST PUT) #f)
+  (check-check (make-board '2o 2) (move-build t1 EAST SOUTH PUT NORTH) #f))
