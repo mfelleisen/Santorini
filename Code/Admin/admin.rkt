@@ -1,7 +1,7 @@
 #lang racket
 
 ;; ---------------------------------------------------------------------------------------------------
-(require "rule-checking.rkt")
+(require "../Common/rule-checking.rkt")
 (require "../Player/player.rkt")
 (require "../Common/board.rkt")
 (require "../Common/actions.rkt")
@@ -19,7 +19,7 @@
     (send one other two-name)
     (send two other one-name)
 
-    (define/private (placement target name lot)
+    (define/private (placement target lot)
       (define new-location (send target placement lot))
       (and (not (member new-location lot)) new-location))
 
@@ -28,11 +28,10 @@
       (let/ec done
         (define-values (_ tokens)
           (for/fold ([place* '()][token* '()]) ([n '(1 2 3 4)])
-            (define-values (player name)
-              (if (odd? n) (values one one-name) (values two two-name)))
-            (define new-place (placement player name place*))
+            (define-values (player name) (if (odd? n) (values one one-name) (values two two-name)))
+            (define new-place (placement player place*))
             (if (boolean? new-place)
-                (done (format "~a broke the rules about placing workers" name))
+                (done (format "~a broke the rules of placing workers" name))
                 (values (cons new-place place*) (cons (apply token name new-place) token*)))))
         (apply init tokens)))
 
@@ -49,23 +48,16 @@
     (define/private (play-rounds board (one one) (two two))
       (define a (send one take-turn board))
       (displayln a)
-      (match a
-        [(giving-up)
-         (pretty-print board)
-         (format "~a, because ~a gave up" (get-field name two) (get-field name one))]
-        [(winning-move token e-w-move n-s-move)
-         (pretty-print board)
-         (if (and (check-move board token e-w-move n-s-move)
-                  (is-move-a-winner? board token e-w-move n-s-move))
-             (format "~a made a winning move" (get-field name one))
-             (report (get-field name two) (get-field name one) a))]
-        [(move-build token e-w-move n-s-move e-w-build n-s-build)
-         (if (not (check-move board token e-w-move n-s-move))
-             (report (get-field name two) (get-field name one) a)
-             (if (check-build-up board token e-w-move n-s-move e-w-build n-s-build)
-                 ;; BUG: I forgot to build
-                 (play-rounds (apply-action board a) two one)
-                 (report (get-field name two) (get-field name one) a)))]))))
+      (if (not (check-action board a))
+          (report (get-field name two) (get-field name one) a)
+          (match a
+            [(giving-up)
+             (format "~a, because ~a gave up" (get-field name two) (get-field name one))]
+            [(winning-move token e-w-move n-s-move)
+             (format "~a made a winning move" (get-field name one))]
+            [(move-build token e-w-move n-s-move e-w-build n-s-build)
+             ;; BUG: I forgot to build
+             (play-rounds (apply-action board a) two one)])))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test

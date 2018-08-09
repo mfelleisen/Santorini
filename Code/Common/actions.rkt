@@ -9,10 +9,16 @@
 
  (contract-out 
   (apply-action
-   (->i ([b board?] [a action?]) (r board?)))))
+   ;; execute the given action on this board
+   (->i ([b board?] [a action?]) (r board?)))
+
+  (check-action
+   ;; is the given action legal on this board? 
+   (-> board? action? boolean?))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "board.rkt")
+(require "rule-checking.rkt")
 
 (module+ test
   (require (submod "board.rkt" test))
@@ -29,7 +35,6 @@
 ;;      [move-build Token EWDIR NSDIR EWDIR NSDIR]
 ;;                     t moves e-w & n-s, then builds in the specified directions
 
-;; Board Action -> Board 
 (define (apply-action board a)
   (match a
     [(giving-up) board]
@@ -40,9 +45,21 @@
      (define new-board (move board t e-w-move n-s-move))
      (build new-board new-token e-w-build n-s-build)]))
 
+(define (check-action board a)
+  (match a
+    [(giving-up) #true] ;; players can give up for all kinds of reasons 
+    [(winning-move t e-w n-s)
+     (and (check-move board t e-w n-s) (is-move-a-winner? board t e-w n-s))]
+    [(move-build t e-w n-s e-w-build n-s-build)
+     (and (check-move board t e-w n-s)
+          (check-build-up board t e-w n-s e-w-build n-s-build))]))
+
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
   (require (submod ".."))
+
+  (define-syntax-rule (check-apply b a r) (check-equal? (apply-action b a) r))
+  (define-syntax-rule (check-check b a r) (check-equal? (check-action b a) r))
 
   (define (make-board ss tt)
     (define-board b
@@ -51,19 +68,14 @@
        [4  4   ,tt]])
     b)
 
-  (check-equal? (apply-action
-                 (make-board (list 2 "o") 4)
-                 (giving-up))
-                (make-board (list 2 "o") 4))
+  (define t1 (token "o" 1 1))
 
-  (check-equal? (apply-action
-                 (make-board (list 2 "o") 3)
-                 (winning-move (token "o" 1 1) EAST SOUTH))
-                (make-board 2 (list 3 "o")))
-
-  (check-equal? (apply-action
-                 (make-board (list 2 "o") 2)
-                 (move-build (token "o" 1 1) EAST SOUTH WEST NORTH))
-                (make-board 3 (list 2 "o")))
-                
-  )
+  (check-apply (make-board (list 2 "o") 4) (giving-up) (make-board (list 2 "o") 4))
+  (check-apply (make-board (list 2 "o") 3) (winning-move t1 EAST SOUTH) (make-board 2 (list 3 "o")))
+  (check-apply (make-board (list 2 "o") 2) (move-build t1 EAST SOUTH WEST NORTH) (make-board 3 (list 2 "o")))
+  
+  (check-check (make-board (list 2 "o") 4) (giving-up) #t)
+  (check-check (make-board (list 2 "o") 3) (winning-move t1 EAST SOUTH) #t)
+  (check-check (make-board (list 2 "o") 2) (move-build t1 EAST SOUTH WEST NORTH) #t)
+  (check-check (make-board (list 2 "o") 3) (winning-move t1 WEST PUT) #f)
+  (check-check (make-board (list 2 "o") 2) (move-build t1 EAST SOUTH PUT NORTH) #f))
