@@ -50,27 +50,22 @@
       (define a (send one take-turn board))
       (displayln a)
       (match a
-         [(giving-up)
-          (pretty-print board)
-          (format "~a, because ~a gave up" (get-field name two) (get-field name one))]
-         [(winning-move token e-w-move n-s-move)
-          (pretty-print board)
-          (if (and (check-move board token e-w-move n-s-move)
-                   (is-move-a-winner? board token e-w-move n-s-move))
-              (format "~a made a winning move" (get-field name one))
-              (report (get-field name two) (get-field name one) a))]
-         [(move-build token e-w-move n-s-move e-w-build n-s-build)
-          (cond
-            [(not (check-move board token e-w-move n-s-move))
-             (report (get-field name two) (get-field name one) a)]
-            [else (define moved-token (move-token token e-w-move n-s-move))
-                  (define moved-board (move board token e-w-move n-s-move))
-                  (cond
-                    [(not (check-build-up moved-board moved-token e-w-build n-s-build))
-                     (report (get-field name two) (get-field name one) a)]
-                    [else
-                     ;; BUG: I forgot to build
-                     (play-rounds (apply-action board a) two one)])])]))))
+        [(giving-up)
+         (pretty-print board)
+         (format "~a, because ~a gave up" (get-field name two) (get-field name one))]
+        [(winning-move token e-w-move n-s-move)
+         (pretty-print board)
+         (if (and (check-move board token e-w-move n-s-move)
+                  (is-move-a-winner? board token e-w-move n-s-move))
+             (format "~a made a winning move" (get-field name one))
+             (report (get-field name two) (get-field name one) a))]
+        [(move-build token e-w-move n-s-move e-w-build n-s-build)
+         (if (not (check-move board token e-w-move n-s-move))
+             (report (get-field name two) (get-field name one) a)
+             (if (check-build-up board token e-w-move n-s-move e-w-build n-s-build)
+                 ;; BUG: I forgot to build
+                 (play-rounds (apply-action board a) two one)
+                 (report (get-field name two) (get-field name one) a)))]))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test

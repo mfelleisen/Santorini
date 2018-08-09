@@ -37,7 +37,7 @@ The game ends
   (step
    ;; the game tree for a specific action by token t, yielding the decision node for the other player
    (->i ((gt tree?) (a action?))
-        #:pre/name (gt a) "legitimate move and build" (or (giving-up? a) (member a (tree-actions gt)))
+        #:pre/name (gt a) "legitimate move and build" (member a (tree-actions gt))
         (result tree?)))))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ The game ends
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
-(struct tree (board actions next))
+(struct tree (board actions next) #:transparent)
 ;; GameTree = (tree Board [Listof Action] (Board -> GameTree))
 
 (define (generate board player other)
@@ -64,11 +64,10 @@ The game ends
           [(is-move-a-winner? board t e-w-move n-s-move)
            (cons (winning-move t e-w-move n-s-move) actions)]
           [else
-           [define new-t   (move-token t e-w-move n-s-move)]
-           [define b-moved (move board t e-w-move n-s-move)]
+           [define new-t (move-token t e-w-move n-s-move)]
            (for/fold ([actions actions]) ((n (all-directions-to-neighbors new-t)))
              (match-define `(,e-w-build ,n-s-build) n)
-             (if (check-build-up b-moved new-t e-w-build n-s-build)
+             (if (check-build-up board t e-w-move n-s-move e-w-build n-s-build)
                  (cons (move-build t e-w-move n-s-move e-w-build n-s-build) actions)
                  actions))]))))
   (define next (lambda (board) (generate board other player)))
@@ -102,18 +101,11 @@ The game ends
                    [4  4 ]]
                   "o" "x")
 
-  (check-generate 8 
-                  (directions (match-lambda [(move-build _t _x _y dx dy) (list dx dy)]))
-                  [[2o 1x]
-                   [2x 1o]
-                   [4  4 ]]
-                  "o" "x")
-
   (check-generate 17
                   (directions values)
-                  [[2o 1x]
-                   [2x 1o]
-                   [4  4 ]]
+                  [[2o 1x]  ;; (2,0) -> 1.1 1.2 1.3 3.0
+                   [2x 1o]  ;; (2,1) -> 3.2 2.2 3.2 2.0 3.0
+                   [4  4 ]] ;; (2,2) -> 3.2 3.1 3.3 2.1 3.1
                   "o" "x")
 
   (check-generate 1

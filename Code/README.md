@@ -8,7 +8,7 @@
 
 ### refactorings 
 - [ ] check actions, not individuals moves in Admin 
-- [ ] re-arrange check-build so that it takes the existing board/token/move/build-plan
+- [x] re-arrange check-build so that it takes the existing board/token/move/build-plan
 - [ ] can we hide tokens completely? 
 
 ### testing 
