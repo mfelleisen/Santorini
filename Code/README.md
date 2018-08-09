@@ -8,7 +8,7 @@
 
 ### refactorings 
 - [x] check actions, not individuals moves in Admin 
-  - [ ] simplify the define-board syntax so that (list 2 "x") can be specified as 2x
+  - [x] simplify the define-board syntax so that (list 2 "x") can be specified as 2x
 - [x] re-arrange check-build so that it takes the existing board/token/move/build-plan
 - [ ] can we hide tokens completely? 
 
