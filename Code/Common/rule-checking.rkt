@@ -120,7 +120,7 @@ The game ends
   
   (checker #t check-build-up b2 ("b" 0 1) EAST SOUTH WEST PUT)
   (checker #f check-build-up b1-before ("x" 1 0) WEST PUT PUT SOUTH)
-  (checker #t check-build-up b1-before ("x" 1 0) WEST SOUTH PUT SOUTH)
+  (checker #t check-build-up b1-before ("o" 1 1) PUT SOUTH PUT SOUTH)
   
   (checker #t can-move-and-build? b1-before ("x" 2 0))
   (checker #f can-move-and-build? (board-move '0x) ("x" 1 0))
