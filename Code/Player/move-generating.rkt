@@ -43,7 +43,7 @@ The game ends
 ;; ---------------------------------------------------------------------------------------------------
 (require- "../Common/board.rkt" board? on? token? east-west/c north-south/c)
 (require "../Common/actions.rkt")
-(require "../Admin/rule-checking.rkt")
+(require "../Common/rule-checking.rkt")
 (require "../Lib/struct-with.rkt")
 (module+ test
   (require (submod "../Common/board.rkt" test))
