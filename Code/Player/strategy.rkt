@@ -47,11 +47,11 @@
      [4  4]])
 
   (check-equal? (safe-strategy b "x" "o") (giving-up))
-  (check-equal? (safe-strategy b "o" "x") (move-build (token "o" 1 0) EAST SOUTH EAST SOUTH))
+  (check-equal? (safe-strategy b "o" "x") (move-build (worker "o" 1 0) EAST SOUTH EAST SOUTH))
 
   (define-board c
     [[1x 2o 3]
      [2x 1o]
      [4  4]])
 
-  (check-equal? (safe-strategy c "o" "x") (winning-move (token "o" 1 0) EAST PUT)))
+  (check-equal? (safe-strategy c "o" "x") (winning-move (worker "o" 1 0) EAST PUT)))

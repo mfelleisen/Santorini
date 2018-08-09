@@ -3,13 +3,13 @@
 ;; The Board
 
 ;; what knowledge is turned into information here and represented with data:
-;; -- where the tokens are
+;; -- where the workers are
 ;; -- where buildings are
 ;; -- how tall buildings are
 ;; -- whether the board is in a "final state"
 ;; ---------------------------------------------------------------------------------------------------
-
-(require (only-in "token.rkt" token? in-range? east-west/c north-south/c at-distinct-places))
+(require "../Lib/require.rkt")
+(require+ "worker.rkt" worker? in-range? east-west/c north-south/c at-distinct-places)
 
 (provide
 
@@ -19,8 +19,8 @@
  ;; type directions
  east-west/c north-south/c EAST WEST NORTH SOUTH PUT
 
- ;; type token and operations on tokens 
- token token? all-directions-to-neighbors move-token stay-on-board? 
+ ;; type worker? and operations on worker?s 
+ worker worker? all-directions-to-neighbors move-worker stay-on-board? 
  
  ;; type Building = (building Range Range N)
  MAX-HEIGHT ; a buidling is called 'capped' if its MAX-HEIGHT stories tall. 
@@ -29,54 +29,54 @@
  ;; type board
  board?
 
- ;; Token Token Token Token -> Board
+ ;; Worker? Worker? Worker? Worker? -> Board
  ; board
 
  (contract-out 
   (init
-   ;; create the board and place the four tokens on it
-   (->i ((t1 token?) (t2 token?) (t3 token?) (t4 token?))
+   ;; create the board and place the four worker?s on it
+   (->i ((t1 worker?) (t2 worker?) (t3 worker?) (t4 worker?))
         #:pre (t1 t2 t3 t4) (at-distinct-places (list t1 t2 t3 t4))
         (r board?)))
 
-  (named-tokens
-   ;; retrieve the current four tokens 
-   (-> board? string? (list/c token? token?)))
+  (named-workers
+   ;; retrieve the workers of the given name on this board
+   (-> board? string? (list/c worker? worker?)))
 
   (on?
    ;; is this the name of a player on this boar? 
    (-> board? (-> string? boolean?)))
   
   (on-board?
-   ;; does this token exist on this board?
-   (-> board? (-> token? boolean?)))
+   ;; does this worker exist on this board?
+   (-> board? (-> worker? boolean?)))
   
   (height-of
-   (->* (board? token?) (east-west/c north-south/c) natural-number/c))
+   (->* (board? worker?) (east-west/c north-south/c) natural-number/c))
  
-  (location-free-of-token?
-   ;; there is no token on (x,y)
-   (-> board? token? east-west/c north-south/c boolean?))
+  (location-free-of-worker?
+   ;; there is no worker on (x,y) relative to given worker on this board 
+   (-> board? worker? east-west/c north-south/c boolean?))
 
   (is-move-a-winner?
-   ;; did the move of the token end the game on this board?
-   (->i ((b board?) (t (b) (and/c token? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
+   ;; did the move of the worker end the game on this board?
+   (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
         #:pre/name (t e-w n-s) "remains on board"
-        (let*-values ([(new-t) (move-token t e-w n-s)]
-                      [(x y) (token-location new-t)])
+        (let*-values ([(new-t) (move-worker t e-w n-s)]
+                      [(x y) (worker-location new-t)])
           (and (in-range? x) (in-range? y)))
         (r boolean?)))
   
   (move
-   ;; move the token one step in the given direction
+   ;; move the worker one step in the given direction
    ;; (move will be called from admin only; no checks needed to ensure legality of move)
-   (->i ((b board?) (t (b) (and/c token? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
+   (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
         (r board?)))
  
   (build
    ;; add a level to the buidling that is in the specified direction
    ;; (move will be called from admin only; no checks needed to ensure legality of build
-   (->i ((b board?) (t (b) (and/c token? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
+   (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
         (r board?)))))
 
 (module+ test
@@ -86,20 +86,20 @@
    ;; defines a literal board with cells x-y ...
    ;; Each cell must either be an integer or an identifier that combines a natural with a letter.
    ;; An integer denotes a building of that height.
-   ;; An identifier denotes a building of that height with a token named by the letter atop.
+   ;; An identifier denotes a building of that height with a worker named by the letter atop.
    ;; The grid's origin is the top left. Moving down is moving south, moving right means moving east.
    #;[[0 0 1x]
       [2y]
       [1x 3 2y]]
-   ;; is a board with two "x" tokens at (2,0) and (0,2), each at height 1,
-   ;; and two "y" tokens at (0,1) and (2,2), each at height 2; 
+   ;; is a board with two "x" workers at (2,0) and (0,2), each at height 1,
+   ;; and two "y" workers at (0,1) and (2,2), each at height 2; 
    ;; there is one other buildig at (1,2) of height 3. 
    define-board))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCIES
 
-(require (except-in "token.rkt" token? in-range? east-west/c north-south/c at-distinct-places))
+(require- "worker.rkt" worker? in-range? east-west/c north-south/c at-distinct-places)
 (require "../Lib/set-from.rkt")
 (require "../Lib/struct-with.rkt")
 
@@ -122,7 +122,7 @@
     (match-define (building x2 y2 z2) b2)
     (and (= x1 x2) (= y1 y2))))
 
-(struct board (tokens buildings)
+(struct board (workers buildings)
   #:transparent
   #:methods gen:equal+hash
   [(define (equal-proc b1 b2 equal?)
@@ -134,44 +134,44 @@
    (define (hash-proc bd rhash) 0)
    (define (hash2-proc bd rhash2) 1)])
 
-(define (init token1 token2 token3 token4)
-  (board (list token1 token2 token3 token4) '()))
+(define (init worker1 worker2 worker3 worker4)
+  (board (list worker1 worker2 worker3 worker4) '()))
 
-(define (named-tokens b n)
-  (with board b (filter (lambda (t) (string=? (token-name t) n)) tokens)))
+(define (named-workers b n)
+  (with board b (filter (lambda (t) (string=? (worker-name t) n)) workers)))
 
 (define ((on? b) n)
-  (with board b (cons? (member n (map token-name tokens)))))
+  (with board b (cons? (member n (map worker-name workers)))))
 
 (define ((on-board? b) t)
-  (with board b (cons? (member t tokens))))
+  (with board b (cons? (member t workers))))
 
 (define (is-move-a-winner? b t e-w n-s)
   (= (height-of b t e-w n-s) TOP-FLOOR))
 
 (define (height-of b t (e-w PUT) (n-s PUT))
   (with board b
-        (define-values (xt yt) (token-location t))
+        (define-values (xt yt) (worker-location t))
         (define-values (x  y)  (values (+ xt e-w) (+ yt n-s)))
         (define is-there-a-building (find-building buildings x y))
         (if (boolean? is-there-a-building) 0 (building-height is-there-a-building))))
 
-(define (location-free-of-token? b t e-w n-s)
-  (define-values (xt yt) (token-location t))
+(define (location-free-of-worker? b t e-w n-s)
+  (define-values (xt yt) (worker-location t))
   (define-values (x0 y0) (values (+ xt e-w) (+ yt n-s)))
-  (for/and ((t (board-tokens b)))
-    (define-values (x y) (token-location t))
+  (for/and ((t (board-workers b)))
+    (define-values (x y) (worker-location t))
     (not (and (= x0 x) (= y0 y)))))
 
-(define (move b token e-w n-s)
-  (with board b (board (replace (move-token token e-w n-s) token tokens) buildings)))
+(define (move b worker e-w n-s)
+  (with board b (board (replace (move-worker worker e-w n-s) worker workers) buildings)))
 
-(define (build b token e-w n-s)
+(define (build b worker e-w n-s)
   (with board b
-        (define-values (x-where-to-build y-where-to-build) (neighbor-location token e-w n-s))
+        (define-values (x-where-to-build y-where-to-build) (neighbor-location worker e-w n-s))
         (define is-there-a-building (find-building buildings x-where-to-build y-where-to-build))
         (define the-building (or is-there-a-building (building x-where-to-build y-where-to-build 0)))
-        (board tokens (replace (build-on the-building) the-building buildings))))
+        (board workers (replace (build-on the-building) the-building buildings))))
 
 ;; [Listof Building] Range Range -> (U Building #false)
 (define (find-building buildings x-where-to-build y-where-to-build)
@@ -196,21 +196,21 @@
 (module* test-support #f
   (provide ->board CELL)
 
-  (require "token.rkt")
+  (require "worker.rkt")
   (require rackunit)
 
   (define CELL #px"(\\d)([a-z])")
   
   #; ([Listof [Listof (U Integer [List Integer Letter])]] -> (U Board  #false))
   (define (->board x)
-    (define (+token accu cell x y)
+    (define (+worker accu cell x y)
       (cond
         [(integer? cell) accu]
-        [(pair? cell) (cons (token (second cell) x y) accu)]
+        [(pair? cell) (cons (worker (second cell) x y) accu)]
         [(and (symbol? cell) (regexp-match CELL (symbol->string cell)))
-         => (match-lambda [`(,_all ,height ,name) (cons (token name x y) accu)])]
+         => (match-lambda [`(,_all ,height ,name) (cons (worker name x y) accu)])]
         [else (error '->board "bad Racket value for cell: ~e" cell)]))
-    (define tokens (traverse-literal-board x +token))
+    (define workers (traverse-literal-board x +worker))
     (define (+building accu cell x y)
       (define b
         (building
@@ -222,39 +222,39 @@
             => (match-lambda [`(,_all ,height ,name) (string->number height)])])))
       (cons b accu))
     (define buildings (traverse-literal-board x +building))
-    (and (exactly-2-tokens-of-2-kinds tokens) (board tokens buildings)))
+    (and (exactly-2-workers-of-2-kinds workers) (board workers buildings)))
 
-  #; ([Listof Token] -> Boolean)
-  (define (exactly-2-tokens-of-2-kinds tokens)
-    (define names (map token-name tokens))
-    (and (or (= (length names) 4) (error '->board "too few tokens"))
+  #; ([Listof Worker?] -> Boolean)
+  (define (exactly-2-workers-of-2-kinds workers)
+    (define names (map worker-name workers))
+    (and (or (= (length names) 4) (error '->board "too few workers"))
          (let* ([fst (first names)]
                 [names-first (remove* (list fst) names)])
-           (and (or (= (length names-first) 2) (error '->board "too few tokens of kind ~a" fst))
+           (and (or (= (length names-first) 2) (error '->board "too few workers of kind ~a" fst))
                 (let* ([snd  (first names-first)]
                        [names-other (remove* (list snd) names-first)])
-                  (or (empty? names-other) (error '->board "too few tokens of kind ~a" snd)))))))
+                  (or (empty? names-other) (error '->board "too few workers of kind ~a" snd)))))))
   
   #; (All (Y X) [Listof [Listof Y]] [[Listof X] Y N N -> X] -> [Listof X])
   (define (traverse-literal-board x f)
-    (for/fold ([tokens '()]) ([row x][n-s (in-naturals)])
-      (for/fold ([tokens tokens]) ([cell row][e-w (in-naturals)])
-        (f tokens cell e-w n-s))))
+    (for/fold ([workers '()]) ([row x][n-s (in-naturals)])
+      (for/fold ([workers workers]) ([cell row][e-w (in-naturals)])
+        (f workers cell e-w n-s))))
 
   (check-exn exn:fail?
              (lambda ()
-               (define one-missing (list (token "x" 0 0)  (token "x" 0 1) (token "o" 1 1)))
-               (exactly-2-tokens-of-2-kinds one-missing)))
+               (define one-missing (list (worker "x" 0 0)  (worker "x" 0 1) (worker "o" 1 1)))
+               (exactly-2-workers-of-2-kinds one-missing)))
 
   (check-exn exn:fail?
              (lambda ()
-               (define xxxo (list (token "x" 0 0)  (token "x" 0 1) (token "x" 0 1) (token "o" 1 1)))
-               (exactly-2-tokens-of-2-kinds xxxo)))
+               (define ws (list (worker "x" 0 0)  (worker "x" 0 1) (worker "x" 0 1) (worker "o" 1 1)))
+               (exactly-2-workers-of-2-kinds ws)))
 
   (check-exn exn:fail?
              (lambda ()
-               (define ooox `(,(token "x" 0 0) ,(token "x" 0 1) ,(token "o" 0 1) ,(token "y" 1 1)))
-               (exactly-2-tokens-of-2-kinds ooox))))
+               (define ws `(,(worker "x" 0 0) ,(worker "x" 0 1) ,(worker "o" 0 1) ,(worker "y" 1 1)))
+               (exactly-2-workers-of-2-kinds ws))))
 
 (module+ test
   (require (submod ".." test-support))
@@ -304,7 +304,7 @@
     (syntax-parse stx [(_ n:id b:literal-board) #'(define n (->board b.board))]))
 
   (define expected-board
-    (board (list (token "x" 0 0) (token "o" 1 0) (token "x" 0 1) (token "o" 1 1))
+    (board (list (worker "x" 0 0) (worker "o" 1 0) (worker "x" 0 1) (worker "o" 1 1))
            (list (building 0 0 2)
                  (building 1 0 2)
                  (building 0 1 1)
@@ -338,18 +338,18 @@
 
   (void (hash (board '() '()) 1)) ;; cover first hash code function 
   
-  (define lox0 (list (token "o" 2 1) (token "o" 1 1) (token "x" 2 0) (token "x" 1 0)))
+  (define lox0 (list (worker "o" 2 1) (worker "o" 1 1) (worker "x" 2 0) (worker "x" 1 0)))
   (check-equal? (apply init lox0) (board lox0 '()))
   
   (define board0 (apply init lox0))
 
   (check-true  ((on-board? board0) (first lox0)))
-  (check-false ((on-board? board0) (token "o" 3 3)))
+  (check-false ((on-board? board0) (worker "o" 3 3)))
 
   (check-true  ((on? board0) "o"))
   (check-false ((on? board0) "xxx"))
 
-  (check-equal? (named-tokens board0 "x") (list (token "x" 2 0) (token "x" 1 0)))
+  (check-equal? (named-workers board0 "x") (list (worker "x" 2 0) (worker "x" 1 0)))
 
   (define-board board1
     [[3x 2  1x]
@@ -358,10 +358,10 @@
   (define board2
     (board
      (list
-      (token "o" 2 1)
-      (token "o" 1 1)
-      (token "x" 2 0)
-      (token "x" 0 0))
+      (worker "o" 2 1)
+      (worker "o" 1 1)
+      (worker "x" 2 0)
+      (worker "x" 0 0))
      (list
       (building 2 1 1)
       (building 1 1 2)
@@ -382,20 +382,20 @@
   (define b1-before (board-move 3 '2x))
   (define b1-after  (board-move '3x 2))
 
-  (check-false (is-move-a-winner? b1-before (token "x" 1 0) EAST PUT))
-  (check-true  (is-move-a-winner? b1-after (token "x" 0 0) PUT SOUTH))
+  (check-false (is-move-a-winner? b1-before (worker "x" 1 0) EAST PUT))
+  (check-true  (is-move-a-winner? b1-after (worker "x" 0 0) PUT SOUTH))
   
   (check-false  (find-building (board-buildings b1-before) 0 2))
   (check-equal? (find-building (board-buildings b1-before) 0 1) (building 0 1 3))
   (check-equal? (find-building (board-buildings b1-before) (+ 1 PUT) (+ 0 SOUTH)) (building 1 1 2))
 
-  (check-equal? (height-of b1-before (token "x" 0 2)) 0)
-  (check-equal? (height-of b1-before (token "x" 0 1)) 3)
+  (check-equal? (height-of b1-before (worker "x" 0 2)) 0)
+  (check-equal? (height-of b1-before (worker "x" 0 1)) 3)
   
-  (check-false  (location-free-of-token? b1-before (token "x" 1 0) PUT SOUTH))
-  (check-true   (location-free-of-token? b1-before (token "x" 1 0) WEST SOUTH))
+  (check-false  (location-free-of-worker? b1-before (worker "x" 1 0) PUT SOUTH))
+  (check-true   (location-free-of-worker? b1-before (worker "x" 1 0) WEST SOUTH))
 
-  (check-equal? (move b1-before (token "x" 1 0) WEST PUT) b1-after)
+  (check-equal? (move b1-before (worker "x" 1 0) WEST PUT) b1-after)
 
   (define (board-build ss tt (ff 0))
     (define-board b1
@@ -403,9 +403,9 @@
        [2x   2o  1o]])
     b1)
   
-  (check-equal? (build (board-build 2 '2x) (token "x" 1 0) WEST PUT) (board-build 3 '2x))
+  (check-equal? (build (board-build 2 '2x) (worker "x" 1 0) WEST PUT) (board-build 3 '2x))
 
   (define-board b3-before [[2x 2o]   [2x   2o  1]])
   (define-board b3-after  [[2x 2o 1] [2x   2o  1]])
-  (check-equal? (build b3-before (token "o" 1 0) EAST PUT) b3-after))
+  (check-equal? (build b3-before (worker "o" 1 0) EAST PUT) b3-after))
                 

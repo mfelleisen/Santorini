@@ -1,9 +1,9 @@
 #lang racket
 
 ;; what knowledge is turned into information here and represented with data:
-;; -- a token represents a position on the board 
-;; -- a direction tells me where the token goes 
-;; -- .. or direction a token eyes for adding a level to a building 
+;; -- a worker represents a position on the board 
+;; -- a direction tells me where the worker goes 
+;; -- .. or direction a worker eyes for adding a level to a building 
 
 ;; ---------------------------------------------------------------------------------------------------
 
@@ -36,59 +36,59 @@
  east-west/c
  north-south/c
 
- ;; type Token = (token String Range Range)
- token?
+ ;; type Worker = (worker String Range Range)
+ worker?
  
  (contract-out
 
-  (token
-   (-> string? in-range? in-range? token?))
+  (worker
+   (-> string? in-range? in-range? worker?))
   
-  (token-location
-   (-> token? (values in-range? in-range?)))
+  (worker-location
+   (-> worker? (values in-range? in-range?)))
 
-  (token-name
-   (-> token? string?))
+  (worker-name
+   (-> worker? string?))
   
   (neighbor-location
-   (-> token? east-west/c north-south/c (values in-range? in-range?)))
+   (-> worker? east-west/c north-south/c (values in-range? in-range?)))
 
-  (move-token
-   (-> token? east-west/c north-south/c token?))
+  (move-worker
+   (-> worker? east-west/c north-south/c worker?))
   
   (at-distinct-places
-   ;; are all tokens at distinct places 
-   (-> (listof token?) boolean?))
+   ;; are all workers at distinct places 
+   (-> (listof worker?) boolean?))
 
   (all-directions-to-neighbors
-   ;; compute all possible directions to a neighboring field from this token
+   ;; compute all possible directions to a neighboring field from this worker
    ;; GUARANTEE (0,0) is not a part of the directions 
-   (-> token? (listof (list/c east-west/c north-south/c))))
+   (-> worker? (listof (list/c east-west/c north-south/c))))
 
   (stay-on-board?
-   ;; does this token stay in range if it moves in the specified direction?
-   ;; ASSUME token is in range 
-   (-> token? east-west/c north-south/c boolean?))))
+   ;; does this worker stay in range if it moves in the specified direction?
+   ;; ASSUME worker is in range 
+   (-> worker? east-west/c north-south/c boolean?))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "../Lib/struct-with.rkt")
 (module+ test (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
-(struct token (name x y) #:transparent)
+(struct worker (name x y) #:transparent)
 
-(define (token-location t)
-  (with token t (values x y)))
+(define (worker-location t)
+  (with worker t (values x y)))
 
-(define (move-token t e-w n-s)
+(define (move-worker t e-w n-s)
   (define-values (x1 y1) (neighbor-location t e-w n-s))
-  (token (token-name t) x1 y1))
+  (worker (worker-name t) x1 y1))
 
 (define (neighbor-location t e-w n-s)
-  (with token t (values (+ x e-w) (+ y n-s))))
+  (with worker t (values (+ x e-w) (+ y n-s))))
 
 (define (all-directions-to-neighbors t)
-  (with token t
+  (with worker t
         (for*/list ((e-w `(,WEST ,PUT ,EAST))
                     (n-s `(,NORTH ,PUT ,SOUTH))
                     (new-e-w (in-value (+ x e-w)))
@@ -97,33 +97,33 @@
           (list e-w n-s))))
 
 (define (at-distinct-places lot)
-  (define L (map (lambda (t) (with token t (list x y))) lot))
+  (define L (map (lambda (t) (with worker t (list x y))) lot))
   (define N (length L))
   (define S (apply set L))
   (= (set-count S) N))
 
 (define (stay-on-board? t e-w n-s)
-  (with token t (and (in-range? (+ x e-w)) (in-range? (+ y n-s)))))
+  (with worker t (and (in-range? (+ x e-w)) (in-range? (+ y n-s)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
   ; (require (submod "..")) ; some of these calls intentionally break contracts 
 
-  (define O (token "christos" 0 0))
+  (define O (worker "christos" 0 0))
   (check-equal? (let-values ([(x y) (neighbor-location O PUT NORTH)]) (list x y)) '(0 -1))
   (check-equal? (let-values ([(x y) (neighbor-location O PUT SOUTH)]) (list x y)) '(0 +1))
   (check-equal? (let-values ([(x y) (neighbor-location O EAST PUT)]) (list x y)) '(+1 0))
   (check-equal? (let-values ([(x y) (neighbor-location O WEST PUT)]) (list x y)) '(-1 0))
   
-  (check-true  (at-distinct-places (list (token 'a 1 1) (token 'b 2 2))))
-  (check-false (at-distinct-places (list (token 'a 1 1) (token 'b 1 1))))
+  (check-true  (at-distinct-places (list (worker 'a 1 1) (worker 'b 2 2))))
+  (check-false (at-distinct-places (list (worker 'a 1 1) (worker 'b 1 1))))
 
   (check-equal? (all-directions-to-neighbors O) '((0 1) (1 0) (1 1)))
-  (check-equal? (all-directions-to-neighbors (token "mf" 1 0)) '((-1 0) (-1 1) (0 1) (1 0) (1 1)))
+  (check-equal? (all-directions-to-neighbors (worker "mf" 1 0)) '((-1 0) (-1 1) (0 1) (1 0) (1 1)))
 
-  (check-false (stay-on-board? (token "cd" 0 0) PUT NORTH))
-  (check-true  (stay-on-board? (token "cd" 0 0) PUT SOUTH))
+  (check-false (stay-on-board? (worker "cd" 0 0) PUT NORTH))
+  (check-true  (stay-on-board? (worker "cd" 0 0) PUT SOUTH))
 
-  (check-equal? (let-values ([(x y) (token-location (token "cd" 0 0))]) (list x y)) '(0 0))
+  (check-equal? (let-values ([(x y) (worker-location (worker "cd" 0 0))]) (list x y)) '(0 0))
 
-  (check-equal? (move-token (token "cd" 0 0) PUT SOUTH) (token "cd" 0 (+ SOUTH 0))))
+  (check-equal? (move-worker (worker "cd" 0 0) PUT SOUTH) (worker "cd" 0 (+ SOUTH 0))))

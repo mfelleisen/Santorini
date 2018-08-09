@@ -11,7 +11,7 @@
   - [x] simplify the define-board syntax so that (list 2 "x") can be specified as 2x
 - [x] re-arrange check-build so that it takes the existing board/token/move/build-plan
 - [ ] can we hide tokens completely? 
-  - [ ] rename token to worker 
+  - [x] rename token to worker 
 
 ### testing 
 - [ ] set up tests for players 

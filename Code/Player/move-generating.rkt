@@ -3,9 +3,9 @@
 #| The Rules
 ;; ---------------------------------------------------------------------------------------------------
 
-If it is player's P turn, P must (1) move one token and (2) build up one building after the move.
+If it is player's P turn, P must (1) move one worker and (2) build up one building after the move.
 
-A token can move to a neighboring place if
+A worker can move to a neighboring place if
 
 -- there is no other player on that field,
 -- he is "jumping" down from a building (of arbitrary height), or
@@ -15,12 +15,12 @@ A player can add a level to a neighboring field if the building isn't already ca
 
 The game ends
 -- if player P can't move or, after moving, can't build up a building
--- if player P's token reaches the third level of a building
+-- if player P's worker reaches the third level of a building
 |#
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "../Lib/require.rkt")
-(require+ "../Common/board.rkt" board? on? token? east-west/c north-south/c)
+(require+ "../Common/board.rkt" board? on? worker? east-west/c north-south/c)
 
 (provide
  ;; type Tree 
@@ -31,17 +31,17 @@ The game ends
 
   (generate
    ;; the game tree starting from this board with player making the first move, other responds
-   ;; ASSUME player and other are the two tokens on this board  
+   ;; ASSUME player and other are the two workers on this board  
    (->i ((b board?) (p (b) (and/c string? (on? b))) (o (b) (and/c string? (on? b)))) (r tree?)))
   
   (step
-   ;; the game tree for a specific action by token t, yielding the decision node for the other player
+   ;; the game tree for a specific action by worker t, yielding the decision node for the other player
    (->i ((gt tree?) (a action?))
         #:pre/name (gt a) "legitimate move and build" (member a (tree-actions gt))
         (result tree?)))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require- "../Common/board.rkt" board? on? token? east-west/c north-south/c)
+(require- "../Common/board.rkt" board? on? worker? east-west/c north-south/c)
 (require "../Common/actions.rkt")
 (require "../Common/rule-checking.rkt")
 (require "../Lib/struct-with.rkt")
@@ -55,7 +55,7 @@ The game ends
 
 (define (generate board player other)
   (define actions
-    (for/fold ((actions '())) ((t (named-tokens board player)))
+    (for/fold ((actions '())) ((t (named-workers board player)))
       (for/fold ((actions actions)) ((n (all-directions-to-neighbors t)))
         (match-define `(,e-w-move ,n-s-move) n)
         (cond
@@ -64,7 +64,7 @@ The game ends
           [(is-move-a-winner? board t e-w-move n-s-move)
            (cons (winning-move t e-w-move n-s-move) actions)]
           [else
-           [define new-t (move-token t e-w-move n-s-move)]
+           [define new-t (move-worker t e-w-move n-s-move)]
            (for/fold ([actions actions]) ((n (all-directions-to-neighbors new-t)))
              (match-define `(,e-w-build ,n-s-build) n)
              (if (check-build-up board t e-w-move n-s-move e-w-build n-s-build)
@@ -115,16 +115,16 @@ The game ends
                    [4  4  2]]
                   "o" "x")
   
-  (check-generate (list (move-build (token "x" 0 0) EAST SOUTH WEST NORTH)
-                        (move-build (token "x" 0 1) EAST PUT WEST PUT))
+  (check-generate (list (move-build (worker "x" 0 0) EAST SOUTH WEST NORTH)
+                        (move-build (worker "x" 0 1) EAST PUT WEST PUT))
                   (compose tree-actions
-                           (lambda (b) (step b (move-build (token "o" 1 1) EAST SOUTH EAST SOUTH))))
+                           (lambda (b) (step b (move-build (worker "o" 1 1) EAST SOUTH EAST SOUTH))))
                   [[1x 2o 4]
                    [2x 1o 4]
                    [4  4  2]]
                   "o" "x")
 
-  (check-generate (list (winning-move (token "o" 1 1) EAST SOUTH))
+  (check-generate (list (winning-move (worker "o" 1 1) EAST SOUTH))
                   tree-actions
                   [[1x 2o 4]
                    [2x 2o 4]

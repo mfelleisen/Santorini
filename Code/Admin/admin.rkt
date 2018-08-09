@@ -23,17 +23,17 @@
       (define new-location (send target placement lot))
       (and (not (member new-location lot)) new-location))
 
-    ;; -> (U String [Listof Token])
+    ;; -> (U String [Listof Worker])
     (define/private (setup)
       (let/ec done
-        (define-values (_ tokens)
-          (for/fold ([place* '()][token* '()]) ([n '(1 2 3 4)])
+        (define-values (_ workers)
+          (for/fold ([place* '()][worker* '()]) ([n '(1 2 3 4)])
             (define-values (player name) (if (odd? n) (values one one-name) (values two two-name)))
             (define new-place (placement player place*))
             (if (boolean? new-place)
                 (done (format "~a broke the rules of placing workers" name))
-                (values (cons new-place place*) (cons (apply token name new-place) token*)))))
-        (apply init tokens)))
+                (values (cons new-place place*) (cons (apply worker name new-place) worker*)))))
+        (apply init workers)))
 
     (field [board (setup)])
 
@@ -53,9 +53,9 @@
           (match a
             [(giving-up)
              (format "~a, because ~a gave up" (get-field name two) (get-field name one))]
-            [(winning-move token e-w-move n-s-move)
+            [(winning-move worker e-w-move n-s-move)
              (format "~a made a winning move" (get-field name one))]
-            [(move-build token e-w-move n-s-move e-w-build n-s-build)
+            [(move-build worker e-w-move n-s-move e-w-build n-s-build)
              ;; BUG: I forgot to build
              (play-rounds (apply-action board a) two one)])))))
 

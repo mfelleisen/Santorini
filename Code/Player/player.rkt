@@ -39,7 +39,7 @@
     (define/public (other name) (set! other-name name))
 
     ;; [Listof (list N N)] -> (List N N)
-    ;; create a new token with distinct locations from the given ones
+    ;; create a new worker with distinct locations from the given ones
     (define/public (placement list-of-places)
       (cond
         [(empty? list-of-places) (list 0 0)]

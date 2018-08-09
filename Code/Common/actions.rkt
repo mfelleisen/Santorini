@@ -29,10 +29,10 @@
 ;; Action is one of:
 (struct giving-up action () #:transparent)
 (struct winning-move action (actor e-w-move n-s-move) #:transparent)
-;;      [winning-move Token EWDIR NSDIR]
+;;      [winning-move Worker EWDIR NSDIR]
 ;;                     t moves e-w & n-s and thus arrives at level 3 
 (struct move-build action (actor e-w-move n-s-move e-w-build n-s-build) #:transparent)
-;;      [move-build Token EWDIR NSDIR EWDIR NSDIR]
+;;      [move-build Worker EWDIR NSDIR EWDIR NSDIR]
 ;;                     t moves e-w & n-s, then builds in the specified directions
 
 (define (apply-action board a)
@@ -41,9 +41,9 @@
     [(winning-move t e-w-move n-s-move)
      (move board t  e-w-move n-s-move)]
     [(move-build t e-w-move n-s-move e-w-build n-s-build)
-     (define new-token (move-token t e-w-move n-s-move))
+     (define new-worker (move-worker t e-w-move n-s-move))
      (define new-board (move board t e-w-move n-s-move))
-     (build new-board new-token e-w-build n-s-build)]))
+     (build new-board new-worker e-w-build n-s-build)]))
 
 (define (check-action board a)
   (match a
@@ -68,7 +68,7 @@
        [4  4   ,tt]])
     b)
 
-  (define t1 (token "o" 1 1))
+  (define t1 (worker "o" 1 1))
 
   (check-apply (make-board '2o 4) (giving-up) (make-board '2o 4))
   (check-apply (make-board '2o 3) (winning-move t1 EAST SOUTH) (make-board 2 '3o))
