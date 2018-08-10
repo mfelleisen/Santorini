@@ -10,8 +10,12 @@
 - [x] check actions, not individuals moves in Admin 
   - [x] simplify the define-board syntax so that (list 2 "x") can be specified as 2x
 - [x] re-arrange check-build so that it takes the existing board/token/move/build-plan
-- [ ] can we hide tokens completely? 
+- [ ] can we hide coordinates completely? 
   - [x] rename token to worker 
+  - [ ] MAJOR DESIGN FLAW: workers should not come with locations at all, refactor 
+
+- [ ] the player's interface (not the implementation) also belongs into Common/
+
 
 ### testing 
 - [ ] set up tests for players 

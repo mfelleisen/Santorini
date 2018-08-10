@@ -20,7 +20,6 @@ The game ends
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "../Lib/require.rkt")
-(require+ "../Common/board.rkt" board? on? worker? east-west/c north-south/c)
 
 (provide
  ;; type Tree 
@@ -41,7 +40,9 @@ The game ends
         (result tree?)))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require- "../Common/board.rkt" board? on? worker? east-west/c north-south/c)
+(require "../Common/board.rkt")
+(require "../Common/worker.rkt")
+(require "../Common/directions.rkt")
 (require "../Common/actions.rkt")
 (require "../Common/rule-checking.rkt")
 (require "../Lib/struct-with.rkt")
@@ -86,9 +87,9 @@ The game ends
   
   (check-generate (list (giving-up))
                   tree-actions
-                  [[1x 2o]
-                   [2x 1o]
-                   [4  4]]
+                  [[1x1 2o1]
+                   [2x2 1o2]
+                   [4   4]]
                   "x" "o")
 
   (define ((directions f) t)
@@ -96,37 +97,37 @@ The game ends
     
   (check-generate 3
                   (directions (match-lambda [(move-build _t x y _dx _dy) (list x y)]))
-                  [[2o 1x]
-                   [2x 1o]
-                   [4  4 ]]
+                  [[2o1 1x1]
+                   [2x2 1o2]
+                   [4   4 ]]
                   "o" "x")
 
   (check-generate 17
                   (directions values)
-                  [[2o 1x]  ;; (2,0) -> 1.1 1.2 1.3 3.0
-                   [2x 1o]  ;; (2,1) -> 3.2 2.2 3.2 2.0 3.0
-                   [4  4 ]] ;; (2,2) -> 3.2 3.1 3.3 2.1 3.1
+                  [[2o1 1x1]  ;; (2,0) -> 1.1 1.2 1.3 3.0
+                   [2x2 1o2]  ;; (2,1) -> 3.2 2.2 3.2 2.0 3.0
+                   [4   4 ]] ;; (2,2) -> 3.2 3.1 3.3 2.1 3.1
                   "o" "x")
 
   (check-generate 1
                   (directions (match-lambda [(move-build _t x y _d _e) (list x y)]))
-                  [[1x 2o 4]
-                   [2x 1o 4]
-                   [4  4  2]]
+                  [[1x1 2o1 4]
+                   [2x2 1o2 4]
+                   [4  4    2]]
                   "o" "x")
   
-  (check-generate (list (move-build (worker "x" 0 0) EAST SOUTH WEST NORTH)
-                        (move-build (worker "x" 0 1) EAST PUT WEST PUT))
+  (check-generate (list (move-build (worker "x1") EAST SOUTH WEST NORTH)
+                        (move-build (worker "x2") EAST PUT WEST PUT))
                   (compose tree-actions
-                           (lambda (b) (step b (move-build (worker "o" 1 1) EAST SOUTH EAST SOUTH))))
-                  [[1x 2o 4]
-                   [2x 1o 4]
-                   [4  4  2]]
+                           (lambda (b) (step b (move-build (worker "o2") EAST SOUTH EAST SOUTH))))
+                  [[1x1 2o1 4]
+                   [2x2 1o2 4]
+                   [4   4   2]]
                   "o" "x")
 
-  (check-generate (list (winning-move (worker "o" 1 1) EAST SOUTH))
+  (check-generate (list (winning-move (worker "o2") EAST SOUTH))
                   tree-actions
-                  [[1x 2o 4]
-                   [2x 2o 4]
-                   [4  4  3]]
+                  [[1x1 2o2 4]
+                   [2x2 2o2 4]
+                   [4   4   3]]
                   "o" "x"))

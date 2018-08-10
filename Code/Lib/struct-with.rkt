@@ -32,7 +32,10 @@
 
 (define-for-syntax (structure-type->predicate+accessors+fields stx)
   (define s:type (syntax-parse stx [(_ structure-type . x) #'structure-type]))
-  (define s:info (extract-struct-info (syntax-local-value s:type (not-a-structure-type s:type))))
+  (define s:xxxx (syntax-local-value s:type (not-a-structure-type s:type)))
+  (unless (struct-info? s:xxxx)
+    (raise-syntax-error 'with (format "expected a structure type, given: ~e" s:xxxx) stx))
+  (define s:info (extract-struct-info s:xxxx))
   (define-values (_ constructor predicate accessors _2 _3) (apply values s:info))
   (define accessor-field-pattern (string-append (symbol->string (syntax-e s:type)) "-(.*)"))
   (define fields

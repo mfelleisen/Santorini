@@ -20,7 +20,10 @@ The game ends
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "../Lib/require.rkt")
-(require+ "../Common/board.rkt" board? on-board? worker? east-west/c north-south/c stay-on-board? PUT)
+(require "worker.rkt")
+(require "directions.rkt")
+(require "buildings.rkt")
+(require "board.rkt")
 
 (provide
  (contract-out
@@ -53,8 +56,6 @@ The game ends
         (r boolean?)))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require- "../Common/board.rkt" board? on-board? worker? east-west/c north-south/c stay-on-board? PUT)
-
 (module+ test
   (require (submod "../Common/board.rkt" test))
   (require rackunit))
@@ -90,39 +91,39 @@ The game ends
   (require (submod ".."))
   
   (define-syntax-rule
-    (checker r f b (c tx ty) arg ...)
-    (check-equal? (f b (worker c tx ty) arg ...) r))
+    (checker r f b (c) arg ...)
+    (check-equal? (f b (worker c) arg ...) r))
 
   (define-syntax-rule
-    (check-fail f b (c tx ty) arg ...)
-    (check-exn exn:fail:contract? (lambda () (f b (worker c tx ty) arg ...))))
+    (check-fail f b (c) arg ...)
+    (check-exn exn:fail:contract? (lambda () (f b (worker c) arg ...))))
 
   (define (board-move tt)
     (define-board b1
-      [[3 ,tt 1x]
-       [4 2o 1o]])
+      [[3 ,tt 1x2]
+       [4 2o1 1o2]])
     b1)
 
-  (define b1-before (board-move '2x))
-  (define b1-after  (board-move '3x))
+  (define b1-before (board-move '2x1))
+  (define b1-after  (board-move '3x1))
   
   (define-board b2
     [[]
-     [1b]
-     [0 0 0a]
-     [0 0 0 0a]
-     [0 0 0 1 0b]])
+     [1b1]
+     [0 0 0a1]
+     [0 0 0 0a2]
+     [0 0 0 1 0b2]])
   
-  (checker #t check-move b1-before ("x" 1 0) WEST PUT)
-  (checker #t check-move b2 ("b" 0 1) EAST PUT)
-  (checker #t check-move b2 ("b" 4 4) WEST PUT)
-  (checker #t check-move b2 ("b" 4 4) PUT NORTH)
+  (checker #t check-move b1-before ("x1") WEST PUT)
+  (checker #t check-move b2 ("b1") EAST PUT)
+  (checker #t check-move b2 ("b2") WEST PUT)
+  (checker #t check-move b2 ("b2") PUT NORTH)
   
-  (checker #t check-build-up b2 ("b" 0 1) EAST SOUTH WEST PUT)
-  (checker #f check-build-up b1-before ("x" 1 0) WEST PUT PUT SOUTH)
-  (checker #t check-build-up b1-before ("o" 1 1) PUT SOUTH PUT SOUTH)
+  (checker #t check-build-up b2 ("b1") EAST SOUTH WEST PUT)
+  (checker #f check-build-up b1-before ("x1") WEST PUT PUT SOUTH)
+  (checker #t check-build-up b1-before ("o1") PUT SOUTH PUT SOUTH)
   
-  (checker #t can-move-and-build? b1-before ("x" 2 0))
-  (checker #f can-move-and-build? (board-move '0x) ("x" 1 0))
+  (checker #t can-move-and-build? b1-before ("x2"))
+  (checker #f can-move-and-build? (board-move '0x1) ("x1"))
   
-  (check-fail check-move (move b2 (worker "b" 0 1) PUT SOUTH) ("b" 0 1) EAST PUT))
+  (check-fail check-move (move b2 (worker "b1") PUT SOUTH) ("b1") EAST PUT))
