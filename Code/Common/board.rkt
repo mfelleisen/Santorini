@@ -16,40 +16,18 @@
 (provide
  DIM
  ;; type Range = [0,DIM)
- in-range? 
+ in-range?
 
- (contract-out 
-  (neighbor-location
-   (-> worker? east-west/c north-south/c (values in-range? in-range?)))
-
-  (move-worker
-   (-> worker? east-west/c north-south/c worker?))
-  
-  (at-distinct-places
-   ;; are all workers at distinct places 
-   (-> (listof worker?) boolean?))
-
-  (all-directions-to-neighbors
-   ;; compute all possible directions to a neighboring field from this worker
-   ;; GUARANTEE (0,0) is not a part of the directions 
-   (-> worker? (listof (list/c east-west/c north-south/c))))
-
-  (stay-on-board?
-   ;; does this worker stay in range if it moves in the specified direction?
-   ;; ASSUME worker is in range 
-   (-> worker? east-west/c north-south/c boolean?)))
- 
  ;; type board
  board?
-
- ;; Worker? Worker? Worker? Worker? -> Board
- ; board
-
+ 
  (contract-out 
   (init
    ;; create the board and place the four worker?s on it
    (->i ((t1 init/c) (t2 init/c) (t3 init/c) (t4 init/c))
-        #:pre (t1 t2 t3 t4) (at-distinct-places (list t1 t2 t3 t4))
+        #:pre/name (t1 t2 t3 t4) "must be at distinct places"
+        (let ([L (map second (list t1 t2 t3 t4))])
+          (= (set-count (apply set L)) (length L)))
         (r board?)))
 
   (named-workers
@@ -63,48 +41,64 @@
   (on-board?
    ;; does this worker exist on this board?
    (-> board? (-> worker? boolean?)))
+
+  (all-directions-to-neighbors
+   ;; compute all possible directions to a neighboring field from this worker
+   ;; GUARANTEE (0,0) is not a part of the directions 
+   (-> board? worker? (listof (list/c east-west/c north-south/c))))
+
+  (stay-on-board?
+   ;; does this worker stay in range if it moves in the specified direction?
+   ;; ASSUME worker is in range 
+   (-> board? worker? east-west/c north-south/c boolean?))
   
   (height-of
+   ;; the height of the building where the worker is located or looking at on this board 
    (->* (board? worker?) (east-west/c north-south/c) natural-number/c))
  
   (location-free-of-worker?
    ;; there is no worker on (x,y) relative to given worker on this board 
    (-> board? worker? east-west/c north-south/c boolean?))
 
-  (is-move-a-winner?
-   ;; did the move of the worker end the game on this board?
-   (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
-        ;; #:pre/name (t e-w n-s) "remains on board"
-        #;
-        (let*-values ([(new-t) (move-worker t e-w n-s)]
-                      [(x y) (worker-location new-t)])
-          (and (in-range? x) (in-range? y)))
-        (r boolean?)))
-  
   (move
    ;; move the worker one step in the given direction
    ;; (move will be called from admin only; no checks needed to ensure legality of move)
    (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
+        #:pre/name (t e-w n-s) "remains on board" none/c
         (r board?)))
- 
+  
   (build
    ;; add a level to the buidling that is in the specified direction
    ;; (move will be called from admin only; no checks needed to ensure legality of build
    (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
-        (r board?)))))
+        #:pre/name (t e-w n-s) "builds on board" none/c
+        (r board?)))
+ 
+  (is-move-a-winner?
+   ;; did the move of the worker end the game on this board?
+   (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
+        #:pre/name (t e-w n-s) "remains on board" none/c
+        (r boolean?)))))
 
 (module+ test
   (provide
    ;; SYNTAX
    #; (define-board name [[x-y ...] ...])
    ;; defines a literal board with cells x-y ...
-   ;; Each cell must either be an integer or an identifier that combines a natural with a letter.
-   ;; An integer denotes a building of that height.
-   ;; An identifier denotes a building of that height with a worker named by the letter atop.
+   ;; Each cell must be
+   ;; -- an N, which denotes a building of this height or
+   ;; -- an identifier whose name
+   ;;    -- starts with an N, which denotes the height of the building 
+   ;;    -- is followed by [a-z]+ and
+   ;;    -- ends in 1 or 2.
+   ;;    The rest of the identifier denotes a worker.
    ;; The grid's origin is the top left. Moving down is moving south, moving right means moving east.
-   #;[[0 0 1x]
-      [2y]
-      [1x 3 2y]]
+   ;; 
+   ;; EXAMPLE:
+   ;; --------
+   #;[[0 0 1x1]
+      [2y1]
+      [1x2 3 2y2]]
    ;; is a board with two "x" workers at (2,0) and (0,2), each at height 1,
    ;; and two "y" workers at (0,1) and (2,2), each at height 2; 
    ;; there is one other buildig at (1,2) of height 3. 
@@ -126,38 +120,18 @@
   (require syntax/macro-testing))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define (move-worker t e-w n-s)
-  (define-values (x1 y1) (neighbor-location t e-w n-s))
-  (worker (worker-name t) x1 y1))
+(define (all-directions-to-neighbors b t)
+  (define-values (x y) (worker-location b t))
+  (for*/list ((e-w `(,WEST ,PUT ,EAST))
+              (n-s `(,NORTH ,PUT ,SOUTH))
+              (new-e-w (in-value (+ x e-w)))
+              (new-n-s (in-value (+ y n-s)))
+              #:when (and (not (= 0 e-w n-s)) (in-range? new-e-w) (in-range? new-n-s)))
+    (list e-w n-s)))
 
-(define (neighbor-location t e-w n-s)
-  (values 0 0)
-  #;
-  (with worker t (values (+ x e-w) (+ y n-s))))
-
-(define (all-directions-to-neighbors t)
-  '()
-  #;
-  (with worker t
-        (for*/list ((e-w `(,WEST ,PUT ,EAST))
-                    (n-s `(,NORTH ,PUT ,SOUTH))
-                    (new-e-w (in-value (+ x e-w)))
-                    (new-n-s (in-value (+ y n-s)))
-                    #:when (and (not (= 0 e-w n-s)) (in-range? new-e-w) (in-range? new-n-s)))
-          (list e-w n-s))))
-
-(define (at-distinct-places lot)
-  (define L '())
-  #;
-  (define L (map (lambda (t) (with worker t (list x y))) lot))
-  (define N (length L))
-  (define S (apply set L))
-  (= (set-count S) N))
-
-(define (stay-on-board? t e-w n-s)
-  #false
-  #;
-  (with worker t (and (in-range? (+ x e-w)) (in-range? (+ y n-s)))))
+(define (stay-on-board? board t e-w n-s)
+  (define-values (x y) (worker-location board t))
+  (and (in-range? (+ x e-w)) (in-range? (+ y n-s))))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; The BOARD
@@ -203,21 +177,26 @@
     (define-values (x y) (worker-location b t))
     (not (and (= x0 x) (= y0 y)))))
 
-(define (move b worker e-w n-s)
-  (with board b (board (replace (move-worker worker e-w n-s) worker workers) buildings)))
+(define (move b old e-w n-s)
+  (with board b
+        (define-values (x0 y0) (worker-location b old))
+        (define-values (x1 y1) (values (+ x0 e-w) (+ y0 n-s)))
+        (define nu (list old x1 y1))
+        (for/list ((w workers))
+          (if (equal? (first w) old) nu w))))
 
 (define (build b worker e-w n-s)
   (with board b
-        (define-values (x-where-to-build y-where-to-build) (neighbor-location worker e-w n-s))
+        (define-values (x y) (worker-location b worker))
+        (define-values (x-where-to-build y-where-to-build) (values (+ x e-w) (+ y n-s)))
         (define is-there-a-building (find-building buildings x-where-to-build y-where-to-build))
         (define the-building (or is-there-a-building (building x-where-to-build y-where-to-build 0)))
-        (board workers (replace (build-on the-building) the-building buildings))))
+        (board workers (cons (build-on the-building) (remove the-building buildings)))))
 
 ;; Board Worker -> (values in-range? in-range?)
 (define (worker-location b w)
   (with board b (match-define `(,w ,x ,y) (first (member w workers))) (values x y)))
                          
-
 ;; [Listof Building] Range Range -> (U Building #false)
 (define (find-building buildings x-where-to-build y-where-to-build)
   (ormap (lambda (b)
@@ -225,36 +204,11 @@
            (and (equal? x x-where-to-build) (equal? y y-where-to-build) b))
          buildings))
 
-;; X X [Listof X] -> [Listof X]
-;; "replace" an x-es on lox with the same location by x
-(define (replace x old lox)
-  (cons x (remove old lox)))
-
 ;; Building -> Building
 (define (build-on b)
   (match-define (building x y z) b)
   (building x y (+ z 1)))
 
-;; ---------------------------------------------------------------------------------------------------
-;; TESTING workers 
-(module+ test
-  (require (submod "..")) ; some of these calls intentionally break contracts 
-
-  (define O (worker "christos1"))
-  (check-equal? (let-values ([(x y) (neighbor-location O PUT NORTH)]) (list x y)) '(0 -1))
-  (check-equal? (let-values ([(x y) (neighbor-location O PUT SOUTH)]) (list x y)) '(0 +1))
-  (check-equal? (let-values ([(x y) (neighbor-location O EAST PUT)]) (list x y)) '(+1 0))
-  (check-equal? (let-values ([(x y) (neighbor-location O WEST PUT)]) (list x y)) '(-1 0))
-  
-  (check-equal? (all-directions-to-neighbors 'some-board O)
-                '((0 1) (1 0) (1 1)))
-  (check-equal? (all-directions-to-neighbors 'some-board (worker "mf1"))
-                '((-1 0) (-1 1) (0 1) (1 0) (1 1)))
-
-  (check-false (stay-on-board? 'some-board (worker "cd1") PUT NORTH))
-  (check-true  (stay-on-board? 'some-board (worker "cd1") PUT SOUTH))
-
-  (check-equal? (let-values ([(x y) (worker-location 'someboard (worker "cd1"))]) (list x y)) '(0 0)))
 ;; ---------------------------------------------------------------------------------------------------
 ;; TEST FRAMEWORK for Boards (needed here to get bindings from top-level modules)
 
@@ -406,10 +360,10 @@
   
   (define lox0
     (list 
-    (list (worker "o1") 2 1)
-    (list (worker "o2") 1 1)
-    (list (worker "x1") 2 0)
-    (list (worker "x1" )1 0)))
+     (list (worker "o1") 2 1)
+     (list (worker "o2") 1 1)
+     (list (worker "x1") 2 0)
+     (list (worker "x1" )1 0)))
   (check-equal? (apply init lox0) (board lox0 '()))
   
   (define board0 (apply init lox0))
@@ -445,6 +399,7 @@
   
   (check-equal? board1 board2))
 
+;; ---------------------------------------------------------------------------------------------------
 (module+ test ;; complex functions, including define-board 
   (define (board-move ss tt)
     (define-board b1
@@ -452,8 +407,16 @@
        [3   2o1 1o2]])
     b1)
   
-  (define b1-before (board-move 3 '2x))
-  (define b1-after  (board-move '3x 2))
+  (define b1-before (board-move 3 '2x2))
+  (define b1-after  (board-move '3x2 2))
+
+  (check-equal? (all-directions-to-neighbors b1-after (worker "x2"))
+                (list (list EAST PUT) (list EAST SOUTH) (list PUT SOUTH)))
+  (check-equal? (all-directions-to-neighbors b1-before (worker "x2"))
+                `((,EAST ,PUT) (,EAST ,SOUTH) (,PUT ,SOUTH) (,WEST ,PUT) (,WEST ,SOUTH)))
+
+  (check-false (stay-on-board? b1-before (worker "x2") PUT NORTH))
+  (check-true  (stay-on-board? b1-before (worker "x2") PUT SOUTH))
 
   (check-false (is-move-a-winner? b1-before (worker "x" 1 0) EAST PUT))
   (check-true  (is-move-a-winner? b1-after (worker "x" 0 0) PUT SOUTH))

@@ -57,7 +57,7 @@ The game ends
 (define (generate board player other)
   (define actions
     (for/fold ((actions '())) ((t (named-workers board player)))
-      (for/fold ((actions actions)) ((n (all-directions-to-neighbors t)))
+      (for/fold ((actions actions)) ((n (all-directions-to-neighbors board t)))
         (match-define `(,e-w-move ,n-s-move) n)
         (cond
           [(not (check-move board t e-w-move n-s-move))
@@ -65,8 +65,8 @@ The game ends
           [(is-move-a-winner? board t e-w-move n-s-move)
            (cons (winning-move t e-w-move n-s-move) actions)]
           [else
-           [define new-t (move-worker t e-w-move n-s-move)]
-           (for/fold ([actions actions]) ((n (all-directions-to-neighbors new-t)))
+           [define new-board (move board t e-w-move n-s-move)]
+           (for/fold ([actions actions]) ((n (all-directions-to-neighbors new-board t)))
              (match-define `(,e-w-build ,n-s-build) n)
              (if (check-build-up board t e-w-move n-s-move e-w-build n-s-build)
                  (cons (move-build t e-w-move n-s-move e-w-build n-s-build) actions)

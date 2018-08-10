@@ -45,9 +45,8 @@
     [(winning-move t e-w-move n-s-move)
      (move board t  e-w-move n-s-move)]
     [(move-build t e-w-move n-s-move e-w-build n-s-build)
-     (define new-worker (move-worker t e-w-move n-s-move))
      (define new-board (move board t e-w-move n-s-move))
-     (build new-board new-worker e-w-build n-s-build)]))
+     (build new-board t e-w-build n-s-build)]))
 
 (define (check-action board a)
   (match a
