@@ -131,7 +131,35 @@
           (set=? (set-from b1b same-building) (set-from b2b same-building))))
    ;; the following two are, well, inappropriate in general 
    (define (hash-proc bd rhash) 0)
-   (define (hash2-proc bd rhash2) 1)])
+   (define (hash2-proc bd rhash2) 1)]
+  #:methods gen:custom-write
+  [(define (write-proc b op mode)
+     (with board b
+           (define building-2d
+             (reverse
+              (for/fold ([lines '()]) ((y (in-range DIM)))
+                (define one-line
+                  (for/list ((x (in-range DIM)))
+                    (define b (find-building buildings x y))
+                    (define s (if (boolean? b) "0" (number->string (building-height b))))
+                    (define w (find-worker workers x y))
+                    (define t (string-append s (if (boolean? w) "  " (worker-name+no w))))
+                    t))
+                
+                (define cleansed (remove-trailing-0s one-line))
+                (if (empty? cleansed)
+                    (values lines)
+                    (values (cons (format " [~a]" (string-join cleansed)) lines))))))
+
+           (define fst    (first building-2d))
+           (define reved  (reverse (rest building-2d)))
+           (define last   (first reved))
+           (define allbut (rest reved))
+
+           (parameterize ([current-output-port op])
+             (display "[") (displayln (substring fst 1))
+             (for-each displayln (reverse allbut))
+             (display last) (display "]"))))])
 
 (define (init worker1 worker2 worker3 worker4)
   (board (list worker1 worker2 worker3 worker4) '()))
@@ -198,18 +226,30 @@
         (match-define `(,_w ,x ,y)
           (for*/first ([t workers] [ww (in-value (first t))] #:when (equal? w ww)) t))
         (values x y)))
-                         
-;; [Listof Building] Range Range -> (U Building #false)
-(define (find-building buildings x-where-to-build y-where-to-build)
-  (ormap (lambda (b)
-           (match-define (building x y _) b)
-           (and (equal? x x-where-to-build) (equal? y y-where-to-build) b))
-         buildings))
+
+;; [Listof Building] Range Range -> (U N #false)
+(define (find-building b* x0 y0)
+  (finder b* (lambda (b) (match-define (building x y z) b) (and (equal? x x0) (equal? y y0) b))))
+
+;; [Listof Worker] Range Range -> (U String #false)
+(define (find-worker workers x0 y0)
+  (finder workers (match-lambda [`(,w ,x ,y) (and (equal? x x0) (equal? y y0) w)])))
+
+(define (finder lox matcher)
+  (ormap matcher lox))
 
 ;; Building -> Building
 (define (build-on b)
   (match-define (building x y z) b)
   (building x y (+ z 1)))
+
+;; {Listof String] -> [Listof String]
+(define (remove-trailing-0s los)
+  (cond
+    [(empty? los) '()]
+    [else (define fst (first los))
+          (define rst (remove-trailing-0s (rest los)))
+          (if (and (empty? rst) (string=? fst "0  ")) '() (cons fst rst))]))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; TEST FRAMEWORK for Boards (needed here to get bindings from top-level modules)
@@ -441,4 +481,16 @@
   (define-board b3-before [[2x1 2o1]   [2x2   2o2  1]])
   (define-board b3-after  [[2x1 2o1 1] [2x2   2o2  1]])
   (check-equal? (build b3-before (worker "o1") EAST PUT) b3-after))
-                
+
+(module+ test ;; testing printing 
+
+  (define b
+    (board `((,(worker "x1") 0 0)
+             (,(worker "x2") 0 1)
+             (,(worker "y2") 1 0)
+             (,(worker "y1") 1 1))
+           (list (building 0 0 3) (building 0 2 1))))
+  
+
+  (displayln b)
+  )
