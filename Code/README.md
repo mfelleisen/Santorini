@@ -12,7 +12,8 @@
 - [x] re-arrange check-build so that it takes the existing board/token/move/build-plan
 - [ ] can we hide coordinates completely? 
   - [x] rename token to worker 
-  - [ ] MAJOR DESIGN FLAW: workers should not come with locations at all, refactor 
+  - [x] MAJOR DESIGN FLAW: workers should not come with locations at all, refactor 
+
 
 - [ ] the player's interface (not the implementation) also belongs into Common/
 
@@ -22,6 +23,7 @@
 - [ ] set up tests for admins 
 
 ## Larger Follow-up Steps 
+- [X] board printer 
 - [ ] GUI for watching the game (an observer) 
 - [ ] ?? GUI for playing? 
 - [ ] best-of N run in admin, instead of a single run 
