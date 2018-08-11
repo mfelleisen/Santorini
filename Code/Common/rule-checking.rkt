@@ -52,7 +52,7 @@ The game ends
         #:pre/name (b-e-w b-n-s) "a worker can't build on its own spot"
         (not (and (= b-e-w PUT) (= b-n-s PUT)))
         #:pre/name (b t e-w n-s b-e-w b-n-s) "worker must build on board"
-        (stay-on-board? (move b t e-w n-s) b-e-w b-n-s)
+        (stay-on-board? (move b t e-w n-s) t b-e-w b-n-s)
         (r boolean?)))))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -124,5 +124,5 @@ The game ends
   
   (checker #t can-move-and-build? b1-before ("x2"))
   (checker #f can-move-and-build? (board-move '0x1) ("x1"))
-  
-  (check-fail check-move (move b2 (worker "b1") PUT SOUTH) ("b1") EAST PUT))
+
+  (check-fail check-move (worker "b1") ("b1") WEST PUT))

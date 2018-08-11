@@ -13,8 +13,9 @@
  ;; type Worker = (worker String Range Range)
  worker?
  (contract-out
-  (worker (-> (curry regexp-match NAME) worker?))
-  (worker-name (-> worker? string?))))
+  (worker       (-> (curry regexp-match NAME) worker?))
+  (worker-name+no (-> worker? string?))
+  (worker-name  (-> worker? string?))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "directions.rkt")

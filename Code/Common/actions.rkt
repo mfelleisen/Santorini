@@ -65,18 +65,18 @@
   (define-syntax-rule (check-check b a r) (check-equal? (check-action b a) r))
 
   (define (make-board ss0 tt)
-    (define ss (string->symbol (string-append (symbol->string ss0) "2")))
+    (define ss (if (number? ss0) ss0 (string->symbol (string-append (symbol->string ss0) "2"))))
     (define-board b
       [[1x1 2o1 4]
        [2x1 ,ss 4]
        [4   4   ,tt]])
     b)
 
-  (define t1 (worker "o1"))
+  (define t1 (worker "o2"))
 
   (check-apply (make-board '2o 4) (giving-up) (make-board '2o 4))
-  (check-apply (make-board '2o 3) (winning-move t1 EAST SOUTH) (make-board 2 '3o))
-  (check-apply (make-board '2o 2) (move-build t1 EAST SOUTH WEST NORTH) (make-board 3 '2o))
+  (check-apply (make-board '2o 3) (winning-move t1 EAST SOUTH) (make-board 2 '3o2))
+  (check-apply (make-board '2o 2) (move-build t1 EAST SOUTH WEST NORTH) (make-board 3 '2o2))
   
   (check-check (make-board '2o 4) (giving-up) #t)
   (check-check (make-board '2o 3) (winning-move t1 EAST SOUTH) #t)

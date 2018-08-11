@@ -63,20 +63,20 @@
    ;; move the worker one step in the given direction
    ;; (move will be called from admin only; no checks needed to ensure legality of move)
    (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
-        #:pre/name (t e-w n-s) "remains on board" none/c
+        #:pre/name (b t e-w n-s) "remains on board" (stay-on-board? b t e-w n-s)
         (r board?)))
   
   (build
    ;; add a level to the buidling that is in the specified direction
    ;; (move will be called from admin only; no checks needed to ensure legality of build
    (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
-        #:pre/name (t e-w n-s) "builds on board" none/c
+        #:pre/name (b t e-w n-s) "builds on board" (stay-on-board? b t e-w n-s)
         (r board?)))
  
   (is-move-a-winner?
    ;; did the move of the worker end the game on this board?
    (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
-        #:pre/name (t e-w n-s) "remains on board" none/c
+        #:pre/name (b t e-w n-s) "remains on board" (stay-on-board? b t e-w n-s)
         (r boolean?)))))
 
 (module+ test
@@ -219,18 +219,18 @@
   (require "worker.rkt")
   (require rackunit)
 
-  (define CELL #px"(\\d)([a-z][1,2])")
+  (define CELL #px"(\\d)([a-z]*[1,2])")
   
   #; ([Listof [Listof (U Integer [List Integer Letter])]] -> (U Board  #false))
   (define (->board x)
     (define (+worker accu cell x y)
       (cond
         [(integer? cell) accu]
-        [(pair? cell) (cons (list (worker (second cell)) x y) accu)]
+        [(pair? cell) (cons (list (second cell) (worker (second cell)) x y) accu)]
         [(and (symbol? cell) (regexp-match CELL (symbol->string cell)))
-         => (match-lambda [`(,_all ,height ,name) (cons (list (worker name) x y) accu)])]
+         => (match-lambda [`(,_all ,_height ,name) (cons (list name (worker name) x y) accu)])]
         [else (error '->board "bad Racket value for cell: ~e" cell)]))
-    (define workers (traverse-literal-board x +worker))
+    (define full-name+workers+loc (traverse-literal-board x +worker))
     (define (+building accu cell x y)
       (define b
         (building
@@ -242,33 +242,47 @@
             => (match-lambda [`(,_all ,height ,name) (string->number height)])])))
       (cons b accu))
     (define buildings (traverse-literal-board x +building))
-    (and (exactly-2-workers-of-2-kinds workers) (board workers buildings)))
+    (and (exactly-2-workers-of-2-kinds full-name+workers+loc)
+         (board (map rest full-name+workers+loc) buildings)))
 
   #; ([Listof Worker?] -> Boolean)
-  (define (exactly-2-workers-of-2-kinds workers+loc)
-    (define workers (map first workers+loc))
-    (define names (map worker-name workers))
-    (and (or (= (length names) 4) (error '->board "too few workers"))
-         (let* ([fst (first names)]
-                [names-first (remove* (list fst) names)])
-           (and (or (= (length names-first) 2) (error '->board "wrong number of ~a workers" fst))
-                (let* ([snd  (first names-first)]
-                       [others (remove* (list snd) names-first)])
-                  (or (empty? others) (error '->board "a third kind of worker: ~a" others)))))))
+  (define (exactly-2-workers-of-2-kinds full-name+workers+loc)
+    (define names (for/list ((w full-name+workers+loc)) (list (first w) (worker-name (second w)))))
+    (unless (= (length names) 4) (error '->board "too few workers"))
+    
+    (match-define `(,full-fst ,fst) (first names))
+    (define names-fst (remf* (lambda (n) (equal? (second n) fst)) names))
+    (unless (= (length names-fst) 2) (error '->board "wrong number of ~a workers" fst))
+    (define fulls1 (map first (filter (lambda (n) (equal? (second n) fst)) names)))
+    
+    (match-define `(,full-snd ,snd) (first names-fst))
+    [define names-snd (remf* (lambda (x) (equal? (second x) snd)) names-fst)]
+    (define fulls2 (map first (filter (lambda (n) (equal? (second n) snd)) names)))
+    
+    (unless(empty? names-snd) (error '->board "a third kind of worker: ~a" names-snd))
+
+    (when (equal? (first fulls1) (second fulls1)) (error '->board "duplicate ~a worker" fst))
+    (when (equal? (first fulls2) (second fulls2)) (error '->board "duplicate ~a worker" snd))
+    #t)
   
   #; (All (Y X) [Listof [Listof Y]] [[Listof X] Y N N -> X] -> [Listof X])
   (define (traverse-literal-board x f)
-    (for/fold ([workers '()]) ([row x][n-s (in-naturals)])
-      (for/fold ([workers workers]) ([cell row][e-w (in-naturals)])
-        (f workers cell e-w n-s))))
+    (for/fold ([accu '()]) ([row x][n-s (in-naturals)])
+      (for/fold ([accu accu]) ([cell row][e-w (in-naturals)])
+        (f accu cell e-w n-s))))
 
   (define-syntax-rule (check-2 re w) (check-exn re (lambda () (exactly-2-workers-of-2-kinds w))))
-
-  (check-2 #px"too few workers" `((,(worker "x1") 0 0) (,(worker "x2") 0 1) (,(worker "o1") 1 1)))
-  (check-2 #px"wrong number of x workers"
-           `((,(worker "x1") 0 0) (,(worker "x2") 0 1) (,(worker "x2") 0 1) (,(worker "o1") 1 1)))
-  (check-2 #px"a third kind of worker"
-           `((,(worker "x1") 0 0) (,(worker "x2") 0 1) (,(worker "o1") 0 1) (,(worker "y1") 1 1))))
+  
+  (check-2 #px"too few workers"
+           `(("x1" ,(worker "x1") 0 0) ("x2" ,(worker "x2") 0 1) ("o1" ,(worker "o1") 1 1)))
+  (check-2
+   #px"wrong number of x workers"
+   `(("x1" ,(worker "x1") 0 0) ("x2" ,(worker "x2") 0 1) ("x2" ,(worker "x2") 0 1)
+                               ("o1" ,(worker "o1") 1 1)))
+  (check-2
+   #px"a third kind of worker"
+   `(("x1" ,(worker "x1") 0 0) ("x2" ,(worker "x2") 0 1) ("o1" ,(worker "o1") 0 1)
+                               ("y1" ,(worker "y1") 1 1))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test ;; define-board for creating scenarios in a concise form 
@@ -332,42 +346,17 @@
   (check-exn exn:fail? (lambda () (define-board b [[2x1 ,"o1"][2o2 1x2]]) b))
 
   (define-syntax-rule
-    (check-syn b)
-    (check-exn exn:fail:syntax? (lambda () (convert-compile-time-error (void (define-board c b) 0)))))
+    (check-syn re b)
+    (check-exn re (lambda () (convert-compile-time-error (let () (define-board c b) 0)))))
 
-  ;;; (check-syn [[2x 2o 1x] [1x 1o 3]])
-  (check-exn
-   exn:fail:syntax?
-   (lambda () (convert-compile-time-error (let () (define-board b [[2x1 2o1 1x2] [1x2 1o2 3]]) b))))
-
-  (check-exn
-   exn:fail:syntax?
-   (lambda () (convert-compile-time-error (let () (define-board b [[2x1] [1x2 1o1 3]]) b))))
-
-  (check-exn
-   exn:fail:syntax?
-   (lambda () (convert-compile-time-error (let () (define-board b [[2x1 1x2] [1x2 1o1 3]]) b)))))
+  (check-syn #px"not a cell spec" [[2x 2o 1x] [1x 1o 3]])
+  (check-syn #px"too few workers" [[2x1] [1x2 1o1 3]])
+  (check-syn #px"wrong number of o workers" [[2x1 1x2] [1x2 1o1 3]])
+  
+  (check-syn #px"duplicate aa worker" [[2zz1 2zz1] [1aa1 1aa1]])
+  (check-syn #px"duplicate zz worker" [[1aa1 1aa1] [2zz1 2zz1]]))
 
 ;; ---------------------------------------------------------------------------------------------------
-;; TESTS
-(module+ test ;; basic functions 
-  (require (submod ".."))
-
-  (void (hash (board '() '()) 1)) ;; cover first hash code function 
-  
-  (define lox0 `((,(worker "o1") 2 1) (,(worker "o2") 1 1) (,(worker "x1") 2 0) (,(worker "x2" )1 0)))
-  (check-equal? (apply init lox0) (board lox0 '()))
-  
-  (define board0 (apply init lox0))
-
-  (check-true  ((on-board? board0) (first (first lox0))))
-  (check-false ((on-board? board0) (worker "w2")))
-
-  (check-true  ((on? board0) "o"))
-  (check-false ((on? board0) "xxx"))
-
-  (check-equal? (named-workers board0 "x") (list (worker "x1") (worker "x2"))))
-
 (module+ test ;; define-board 
 
   (define-board board1
@@ -390,8 +379,25 @@
       (building 0 0 3))))
   
   (check-equal? board1 board2))
+;; ---------------------------------------------------------------------------------------------------
+(module+ test ;; board functions 
+  (require (submod ".."))
 
-(module+ test ;; complex functions, including define-board 
+  (void (hash (board '() '()) 1)) ;; cover first hash code function 
+  
+  (define lox0 `((,(worker "o1") 2 1) (,(worker "o2") 1 1) (,(worker "x1") 2 0) (,(worker "x2" )1 0)))
+  (check-equal? (apply init lox0) (board lox0 '()))
+  
+  (define board0 (apply init lox0))
+
+  (check-true  ((on-board? board0) (first (first lox0))))
+  (check-false ((on-board? board0) (worker "w2")))
+
+  (check-true  ((on? board0) "o"))
+  (check-false ((on? board0) "xxx"))
+
+  (check-equal? (named-workers board0 "x") (list (worker "x1") (worker "x2")))
+  
   (define (board-move ss tt)
     (define-board b1
       [[,ss ,tt 1x1]

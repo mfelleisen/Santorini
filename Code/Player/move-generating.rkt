@@ -127,7 +127,7 @@ The game ends
 
   (check-generate (list (winning-move (worker "o2") EAST SOUTH))
                   tree-actions
-                  [[1x1 2o2 4]
+                  [[1x1 2o1 4]
                    [2x2 2o2 4]
                    [4   4   3]]
                   "o" "x"))
