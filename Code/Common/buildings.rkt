@@ -8,6 +8,8 @@
  TOP-FLOOR  ; this is the victory story
 
  building
+ building-x
+ building-y
  building-height
 
  same-building)

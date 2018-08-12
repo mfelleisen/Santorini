@@ -133,33 +133,48 @@
    (define (hash-proc bd rhash) 0)
    (define (hash2-proc bd rhash2) 1)]
   #:methods gen:custom-write
-  [(define (write-proc b op mode)
-     (with board b
-           (define building-2d
-             (reverse
-              (for/fold ([lines '()]) ((y (in-range DIM)))
-                (define one-line
-                  (for/list ((x (in-range DIM)))
-                    (define b (find-building buildings x y))
-                    (define s (if (boolean? b) "0" (number->string (building-height b))))
-                    (define w (find-worker workers x y))
-                    (define t (string-append s (if (boolean? w) "  " (worker-name+no w))))
-                    t))
-                
-                (define cleansed (remove-trailing-0s one-line))
-                (if (empty? cleansed)
-                    (values lines)
-                    (values (cons (format " [~a]" (string-join cleansed)) lines))))))
+  [;; Board OutputPort Boolean? -> Void 
+   (define (write-proc b op mode)
+     (define workers   (board-workers b))
+     (define buildings (board-buildings b))
 
-           (define fst    (first building-2d))
-           (define reved  (reverse (rest building-2d)))
-           (define last   (first reved))
-           (define allbut (rest reved))
+     (define x-max (max (maximum building-x buildings) (maximum second workers)))
+     (define y-max (max (maximum building-y buildings) (maximum third workers)))
+     
+     (define reversed-lines ;; walk the grid [0,x-max] x [0,y-max]
+       (for/fold ([lines '()]) ((y (in-range (+ y-max 1))))
+         (define cleansed
+           (remove-trailing-0s
+            (for/list ((x (in-range (+ x-max 1))))
+              (define bldg (find-building buildings x y))
+              (define hght (if (boolean? bldg) "0" (number->string (building-height bldg))))
+              (define wrkr (find-worker workers x y))
+              (define name (if (boolean? wrkr) "  " (worker-name+no wrkr)))
+              (string-append hght name))))
+         (if (empty? cleansed) lines (cons (format " [~a]" (string-join cleansed)) lines))))
 
-           (parameterize ([current-output-port op])
-             (display "[") (displayln (substring fst 1))
-             (for-each displayln (reverse allbut))
-             (display last) (display "]"))))])
+     (parameterize ([current-output-port op])
+       (let print ([lines (rest reversed-lines)])
+         (cond
+           [(empty? (rest lines))
+            (displayln (string-append "[" (substring (first lines) 1)))]
+           [else
+            (print (rest lines))
+            (displayln (first lines))]))
+       (displayln (string-append (first reversed-lines) "]"))))
+
+   ;; [X -> N] [Listof X] -> N
+   (define (maximum xselector lox)
+     (xselector (argmax xselector lox)))
+   
+
+   ;; {Listof String] -> [Listof String]
+   (define (remove-trailing-0s los)
+     (cond
+       [(empty? los) '()]
+       [else (define fst (first los))
+             (define rst (remove-trailing-0s (rest los)))
+             (if (and (empty? rst) (string=? fst "0  ")) '() (cons fst rst))]))])
 
 (define (init worker1 worker2 worker3 worker4)
   (board (list worker1 worker2 worker3 worker4) '()))
@@ -190,35 +205,41 @@
 (define (is-move-a-winner? b t e-w n-s)
   (= (height-of b t e-w n-s) TOP-FLOOR))
 
-(define (height-of b t (e-w PUT) (n-s PUT))
-  (with board b
-        (define-values (xt yt) (worker-location b t))
-        (define-values (x  y)  (values (+ xt e-w) (+ yt n-s)))
-        (define is-there-a-building (find-building buildings x y))
-        (if (boolean? is-there-a-building) 0 (building-height is-there-a-building))))
-
 (define (location-free-of-worker? b t e-w n-s)
-  (define-values (xt yt) (worker-location b t))
-  (define-values (x0 y0) (values (+ xt e-w) (+ yt n-s)))
-  (for/and ((w (board-workers b)))
-    (match-define `(,_w ,x ,y) w)
-    (not (and (= x0 x) (= y0 y)))))
+  (define-values (x0 y0) (shift b t e-w n-s))
+  (andmap (match-lambda [`(,_w ,x ,y) (not (and (= x0 x) (= y0 y)))]) (board-workers b)))
 
-(define (move b old e-w n-s)
-  (with board b
-        (define-values (x0 y0) (worker-location b old))
-        (define-values (x1 y1) (values (+ x0 e-w) (+ y0 n-s)))
-        (define nu (list old x1 y1))
-        (define new-workers (for/list ((w workers)) (if (equal? (first w) old) nu w)))
-        (board new-workers buildings)))
+(define (height-of b t (e-w PUT) (n-s PUT))
+  (define-values (x y) (shift b t e-w n-s))
+  (define is-there-a-building (find-building (board-buildings b) x y))
+  (if (boolean? is-there-a-building) 0 (building-height is-there-a-building)))
+
+(define (move b worker e-w n-s)
+  (define-values (x-where-to-move y-where-to-move) (shift b worker e-w n-s))
+  (board (move-worker (board-workers b) worker x-where-to-move y-where-to-move) (board-buildings b)))
 
 (define (build b worker e-w n-s)
-  (with board b
-        (define-values (x y) (worker-location b worker))
-        (define-values (x-where-to-build y-where-to-build) (values (+ x e-w) (+ y n-s)))
-        (define is-there-a-building (find-building buildings x-where-to-build y-where-to-build))
-        (define the-building (or is-there-a-building (building x-where-to-build y-where-to-build 0)))
-        (board workers (cons (build-on the-building) (remove the-building buildings)))))
+  (define-values (x-where-to-build y-where-to-build) (shift b worker e-w n-s))
+  (board (board-workers b) (build-on (board-buildings b) x-where-to-build y-where-to-build)))
+
+;; ---------------------------------------------------------------------------------------------------
+;; auxiliaries 
+#; ([Listof (List Worker N N)] Worker N N -> (Listof Worker))
+(define (move-worker workers w0 x-where-to-move y-where-to-move)
+  (define nu (list w0 x-where-to-move y-where-to-move))
+  (replace nu (lambda (w) (equal? (first w) w0)) workers))
+
+#; ((Listof Building) N N -> (Listof Building))
+(define (build-on buildings x-where-to-build y-where-to-build)
+  (define is-there-a-building (find-building buildings x-where-to-build y-where-to-build))
+  (match is-there-a-building
+    [(? boolean? ) (cons (building x-where-to-build y-where-to-build 1) buildings)]
+    [(building x y z) (replace (building x y (+ z 1)) (curry equal? is-there-a-building) buildings)]))
+
+;; Board Worker EAST-WEST NORTH-SOUTH -> (values N N)
+(define (shift b worker e-w n-s)
+  (define-values (x y) (worker-location b worker))
+  (values (+ x e-w) (+ y n-s)))
 
 ;; Board Worker -> (values in-range? in-range?)
 (define (worker-location b w)
@@ -235,21 +256,13 @@
 (define (find-worker workers x0 y0)
   (finder workers (match-lambda [`(,w ,x ,y) (and (equal? x x0) (equal? y y0) w)])))
 
+#; ([Listof X] [X -> Boolean] -> (U X #false))
 (define (finder lox matcher)
   (ormap matcher lox))
 
-;; Building -> Building
-(define (build-on b)
-  (match-define (building x y z) b)
-  (building x y (+ z 1)))
-
-;; {Listof String] -> [Listof String]
-(define (remove-trailing-0s los)
-  (cond
-    [(empty? los) '()]
-    [else (define fst (first los))
-          (define rst (remove-trailing-0s (rest los)))
-          (if (and (empty? rst) (string=? fst "0  ")) '() (cons fst rst))]))
+#; (X (X -> Boolean) [Listof X] -> [Listof X])
+(define (replace nux cmp lox)
+  (cons nux (remf cmp lox)))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; TEST FRAMEWORK for Boards (needed here to get bindings from top-level modules)
@@ -482,15 +495,21 @@
   (define-board b3-after  [[2x1 2o1 1] [2x2   2o2  1]])
   (check-equal? (build b3-before (worker "o1") EAST PUT) b3-after))
 
-(module+ test ;; testing printing 
+(module+ test ;; testing printing
 
-  (define b
+  (define-board print-board
+    [[3x1 0y2]
+     [0x2 0y1]
+     [1   ]])
+
+  (define print-board2 
     (board `((,(worker "x1") 0 0)
              (,(worker "x2") 0 1)
              (,(worker "y2") 1 0)
              (,(worker "y1") 1 1))
            (list (building 0 0 3) (building 0 2 1))))
-  
 
-  (displayln b)
-  )
+  (define print-expected "[[3x1 0y2]\n [0x2 0y1]\n [1  ]]\n")
+
+  (check-equal? (with-output-to-string (lambda () (display print-board))) print-expected)  
+  (check-equal? (with-output-to-string (lambda () (display print-board2))) print-expected))

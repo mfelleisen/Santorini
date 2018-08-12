@@ -14,7 +14,8 @@
   - [x] rename token to worker 
   - [x] MAJOR DESIGN FLAW: workers should not come with locations at all, refactor 
 
-
+- [X] extract patterns from key board functions 
+- [ ] MAJOR DESIGN FLAW: buildings should not come with coordinates 
 - [ ] the player's interface (not the implementation) also belongs into Common/
 
 
