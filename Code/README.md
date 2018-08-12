@@ -32,3 +32,8 @@
 - [ ] distributed version 
 
 
+## Bugs 
+
+[ ] bug in printing, re width of names 
+[x] bug in equality of boards; extra buildings of height 0 don't matter 
+
