@@ -143,7 +143,8 @@
      
      (define workers   (board-workers b))
      (define widest    (argmax string-length (map (compose worker-name first) workers)))
-     (define blank     (make-string (+ (string-length widest) 2) #\space))
+     (define blank     (make-string (+ (string-length widest) 1) #\space))
+     (define zeros     (string-append "0" blank))
      
      (define both  (append workers buildings))
      (define x-max (maximum to-x both))
@@ -152,12 +153,13 @@
      (define reversed-lines ;; walk the grid [0,x-max] x [0,y-max]
        (for/fold ([lines '()]) ((y (in-range (+ y-max 1))))
          (define cleansed
-           (remove-trailing-0s
+           (remove-trailing
+            zeros
             (for/list ((x (in-range (+ x-max 1))))
               (define bldg (find-building buildings x y))
               (define hght (if (boolean? bldg) "0" (number->string (building-height bldg))))
               (define wrkr (find-worker workers x y))
-              (define name (if (boolean? wrkr) "  " (worker-name+no wrkr)))
+              (define name (if (boolean? wrkr) blank (worker-name+no wrkr)))
               (string-append hght name))))
          (cons (format " [~a]" (string-join cleansed)) lines)))
 
@@ -176,13 +178,13 @@
      (xselector (argmax xselector lox)))
    
 
-   ;; {Listof String] -> [Listof String]
-   (define (remove-trailing-0s los)
+   ;;  String {Listof String] -> [Listof String]
+   (define (remove-trailing zeros los)
      (cond
        [(empty? los) '()]
        [else (define fst (first los))
-             (define rst (remove-trailing-0s (rest los)))
-             (if (and (empty? rst) (string=? fst "0  ")) '() (cons fst rst))]))])
+             (define rst (remove-trailing zeros (rest los)))
+             (if (and (empty? rst) (string=? fst zeros)) '() (cons fst rst))]))])
 
 (define (init worker1 worker2 worker3 worker4)
   (board (list worker1 worker2 worker3 worker4) '()))
@@ -297,56 +299,50 @@
   (define board-eq1
     (board 
      (list
-      (list (worker "cd2") 4 4)
-      (list (worker "cd1") 2 2)
-      (list (worker "mf2") 2 1)
-      (list (worker "mf1") 0 0))
+      `(,(worker "cd2") 4 4) `(,(worker "cd1") 2 2) `(,(worker "mf2") 2 1) `(,(worker "mf1") 0 0))
      (list
-      (list (building 1) 5 5)
-      (list (building 0) 3 3)
-      (list (building 0) 2 3)
-      (list (building 0) 1 3)
-      (list (building 0) 0 3)
-      (list (building 1) 3 2)
-      (list (building 0) 2 2)
-      (list (building 0) 1 2)
-      (list (building 0) 0 2)
-      (list (building 0) 2 1)
-      (list (building 0) 1 1)
-      (list (building 0) 0 1)
-      (list (building 0) 0 0))))
+      `(,(building 1) 5 5)
+      `(,(building 0) 3 3)
+      `(,(building 0) 2 3)
+      `(,(building 0) 1 3)
+      `(,(building 0) 0 3)
+      `(,(building 1) 3 2)
+      `(,(building 0) 2 2)
+      `(,(building 0) 1 2)
+      `(,(building 0) 0 2)
+      `(,(building 0) 2 1)
+      `(,(building 0) 1 1)
+      `(,(building 0) 0 1)
+      `(,(building 0) 0 0))))
 
   (define board-eq2
     (board 
      (list
-      (list (worker "cd2") 4 4)
-      (list (worker "cd1") 2 2)
-      (list (worker "mf2") 2 1)
-      (list (worker "mf1") 0 0))
+      `(,(worker "cd2") 4 4) `(,(worker "cd1") 2 2) `(,(worker "mf2") 2 1) `(,(worker "mf1") 0 0))
      (list
-      (list (building 1) 5 5)
-      (list (building 0) 4 5)
-      (list (building 0) 3 5)
-      (list (building 0) 2 5)
-      (list (building 0) 1 5)
-      (list (building 0) 0 5)
-      (list (building 0) 4 4)
-      (list (building 0) 3 4)
-      (list (building 0) 2 4)
-      (list (building 0) 1 4)
-      (list (building 0) 0 4)
-      (list (building 0) 3 3)
-      (list (building 0) 2 3)
-      (list (building 0) 1 3)
-      (list (building 0) 0 3)
-      (list (building 1) 3 2)
-      (list (building 0) 2 2)
-      (list (building 0) 1 2)
-      (list (building 0) 0 2)
-      (list (building 0) 2 1)
-      (list (building 0) 1 1)
-      (list (building 0) 0 1)
-      (list (building 0) 0 0))))
+      `(,(building 1) 5 5)
+      `(,(building 0) 4 5)
+      `(,(building 0) 3 5)
+      `(,(building 0) 2 5)
+      `(,(building 0) 1 5)
+      `(,(building 0) 0 5)
+      `(,(building 0) 4 4)
+      `(,(building 0) 3 4)
+      `(,(building 0) 2 4)
+      `(,(building 0) 1 4)
+      `(,(building 0) 0 4)
+      `(,(building 0) 3 3)
+      `(,(building 0) 2 3)
+      `(,(building 0) 1 3)
+      `(,(building 0) 0 3)
+      `(,(building 1) 3 2)
+      `(,(building 0) 2 2)
+      `(,(building 0) 1 2)
+      `(,(building 0) 0 2)
+      `(,(building 0) 2 1)
+      `(,(building 0) 1 1)
+      `(,(building 0) 0 1)
+      `(,(building 0) 0 0))))
 
   (check-true (equal? board-eq1 board-eq2)))
 
@@ -608,4 +604,13 @@
   (define print-expected "[[3x1 0y2]\n [0x2 0y1]\n [1  ]]\n")
 
   (check-equal? (with-output-to-string (lambda () (display print-board))) print-expected)  
-  (check-equal? (with-output-to-string (lambda () (display print-board2))) print-expected))
+  (check-equal? (with-output-to-string (lambda () (display print-board2))) print-expected)
+
+  (define-board print-board3
+    [[3cd1 0    0mf2]
+     [0cd2 0mf1 1   ]
+     [1   ]])
+
+  (define print-expected2 "[[3cd1 0    0mf2]\n [0cd2 0mf1 1   ]\n [1   ]]\n")
+
+  (check-equal? (with-output-to-string (lambda () (display print-board3))) print-expected2))
