@@ -70,6 +70,7 @@
 
     (define/private (play-rounds board (one one) (two two))
       (define a (send one take-turn board))
+      (displayln a)
       (displayln (apply-action board a))
       (if (not (check-action board a))
           (report (get-field name two) (get-field name one) a)
