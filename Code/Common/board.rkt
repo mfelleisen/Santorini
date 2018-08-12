@@ -110,7 +110,6 @@
 (require "buildings.rkt")
 (require "worker.rkt")
 (require "../Lib/set-from.rkt")
-(require "../Lib/struct-with.rkt")
 
 (require (for-syntax syntax/parse))
 (module+ test
@@ -184,10 +183,10 @@
     w))
 
 (define ((on? b) n)
-  (with board b (cons? (member n (map (compose worker-name first) workers)))))
+  (cons? (member n (map (compose worker-name first) (board-workers b)))))
 
 (define ((on-board? b) t)
-  (with board b (cons? (member t (map first workers)))))
+  (cons? (member t (map first (board-workers b)))))
 
 (define (all-directions-to-neighbors b t)
   (define-values (x y) (worker-location b t))
@@ -243,10 +242,9 @@
 
 ;; Board Worker -> (values in-range? in-range?)
 (define (worker-location b w)
-  (with board b
-        (match-define `(,_w ,x ,y)
-          (for*/first ([t workers] [ww (in-value (first t))] #:when (equal? w ww)) t))
-        (values x y)))
+  (match-define `(,_w ,x ,y)
+    (for*/first ([t (board-workers b)] [ww (in-value (first t))] #:when (equal? w ww)) t))
+  (values x y))
 
 ;; [Listof Building] Range Range -> (U N #false)
 (define (find-building b* x0 y0)
