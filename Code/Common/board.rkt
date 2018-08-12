@@ -20,6 +20,8 @@
 
  ;; type board
  board?
+
+ board ;; for debugging 
  
  (contract-out 
   (init
@@ -127,24 +129,22 @@
 (define to-x second)
 (define to-y third)
 
-
 (struct board (workers buildings)
   #:transparent
   #:methods gen:equal+hash
-  [(define (equal-proc b1 b2 equal?)
-     (match-define (board b1t b1b) b1)
-     (match-define (board b2t b2b) b2)
-     (and (set=? (apply set b1t) (apply set b2t))
-          (set=? (set-from b1b same-building) (set-from b2b same-building))))
+  [(define (equal-proc b1 b2 e) (board-equal? b1 b2 e))
    ;; the following two are, well, inappropriate in general 
    (define (hash-proc bd rhash) 0)
    (define (hash2-proc bd rhash2) 1)]
   #:methods gen:custom-write
   [;; Board OutputPort Boolean? -> Void 
    (define (write-proc b op mode)
-     (define workers   (board-workers b))
      (define buildings (board-buildings b))
-
+     
+     (define workers   (board-workers b))
+     (define widest    (argmax string-length (map (compose worker-name first) workers)))
+     (define blank     (make-string (+ (string-length widest) 2) #\space))
+     
      (define both  (append workers buildings))
      (define x-max (maximum to-x both))
      (define y-max (maximum to-y both))
@@ -159,7 +159,7 @@
               (define wrkr (find-worker workers x y))
               (define name (if (boolean? wrkr) "  " (worker-name+no wrkr)))
               (string-append hght name))))
-         (if (empty? cleansed) lines (cons (format " [~a]" (string-join cleansed)) lines))))
+         (cons (format " [~a]" (string-join cleansed)) lines)))
 
      (parameterize ([current-output-port op])
        (let print ([lines (rest reversed-lines)])
@@ -231,7 +231,8 @@
   (board (board-workers b) (build-on (board-buildings b) x-where-to-build y-where-to-build)))
 
 ;; ---------------------------------------------------------------------------------------------------
-;; auxiliaries 
+;; auxiliaries
+
 ;; ([Listof (List Worker N N)] Worker N N -> (Listof Worker))
 (define (move-worker workers w0 x-where-to-move y-where-to-move)
   (define nu (list w0 x-where-to-move y-where-to-move))
@@ -239,11 +240,11 @@
 
 ;; ((Listof Building) N N -> (Listof Building))
 (define (build-on buildings x y)
-  (define is-there-one (find-building buildings x y))
-  (match is-there-one
-    [(? boolean?)
-     (cons (list (building 1) x y) buildings)]
-    [(building z) (replace (list (building (+ z 1)) x y) (curry equal? is-there-one) buildings)]))
+  (define exists-one (find-building buildings x y))
+  (match exists-one
+    [(? boolean?) (cons (list (building 1) x y) buildings)]
+    [(building z)
+     (replace (list (building (+ z 1)) x y) (curry same-building (list exists-one x y)) buildings)]))
 
 ;; Board Worker EAST-WEST NORTH-SOUTH -> (values N N)
 (define (shift b worker e-w n-s)
@@ -272,12 +273,84 @@
 (define (replace nux cmp lox)
   (cons nux (remf cmp lox)))
 
+;; Board Board -> Boolean 
+(define (board-equal? b1 b2 equal?)
+  (match-define (board 1workers 1buildings) b1)
+  (match-define (board 2workers 2buildings) b2)
+  (and (set=? (apply set 1workers) (apply set 2workers))
+       (set=? (buildings->set 1buildings) (buildings->set 2buildings))))
+
+;; [Listof Building] -> [Setof Building]
+(define (buildings->set b:list)
+  (define b-0-buildings (filter (lambda (b) (> (building-height (first b)) 0)) b:list))
+  (apply set b-0-buildings))
+
 ;; Building -> [Building -> Building]
 (define (same-building b1)
   (match-define (list (building z1) x1 y1) b1)
   (lambda (b2)
     (match-define (list (building z2) x2 y2) b2)
     (and (= x1 x2) (= y1 y2))))
+
+;; ---------------------------------------------------------------------------------------------------
+(module+ test ;; board equality 
+  (define board-eq1
+    (board 
+     (list
+      (list (worker "cd2") 4 4)
+      (list (worker "cd1") 2 2)
+      (list (worker "mf2") 2 1)
+      (list (worker "mf1") 0 0))
+     (list
+      (list (building 1) 5 5)
+      (list (building 0) 3 3)
+      (list (building 0) 2 3)
+      (list (building 0) 1 3)
+      (list (building 0) 0 3)
+      (list (building 1) 3 2)
+      (list (building 0) 2 2)
+      (list (building 0) 1 2)
+      (list (building 0) 0 2)
+      (list (building 0) 2 1)
+      (list (building 0) 1 1)
+      (list (building 0) 0 1)
+      (list (building 0) 0 0))))
+
+  (define board-eq2
+    (board 
+     (list
+      (list (worker "cd2") 4 4)
+      (list (worker "cd1") 2 2)
+      (list (worker "mf2") 2 1)
+      (list (worker "mf1") 0 0))
+     (list
+      (list (building 1) 5 5)
+      (list (building 0) 4 5)
+      (list (building 0) 3 5)
+      (list (building 0) 2 5)
+      (list (building 0) 1 5)
+      (list (building 0) 0 5)
+      (list (building 0) 4 4)
+      (list (building 0) 3 4)
+      (list (building 0) 2 4)
+      (list (building 0) 1 4)
+      (list (building 0) 0 4)
+      (list (building 0) 3 3)
+      (list (building 0) 2 3)
+      (list (building 0) 1 3)
+      (list (building 0) 0 3)
+      (list (building 1) 3 2)
+      (list (building 0) 2 2)
+      (list (building 0) 1 2)
+      (list (building 0) 0 2)
+      (list (building 0) 2 1)
+      (list (building 0) 1 1)
+      (list (building 0) 0 1)
+      (list (building 0) 0 0))))
+
+  (check-true (equal? board-eq1 board-eq2)))
+
+
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; TEST FRAMEWORK for Boards (needed here to get bindings from top-level modules)
