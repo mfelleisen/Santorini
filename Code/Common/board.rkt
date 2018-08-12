@@ -120,6 +120,14 @@
 ;; ---------------------------------------------------------------------------------------------------
 ;; The BOARD
 
+;; Board     = (board Worker* Building*)
+;; Worker*   = [List Worker N N]
+;; Building* = [List Buiolding N N]
+
+(define to-x second)
+(define to-y third)
+
+
 (struct board (workers buildings)
   #:transparent
   #:methods gen:equal+hash
@@ -137,8 +145,9 @@
      (define workers   (board-workers b))
      (define buildings (board-buildings b))
 
-     (define x-max (max (maximum building-x buildings) (maximum second workers)))
-     (define y-max (max (maximum building-y buildings) (maximum third workers)))
+     (define both  (append workers buildings))
+     (define x-max (maximum to-x both))
+     (define y-max (maximum to-y both))
      
      (define reversed-lines ;; walk the grid [0,x-max] x [0,y-max]
        (for/fold ([lines '()]) ((y (in-range (+ y-max 1))))
@@ -223,17 +232,18 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; auxiliaries 
-#; ([Listof (List Worker N N)] Worker N N -> (Listof Worker))
+;; ([Listof (List Worker N N)] Worker N N -> (Listof Worker))
 (define (move-worker workers w0 x-where-to-move y-where-to-move)
   (define nu (list w0 x-where-to-move y-where-to-move))
   (replace nu (lambda (w) (equal? (first w) w0)) workers))
 
-#; ((Listof Building) N N -> (Listof Building))
-(define (build-on buildings x-where-to-build y-where-to-build)
-  (define is-there-a-building (find-building buildings x-where-to-build y-where-to-build))
-  (match is-there-a-building
-    [(? boolean? ) (cons (building x-where-to-build y-where-to-build 1) buildings)]
-    [(building x y z) (replace (building x y (+ z 1)) (curry equal? is-there-a-building) buildings)]))
+;; ((Listof Building) N N -> (Listof Building))
+(define (build-on buildings x y)
+  (define is-there-one (find-building buildings x y))
+  (match is-there-one
+    [(? boolean?)
+     (cons (list (building 1) x y) buildings)]
+    [(building z) (replace (list (building (+ z 1)) x y) (curry equal? is-there-one) buildings)]))
 
 ;; Board Worker EAST-WEST NORTH-SOUTH -> (values N N)
 (define (shift b worker e-w n-s)
@@ -247,20 +257,27 @@
   (values x y))
 
 ;; [Listof Building] Range Range -> (U N #false)
-(define (find-building b* x0 y0)
-  (finder b* (lambda (b) (match-define (building x y z) b) (and (equal? x x0) (equal? y y0) b))))
+(define (find-building buildings x0 y0)
+  (finder buildings (match-lambda [`(,b ,x ,y) (and (= x x0) (= y y0) b)])))
 
 ;; [Listof Worker] Range Range -> (U String #false)
 (define (find-worker workers x0 y0)
-  (finder workers (match-lambda [`(,w ,x ,y) (and (equal? x x0) (equal? y y0) w)])))
+  (finder workers (match-lambda [`(,w ,x ,y) (and (= x x0) (= y y0) w)])))
 
-#; ([Listof X] [X -> Boolean] -> (U X #false))
+;; ([Listof X] [X -> Boolean] -> (U X #false))
 (define (finder lox matcher)
   (ormap matcher lox))
 
-#; (X (X -> Boolean) [Listof X] -> [Listof X])
+;; (X (X -> Boolean) [Listof X] -> [Listof X])
 (define (replace nux cmp lox)
   (cons nux (remf cmp lox)))
+
+;; Building -> [Building -> Building]
+(define (same-building b1)
+  (match-define (list (building z1) x1 y1) b1)
+  (lambda (b2)
+    (match-define (list (building z2) x2 y2) b2)
+    (and (= x1 x2) (= y1 y2))))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; TEST FRAMEWORK for Boards (needed here to get bindings from top-level modules)
@@ -284,13 +301,14 @@
     (define full-name+workers+loc (traverse-literal-board x +worker))
     (define (+building accu cell x y)
       (define b
-        (building
-         x y
-         (cond
-           [(integer? cell) cell]
-           [(pair? cell) (first cell)]
-           [(and (symbol? cell) (regexp-match CELL (symbol->string cell)))
-            => (match-lambda [`(,_all ,height ,name) (string->number height)])])))
+        (list 
+         (building
+          (cond
+            [(integer? cell) cell]
+            [(pair? cell) (first cell)]
+            [(and (symbol? cell) (regexp-match CELL (symbol->string cell)))
+             => (match-lambda [`(,_all ,height ,name) (string->number height)])]))
+         x y))
       (cons b accu))
     (define buildings (traverse-literal-board x +building))
     (and (exactly-2-workers-of-2-kinds full-name+workers+loc)
@@ -384,10 +402,12 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test ;; checking define-board at run-time and syntax-time
+  
   (define expected-board
     (board
      `((,(worker "x1") 0 0) (,(worker "o1") 1 0) (,(worker "x2") 0 1) (,(worker "o2") 1 1))
-     `(,(building 0 0 2) ,(building 1 0 2)  ,(building 0 1 1) ,(building 1 1 1) ,(building 2 1 3))))
+     `((,(building 2) 0 0) (,(building 2) 1 0) (,(building 1) 0 1) (,(building 1) 1 1)
+                           (,(building 3)  2 1))))
   
   (check-equal? (let () (define-board b [[2x1 2o1] [1x2 1o2   3]]) b) expected-board)
   (check-equal? (let () (define-board b [[2x1 2o1] [1x2 ,'1o2 3]]) b) expected-board)
@@ -419,12 +439,12 @@
       (list (worker "x2") 2 0)
       (list (worker "x1") 0 0))
      (list
-      (building 2 1 1)
-      (building 1 1 2)
-      (building 0 1 3)
-      (building 2 0 1)
-      (building 1 0 2)
-      (building 0 0 3))))
+      (list (building 1) 2 1)
+      (list (building 2) 1 1)
+      (list (building 3) 0 1)
+      (list (building 1) 2 0)
+      (list (building 2) 1 0)
+      (list (building 3) 0 0))))
   
   (check-equal? board1 board2))
 ;; ---------------------------------------------------------------------------------------------------
@@ -437,8 +457,8 @@
   (define buildings-find (board-buildings board-find))
 
   (check-false  (find-building buildings-find 0 2))
-  (check-equal? (find-building buildings-find 0 1) (building 0 1 3))
-  (check-equal? (find-building buildings-find (+ 1 PUT) (+ 0 SOUTH)) (building 1 1 2)))
+  (check-equal? (find-building buildings-find 0 1) (building 3))
+  (check-equal? (find-building buildings-find (+ 1 PUT) (+ 0 SOUTH)) (building 2)))
 
 (module+ test ;; external functions
   (require (submod ".."))
@@ -510,7 +530,7 @@
              (,(worker "x2") 0 1)
              (,(worker "y2") 1 0)
              (,(worker "y1") 1 1))
-           (list (building 0 0 3) (building 0 2 1))))
+           (list (list (building 3) 0 0) (list (building 1) 0 2))))
 
   (define print-expected "[[3x1 0y2]\n [0x2 0y1]\n [1  ]]\n")
 

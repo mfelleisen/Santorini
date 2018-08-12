@@ -8,19 +8,9 @@
  TOP-FLOOR  ; this is the victory story
 
  building
- building-x
- building-y
- building-height
-
- same-building)
+ building-height)
 
 ;; -----------------------------------------------------------------------------
-(struct building (x y height) #:transparent)
+(struct building (height) #:transparent)
 (define TOP-FLOOR  3)
 (define MAX-HEIGHT 4)
-
-(define (same-building b1)
-  (match-define (building x1 y1 z1) b1)
-  (lambda (b2)
-    (match-define (building x2 y2 z2) b2)
-    (and (= x1 x2) (= y1 y2))))
