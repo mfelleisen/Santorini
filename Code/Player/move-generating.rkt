@@ -26,7 +26,9 @@ The game ends
  tree?
  
  (contract-out
-  (tree-actions (-> tree? (listof action?)))
+  (tree-actions
+   ;; retrieve the currently available actions; at least (giving-up)
+   (-> tree? (and/c cons? (listof action?))))
 
   (generate
    ;; the game tree starting from this board with player making the first move, other responds
