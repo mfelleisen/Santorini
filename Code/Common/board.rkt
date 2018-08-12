@@ -111,7 +111,6 @@
 (require "directions.rkt")
 (require "buildings.rkt")
 (require "worker.rkt")
-(require "../Lib/set-from.rkt")
 
 (require (for-syntax syntax/parse))
 (module+ test
