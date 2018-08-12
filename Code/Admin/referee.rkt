@@ -3,20 +3,11 @@
 ;; The Referee plays a single game for two players.
 ;; The class is instanitated with two players. 
 
-(define player/c
-  (object/c
-   (init-field name)
-   (placement (->m (listof (list/c in-range? in-range?)) (list/c in-range? in-range?)))
-   (take-turn (->m board? action?))))
-   
+(require "referee-interface.rkt")
 
 (provide
  (contract-out
-  (admin%
-   (class/c
-    (init-field (one player/c) (two player/c))
-    (play (->m string?))))))
-
+  (admin% admin%/c)))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "../Player/player.rkt")

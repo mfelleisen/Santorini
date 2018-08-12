@@ -16,7 +16,7 @@
 
 - [X] extract patterns from key board functions 
 - [X] A DESIGN FLAW: buildings should not come with coordinates 
-- [ ] the player's interface (not the implementation) also belongs into Common/
+- [X] the player's interface (not the implementation) also belongs into Common/
 
 
 ### testing 
