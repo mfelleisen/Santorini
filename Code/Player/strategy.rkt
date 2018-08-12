@@ -10,7 +10,7 @@
  (contract-out 
   (safe-strategy
    ;;  pick the first action so that the opponent cannot block you from an action for the next move
-   (->i ((b board?) (player (b) (name/c b)) (other (b) (name/c b))) (r (or/c #f action?))))))
+   (->i ((b board?) (player (b) (name/c b)) (other (b) (name/c b))) (r action?)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "move-generating.rkt")
@@ -37,7 +37,8 @@
   (define next (step gt a))
   (for/and ((a (tree-actions next)))
     (define mine (step next a))
-    (cons? (tree-actions mine))))
+    ;; there is more than a giving-up action available 
+    (cons? (rest (tree-actions mine))))) 
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
