@@ -68,7 +68,7 @@
     (define ss (if (number? ss0) ss0 (string->symbol (string-append (symbol->string ss0) "2"))))
     (define-board b
       [[1x1 2o1 4]
-       [2x1 ,ss 4]
+       [2x2 ,ss 4]
        [4   4   ,tt]])
     b)
 
@@ -82,4 +82,21 @@
   (check-check (make-board '2o 3) (winning-move t1 EAST SOUTH) #t)
   (check-check (make-board '2o 2) (move-build t1 EAST SOUTH WEST NORTH) #t)
   (check-check (make-board '2o 3) (winning-move t1 WEST PUT) #f)
-  (check-check (make-board '2o 2) (move-build t1 EAST SOUTH PUT NORTH) #f))
+  (check-check (make-board '2o 2) (move-build t1 EAST SOUTH PUT NORTH) #f)
+
+  ;; bug ?
+  (define-board bug1-board
+    [[0mf1 ]
+     [0    0   0mf2]
+     [0    0   0cd1 1  ]
+     [0    0   0    0cd2]])
+
+  (define-board bug1-expected
+    [[0mf1 ]
+     [0    0   0mf2]
+     [0    0   0cd1 1   ]
+     [0    0   0    0   ]
+     [0    0   0    0   0cd2]
+     [0    0   0    0   0    1]])
+  
+  (check-apply bug1-board (move-build (worker "cd2") 1 1 1 1) bug1-expected))
