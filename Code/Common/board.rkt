@@ -405,10 +405,7 @@
   (check-syn #px"wrong number of o workers" [[2x1 1x2] [1x2 1o1 3]])
   
   (check-syn #px"duplicate aa worker" [[2zz1 2zz1] [1aa1 1aa1]])
-  (check-syn #px"duplicate zz worker" [[1aa1 1aa1] [2zz1 2zz1]]))
-
-;; ---------------------------------------------------------------------------------------------------
-(module+ test ;; define-board 
+  (check-syn #px"duplicate zz worker" [[1aa1 1aa1] [2zz1 2zz1]])
 
   (define-board board1
     [[3x1 2  1x2]
@@ -431,7 +428,19 @@
   
   (check-equal? board1 board2))
 ;; ---------------------------------------------------------------------------------------------------
-(module+ test ;; board functions 
+(module+ test ;; auxiliary functions 
+
+  (define-board board-find
+    [[0x1 0x2]
+     [3y1 2y2]])
+
+  (define buildings-find (board-buildings board-find))
+
+  (check-false  (find-building buildings-find 0 2))
+  (check-equal? (find-building buildings-find 0 1) (building 0 1 3))
+  (check-equal? (find-building buildings-find (+ 1 PUT) (+ 0 SOUTH)) (building 1 1 2)))
+
+(module+ test ;; external functions
   (require (submod ".."))
 
   (void (hash (board '() '()) 1)) ;; cover first hash code function 
@@ -469,10 +478,6 @@
   (check-false (is-move-a-winner? b1-before (worker "x2") EAST PUT))
   (check-true  (is-move-a-winner? b1-after (worker "x2") PUT SOUTH))
   
-  (check-false  (find-building (board-buildings b1-before) 0 2))
-  (check-equal? (find-building (board-buildings b1-before) 0 1) (building 0 1 3))
-  (check-equal? (find-building (board-buildings b1-before) (+ 1 PUT) (+ 0 SOUTH)) (building 1 1 2))
-
   (check-equal? (height-of b1-before (worker "o1") PUT SOUTH) 0)
   (check-equal? (height-of b1-before (worker "x2")) 2)
   
@@ -480,7 +485,7 @@
   (check-true   (location-free-of-worker? b1-before (worker "x2") WEST SOUTH))
 
   (check-equal? (move b1-before (worker "x2") WEST PUT) b1-after)
-
+  
   (define (board-build ss tt (ff 0))
     (define-board b1
       [[,ss ,tt ,ff]
