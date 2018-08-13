@@ -18,17 +18,17 @@ Facebook and make you infinitely rich.
 
 means 
 
-- there is an administrator 
+- there is a referee 
 - there are players 
-- there is an API for players to interact with the administrator 
+- there is an API for players to interact with the referee 
 
 Questions: 
 
 - Who needs to know what? 
-- What is the common "ontology" (*) between admin and players? 
+- What is the common "ontology" (*) between referee and players? 
   (*) "shared data representation and interpretation"
 
-Both the admin and the players need a representation of the basic game
+Both the referee and the players need a representation of the basic game
 entities: a board, the tokens and buildings on the board. 
 
 ## Stage 1 ~~ common ontology 
@@ -49,6 +49,41 @@ the board, so we'll keep them there.
 These can exist on their own, with relative movements and checks for
 "neighborliness". 
 
+#### The Player-Referee Interface
+
+- how can the referee call a player 
+- when a player takes a its turn, how does it communicate what it wants done
+
+#### Actions 
+
+- giving up 
+- moving to win
+- moving and building 
+
+#### The Rules 
+
+The game is governed by the following basic rules, including the decision
+to end the game: 
+
+- if it is player's P turn, P must (1) move one token and (2) build up one
+  building after the move 
+
+- a player can move to a neighboring place if 
+  - there is no other player on that field, 
+  - he is "jumping" down from a building (of arbitrary height), or
+  - the building on this place is only one step taller than the one he is on
+    but not capped (fourth floor). 
+
+- a player can add a level to a neighboring field if the building isn't
+  already 3 storied tall 
+
+The game ends
+
+- if player A's token reaches the third level of a building.
+- if player A can't move or, after the move, can't build up a building
+
+How do Players and the Referee use these rules? 
+
 ## Stage 2 
 
 All of your remaining friends are software developers and they all favor
@@ -56,7 +91,7 @@ the same language as you. So you now have the idea to run a competition.
 Each of your friends will develop a player and plug into your game
 framework. The winner will be allowed to buy (legal) drinks for everyone. 
 
-### The Administrator 
+### The Referee 
 
 knows
 
@@ -82,30 +117,6 @@ It can generate all possible moves and then decide
 
 (in that order). 
 
-### The Rules 
-
-The game is governed by the following basic rules, including the decision
-to end the game: 
-
-- if it is player's P turn, P must (1) move one token and (2) build up one
-  building after the move 
-
-- a player can move to a neighboring place if 
-  - there is no other player on that field, 
-  - he is "jumping" down from a building (of arbitrary height), or
-  - the building on this place is only one step taller than the one he is on
-    but not capped (fourth floor). 
-
-- a player can add a level to a neighboring field if the building isn't
-  already 3 storied tall 
-
-The game ends
-
-- if player A's token reaches the third level of a building.
-- if player A can't move or, after the move, can't build up a building
-
-How do Players and the Administrator use these rules? 
-
 ## Stage 3
 
 Develop visualization software for the game state. 
@@ -128,7 +139,7 @@ wreck your own machine.
 - create a remote proxy for the players 
 
 - develop a client wrapper (for player implementations in your chosen language)
-- create a remote proxy for the administrator 
+- create a remote proxy for the referee  
 
 ## Stage 5 
 
