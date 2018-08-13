@@ -7,6 +7,11 @@
 
 ## Directories 
 
+- Material 
+  - game-description ~~ a description suitable for Sw Dev 
+  - plan ~~ how to split the game according to the sw dev 
+  - rules.pdf ~~ the official rules, distinct from the ones used 
+
 - Code ~~ game-specific code 
   - Lib: things Racket should have probably
     - set-from ~~ create a set from a list and an equivalence relation
