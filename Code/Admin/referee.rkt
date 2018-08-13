@@ -66,7 +66,7 @@
       (if (not (check-action board a))
           (report (get-field name two) (get-field name one) a)
           (match a
-            [(giving-up)
+            [(giving-up a)
              (format "~a, because ~a gave up" (get-field name two) (get-field name one))]
             [(winning-move worker e-w-move n-s-move)
              (format "~a made a winning move" (get-field name one))]

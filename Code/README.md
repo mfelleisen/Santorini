@@ -25,6 +25,7 @@
 
 ## Larger Follow-up Steps 
 - [X] board printer 
+- [X] action printer 
 - [ ] GUI for watching the game (an observer) 
 - [ ] ?? GUI for playing? 
 - [ ] best-of N run in admin, instead of a single run 

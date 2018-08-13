@@ -57,8 +57,9 @@ The game ends
 ;; GameTree = (tree Board [Listof Action] (Board -> GameTree))
 
 (define (generate board player other)
+  (define workers (named-workers board player))
   (define actions
-    (for/fold ((actions '())) ((t (named-workers board player)))
+    (for/fold ((actions '())) ((t workers))
       (for/fold ((actions actions)) ((n (all-directions-to-neighbors board t)))
         (match-define `(,e-w-move ,n-s-move) n)
         (cond
@@ -74,7 +75,7 @@ The game ends
                  (cons (move-build t e-w-move n-s-move e-w-build n-s-build) actions)
                  actions))]))))
   (define next (lambda (board) (generate board other player)))
-  (tree board (if (empty? actions) (list (giving-up)) actions) next))
+  (tree board (if (empty? actions) (list (giving-up (first workers))) actions) next))
 
 (define (step gt a)
   (with tree gt (next (apply-action board a))))
@@ -87,7 +88,7 @@ The game ends
     (check-generate r sel b player other)
     (check-equal? (sel (generate (let () (define-board name b) name) player other)) r))
   
-  (check-generate (list (giving-up))
+  (check-generate (list (giving-up (worker "x1")))
                   tree-actions
                   [[1x1 2o1]
                    [2x2 1o2]
