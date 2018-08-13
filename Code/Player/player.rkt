@@ -1,24 +1,14 @@
 #lang racket
 
 (require "../Lib/require.rkt")
+(require+ "../Common/player-interface.rkt" player%/c)
 (require+ "../Common/board.rkt" board? in-range?)
 (require+ "../Common/actions.rkt" action?)
 
 (provide
  (contract-out 
-  (player%
-   (class/c
-    [other
-     ;; this player finds out the name of the other player 
-     (->m string? any)]
-    [placement
-     ;; this player picks the placement of a worker, given a list of prior placements 
-     (->m (listof (list/c in-range? in-range?)) (list/c in-range? in-range?))]
-    [take-turn
-     ;; this player picks its next action 
-     (->m board? action?)]))))
-    
-
+  (player% player%/c)))
+ 
 ;; ---------------------------------------------------------------------------------------------------
 (require- "../Common/board.rkt" board? in-range?)
 (require- "../Common/actions.rkt" action?)
@@ -32,21 +22,17 @@
   (class object% (init-field name)
     (super-new)
 
-    (field [other-name ""])
+    (define other-name "")
     
-    ;; String -> Void
-    ;; inform this player of the name of the other player 
     (define/public (other name) (set! other-name name))
 
-    ;; [Listof (list N N)] -> (List N N)
-    ;; create a new worker with distinct locations from the given ones
     (define/public (placement list-of-places)
+      ;; this should probably use a strategy
       (cond
         [(empty? list-of-places) (list 0 0)]
-        [else (define max-x (first (argmax first list-of-places)))
-              (define max-y (first (argmax second list-of-places)))
+        [else (define max-x (apply max (map second list-of-places)))
+              (define max-y (apply max (map third  list-of-places)))
               (list (+ 1 max-x) (+ 1 max-y))]))
-      
-    ;; Board -> Action 
+    
     (define/public (take-turn board)
       (safe-strategy board name other-name))))

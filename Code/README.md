@@ -18,6 +18,7 @@
 - [X] A DESIGN FLAW: buildings should not come with coordinates 
 - [X] the player's interface (not the implementation) also belongs into Common/
 
+- [X] improve interface between referee and player 
 
 ### testing 
 - [ ] set up tests for players 
@@ -32,9 +33,8 @@
 - [ ] tournament for P players 
 - [ ] distributed version 
 
-
 ## Bugs 
 
-[ ] bug in printing, re width of names 
+[X] bug in printing, re width of names 
 [x] bug in equality of boards; extra buildings of height 0 don't matter 
 
