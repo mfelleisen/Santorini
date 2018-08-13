@@ -20,6 +20,8 @@
 
 - [X] improve interface between referee and player 
 
+- [ ] factor out strategy for placing workers 
+
 ### testing 
 - [ ] set up tests for players 
 - [ ] set up tests for admins 
