@@ -1,12 +1,12 @@
 #lang racket
 
 (provide
- admin%/c)
+ referee%/c)
 
 ;; -----------------------------------------------------------------------------
 (require "../Common/player-interface.rkt")
 ;; -----------------------------------------------------------------------------
-(define admin%/c
+(define referee%/c
    (class/c
     (init-field (one player/c) (two player/c))
     (play (->m string?))))
