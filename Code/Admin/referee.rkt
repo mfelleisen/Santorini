@@ -64,16 +64,13 @@
       (define a (send one take-turn board))
       (displayln a)
       (displayln (apply-action board a))
-      (if (not (check-action board a))
-          (report two-name one-name a)
-          (match a
-            [(giving-up a)
-             (format "~a, because ~a gave up" two-name one-name)]
-            [(winning-move worker e-w-move n-s-move)
-             (format "~a made a winning move" one-name)]
-            [(move-build worker e-w-move n-s-move e-w-build n-s-build)
-             ;; BUG: I forgot to build
-             (play-rounds (apply-action board a) two two-name one one-name)])))))
+      (cond
+        [(not (check-action board a)) (report two-name one-name a)]
+        [(giving-up? a) (format "~a, because ~a gave up" two-name one-name)]
+        [(winning-move? a) (format "~a made a winning move" one-name)]
+        [(move-build? a)
+         ;; BUG: I forgot to build
+         (play-rounds (apply-action board a) two two-name one one-name)]))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test

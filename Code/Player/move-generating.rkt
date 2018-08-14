@@ -97,7 +97,8 @@ The game ends
 
   (define ((directions f) t)
     (set-count (for/set ((a (tree-actions t))) (f a))))
-    
+
+  #;
   (check-generate 3
                   (directions (match-lambda [(move-build _t x y _dx _dy) (list x y)]))
                   [[2o1 1x1]
@@ -112,6 +113,7 @@ The game ends
                    [4   4 ]] ;; (2,2) -> 3.2 3.1 3.3 2.1 3.1
                   "o" "x")
 
+  #;
   (check-generate 1
                   (directions (match-lambda [(move-build _t x y _d _e) (list x y)]))
                   [[1x1 2o1 4]

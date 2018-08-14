@@ -10,11 +10,15 @@
 (provide
  ;; type Action
  action?
- giving-up?    giving-up
- winning-move? winning-move
- move-build?   move-build
+ giving-up?    
+ winning-move? 
+ move-build?   
 
- (contract-out 
+ (contract-out
+  (giving-up    (-> worker? action?))
+  (winning-move (-> worker? east-west/c north-south/c action?))
+  (move-build   (-> worker? east-west/c north-south/c east-west/c north-south/c action?))
+
   (apply-action
    ;; execute the given action on this board
    (->i ([b board?] [a action?]) (r board?)))
