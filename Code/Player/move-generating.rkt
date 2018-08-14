@@ -75,7 +75,7 @@ The game ends
                  (cons (move-build t e-w-move n-s-move e-w-build n-s-build) actions)
                  actions))]))))
   (define next (lambda (board) (generate board other player)))
-  (tree board (if (empty? actions) (list (giving-up (first workers))) actions) next))
+  (tree board (if (empty? actions) (list (giving-up player)) actions) next))
 
 (define (step gt a)
   (with tree gt (next (apply-action board a))))
@@ -88,7 +88,7 @@ The game ends
     (check-generate r sel b player other)
     (check-equal? (sel (generate (let () (define-board name b) name) player other)) r))
   
-  (check-generate (list (giving-up (worker "x1")))
+  (check-generate (list (giving-up "x"))
                   tree-actions
                   [[1x1 2o1]
                    [2x2 1o2]

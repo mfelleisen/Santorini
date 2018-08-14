@@ -15,7 +15,7 @@
  move-build?   
 
  (contract-out
-  (giving-up    (-> worker? action?))
+  (giving-up    (-> string? action?))
   (winning-move (-> worker? east-west/c north-south/c action?))
   (move-build   (-> worker? east-west/c north-south/c east-west/c north-south/c action?))
 
