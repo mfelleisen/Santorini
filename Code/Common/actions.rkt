@@ -91,7 +91,7 @@
 ;; Giving-up OutputPort Boolean? -> Void 
 (define (write-giving-up b op mode)
   (with giving-up b
-        (define name (worker-name actor))
+        (define name actor)
         (display `(,name is giving up) op)))
 
 ;; Winning-move OutputPort Boolean? -> Void 
