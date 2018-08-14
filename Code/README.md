@@ -30,6 +30,8 @@
 ## Larger Follow-up Steps 
 - [X] board printer 
 - [X] action printer 
+- [ ] make referee robust against failures in player code;
+      it's okay to assume correctness of Common code 
 - [ ] best-of N run in referee, instead of a single run 
 - [ ] GUI for watching the game (an observer) 
 - [ ] ?? GUI for playing? 

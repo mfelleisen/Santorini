@@ -36,7 +36,7 @@
     (field
      [one-name (get-field name one)]
      [two-name (get-field name two)])
-
+    
     (send one other two-name)
     (send two other one-name)
     
@@ -118,13 +118,13 @@
      [2one2 2two2 4]
      [2     4    ]
      [3     4    ]])
+  board-2-rounds-play
   (define actions
     (list (move-build (worker "one2") PUT SOUTH PUT SOUTH) (winning-move (worker "two1") EAST PUT)))
   (define (stepper b) (begin0 (first actions) (set! actions (rest actions))))
   (checker (format WINNING:fmt "two") send (play-rounds board-2-rounds-play) diagonal stepper))
 
 ;; ---------------------------------------------------------------------------------------------------
-#;
 (module+ main
   
   (define admin
