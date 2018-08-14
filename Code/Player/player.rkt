@@ -1,17 +1,14 @@
 #lang racket
 
-(require "../Lib/require.rkt")
-(require+ "../Common/player-interface.rkt" player%/c)
-(require+ "../Common/board.rkt" board? in-range?)
-(require+ "../Common/actions.rkt" action?)
+(require "../Common/player-interface.rkt")
 
 (provide
  (contract-out 
   (player% player%/c)))
  
 ;; ---------------------------------------------------------------------------------------------------
-(require- "../Common/board.rkt" board? in-range?)
-(require- "../Common/actions.rkt" action?)
+(require "../Common/board.rkt")
+(require "../Common/actions.rkt")
 (require "strategy.rkt")
 
 (module+ test
@@ -23,16 +20,14 @@
     (super-new)
 
     (define other-name "")
+    (define strategy #f)
     
-    (define/public (other name) (set! other-name name))
+    (define/public (other name)
+      (set! other-name name)
+      (set! strategy (new safe-strategy% [name name])))
 
     (define/public (placement list-of-places)
-      ;; this should probably use a strategy
-      (cond
-        [(empty? list-of-places) (list 0 0)]
-        [else (define max-x (apply max (map second list-of-places)))
-              (define max-y (apply max (map third  list-of-places)))
-              (list (+ 1 max-x) (+ 1 max-y))]))
+      (send strategy initialization list-of-places))
     
     (define/public (take-turn board)
-      (safe-strategy board name other-name))))
+      (send strategy take-turn board name other-name))))
