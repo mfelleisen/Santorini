@@ -2,7 +2,7 @@
 
 ## Basic Game 
 - [x] common items: board, building, tokens ~~ no awareness of rules 
-- [x] administrator: rule checking, mechanics 
+- [x] referee: rule checking, mechanics 
 - [x] player: game tree generation, strategy, mechanics 
 - [x] MISTAKE: action per turn for communication belongs into common ontology 
 
@@ -23,15 +23,16 @@
 - [X] factor out strategy for placing workers 
 
 ### testing 
+- [ ] complete tests for strategies 
 - [ ] set up tests for players 
-- [ ] set up tests for admins 
+- [X] set up tests for referee
 
 ## Larger Follow-up Steps 
 - [X] board printer 
 - [X] action printer 
+- [ ] best-of N run in referee, instead of a single run 
 - [ ] GUI for watching the game (an observer) 
 - [ ] ?? GUI for playing? 
-- [ ] best-of N run in admin, instead of a single run 
 - [ ] tournament for P players 
 - [ ] distributed version 
 
@@ -39,4 +40,4 @@
 
 [X] bug in printing, re width of names 
 [x] bug in equality of boards; extra buildings of height 0 don't matter 
-
+[X] mistake in dealing with "giving up" action, use string instead of worker
