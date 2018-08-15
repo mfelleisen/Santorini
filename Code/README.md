@@ -23,7 +23,7 @@
 - [X] factor out strategy for placing workers 
 
 ### testing 
-- [ ] complete tests for strategies 
+- [X] complete tests for strategies 
 - [ ] set up tests for players 
 - [X] set up tests for referee
 
