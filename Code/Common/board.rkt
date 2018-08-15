@@ -103,7 +103,8 @@
    ;; is a board with two "x" workers at (2,0) and (0,2), each at height 1,
    ;; and two "y" workers at (0,1) and (2,2), each at height 2; 
    ;; there is one other buildig at (1,2) of height 3. 
-   define-board))
+   define-board
+   cboard))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCIES
@@ -466,7 +467,10 @@
                #:attr board x-board]))
   
   (define-syntax (define-board stx)
-    (syntax-parse stx [(_ n:id b:literal-board) #'(define n (->board b.board))])))
+    (syntax-parse stx [(_ n:id b:literal-board) #'(define n (->board b.board))]))
+
+  (define-syntax (cboard stx)
+    (syntax-parse stx [(_ b:literal-board) #'(->board b.board)])))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test ;; checking define-board at run-time and syntax-time
@@ -477,16 +481,16 @@
      `((,(building 2) 0 0) (,(building 2) 1 0) (,(building 1) 0 1) (,(building 1) 1 1)
                            (,(building 3)  2 1))))
   
-  (check-equal? (let () (define-board b [[2x1 2o1] [1x2 1o2   3]]) b) expected-board)
-  (check-equal? (let () (define-board b [[2x1 2o1] [1x2 ,'1o2 3]]) b) expected-board)
+  (check-equal? (cboard [[2x1 2o1] [1x2 1o2   3]]) expected-board)
+  (check-equal? (cboard [[2x1 2o1] [1x2 ,'1o2 3]]) expected-board)
 
-  (check-exn exn:fail? (lambda () (define-board b [[2x1 ,'o1][2o2 1x2]]) b))
-  (check-exn exn:fail? (lambda () (define-board b [[2x1 ,'o1][2o2 1x2]]) b))
-  (check-exn exn:fail? (lambda () (define-board b [[2x1 ,"o1"][2o2 1x2]]) b))
+  (check-exn exn:fail? (lambda () (cboard [[2x1 ,'o1][2o2 1x2]])))
+  (check-exn exn:fail? (lambda () (cboard [[2x1 ,'o1][2o2 1x2]])))
+  (check-exn exn:fail? (lambda () (cboard [[2x1 ,"o1"][2o2 1x2]])))
 
   (define-syntax-rule
     (check-syn re b)
-    (check-exn re (lambda () (convert-compile-time-error (let () (define-board c b) 0)))))
+    (check-exn re (lambda () (convert-compile-time-error (cboard b)))))
 
   (check-syn #px"not a cell spec" [[2x 2o 1x] [1x 1o 3]])
   (check-syn #px"too few workers" [[2x1] [1x2 1o1 3]])
@@ -495,10 +499,11 @@
   (check-syn #px"duplicate aa worker" [[2zz1 2zz1] [1aa1 1aa1]])
   (check-syn #px"duplicate zz worker" [[1aa1 1aa1] [2zz1 2zz1]])
 
-  (define-board board1
-    [[3x1 2  1x2]
-     [3  2o1 1o2]])
-
+  (define board1
+    (cboard
+      [[3x1 2  1x2]
+       [3  2o1 1o2]]))
+  
   (define board2
     (board
      (list
@@ -518,9 +523,10 @@
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test ;; auxiliary functions 
 
-  (define-board board-find
-    [[0x1 0x2]
-     [3y1 2y2]])
+  (define board-find
+    (cboard
+      [[0x1 0x2]
+       [3y1 2y2]]))
 
   (define buildings-find (board-buildings board-find))
 
@@ -547,10 +553,9 @@
   (check-equal? (named-workers board0 "x") (list (worker "x1") (worker "x2")))
   
   (define (board-move ss tt)
-    (define-board b1
+    (cboard 
       [[,ss ,tt 1x1]
-       [3   2o1 1o2]])
-    b1)
+       [3   2o1 1o2]]))
   
   (define b1-before (board-move 3 '2x2))
   (define b1-after  (board-move '3x2 2))
@@ -575,23 +580,23 @@
   (check-equal? (move b1-before (worker "x2") WEST PUT) b1-after)
   
   (define (board-build ss tt (ff 0))
-    (define-board b1
+    (cboard 
       [[,ss ,tt ,ff]
-       [2x1 2o1 1o2]])
-    b1)
+       [2x1 2o1 1o2]]))
   
   (check-equal? (build (board-build 2 '2x2) (worker "x2") WEST PUT) (board-build 3 '2x2))
 
-  (define-board b3-before [[2x1 2o1]   [2x2   2o2  1]])
-  (define-board b3-after  [[2x1 2o1 1] [2x2   2o2  1]])
+  (define b3-before (cboard [[2x1 2o1]   [2x2   2o2  1]]))
+  (define b3-after  (cboard  [[2x1 2o1 1] [2x2   2o2  1]]))
   (check-equal? (build b3-before (worker "o1") EAST PUT) b3-after))
 
 (module+ test ;; testing printing
 
-  (define-board print-board
-    [[3x1 0y2]
-     [0x2 0y1]
-     [1   ]])
+  (define print-board
+    (cboard 
+      [[3x1 0y2]
+       [0x2 0y1]
+       [1   ]]))
 
   (define print-board2 
     (board `((,(worker "x1") 0 0)
@@ -605,10 +610,11 @@
   (check-equal? (with-output-to-string (lambda () (display print-board))) print-expected)  
   (check-equal? (with-output-to-string (lambda () (display print-board2))) print-expected)
 
-  (define-board print-board3
-    [[3cd1 0    0mf2]
-     [0cd2 0mf1 1   ]
-     [1   ]])
+  (define print-board3
+    (cboard
+      [[3cd1 0    0mf2]
+       [0cd2 0mf1 1   ]
+       [1   ]]))
 
   (define print-expected2 "[[3cd1 0    0mf2]\n [0cd2 0mf1 1   ]\n [1   ]]\n")
 
