@@ -43,3 +43,4 @@
 [X] bug in printing, re width of names 
 [x] bug in equality of boards; extra buildings of height 0 don't matter 
 [X] mistake in dealing with "giving up" action, use string instead of worker
+[X] actions: check-action did not check all the conditions (contract system hooray!)

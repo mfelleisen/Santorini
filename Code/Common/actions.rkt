@@ -21,6 +21,7 @@
 
   (apply-action
    ;; execute the given action on this board
+   ;; ASSUME check-action has been called (too expansive to call again)
    (->i ([b board?] [a action?]) (r board?)))
 
   (check-action
@@ -80,9 +81,15 @@
   (match a
     [(giving-up a) #true] ;; players can give up for all kinds of reasons 
     [(winning-move t e-w n-s)
-     (and (check-move board t e-w n-s) (is-move-a-winner? board t e-w n-s))]
+     (and (not (and (= e-w PUT) (= n-s PUT)))
+          (stay-on-board? board t e-w n-s)
+          (check-move board t e-w n-s)
+          (is-move-a-winner? board t e-w n-s))]
     [(move-build t e-w n-s e-w-build n-s-build)
-     (and (check-move board t e-w n-s)
+     (and (not (and (= e-w PUT) (= n-s PUT)))
+          (stay-on-board? board t e-w n-s) 
+          (not (and (= e-w-build PUT) (= n-s-build PUT)))
+          (stay-on-board? (move board t e-w n-s) t e-w-build n-s-build)
           (check-build-up board t e-w n-s e-w-build n-s-build))]))
 
 ;; ---------------------------------------------------------------------------------------------------
