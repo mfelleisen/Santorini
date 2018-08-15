@@ -19,14 +19,14 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (define safe-strategy%
-  (class object% (init-field name)
+  (class object% (init-field player other)
 
     (super-new)
 
     (define/public (initialization list-of-places)
       (initialization1 list-of-places))
       
-    (define/public (take-turn board player other)
+    (define/public (take-turn board)
       (define tree (generate board player other))
       (find-a-good-action tree 2))
 
@@ -37,7 +37,7 @@
       (define actions (tree-actions tree))
       (or (for/first ((a actions) #:when (winning-move? a)) a)       
           (for/first ((a actions) #:when (or (<= n 1) (safe? a tree (sub1 n)))) a)
-          (giving-up name)))
+          (giving-up player)))
 
     ;; Action GameTree N -> Boolean 
     (define/private (safe? a gt n)
@@ -64,9 +64,10 @@
   (check-equal? (initialization1 `()) (list 0 0))
   (check-equal? (initialization1 `(("x" 0 0))) (list 1 1))
   
-  (define safe (new safe-strategy% [name "x"]))
+  (define xsafe (new safe-strategy% [player "x"] [other "o"]))
+  (define osafe (new safe-strategy% [player "o"] [other "x"]))
 
-  (check-pred cons? (send safe initialization '()) "just to make sure that the mechanics work out")
+  (check-pred cons? (send xsafe initialization '()) "just to make sure that the mechanics work out")
 
   (define o1 (worker "o1"))
   (define-board gu-mb-board
@@ -74,15 +75,15 @@
      [2x2 1o2]
      [4   4]])
   
-  (check-equal? (send safe take-turn gu-mb-board "x" "o") (giving-up "x"))
-  (check-equal? (send safe take-turn gu-mb-board "o" "x") (move-build o1 EAST SOUTH EAST SOUTH))
+  (check-equal? (send xsafe take-turn gu-mb-board) (giving-up "x"))
+  (check-equal? (send osafe take-turn gu-mb-board) (move-build o1 EAST SOUTH EAST SOUTH))
 
   (define-board winning-board
     [[1x1 2o1 3]
      [2x2 1o2]
      [4   4]])
 
-  (check-equal? (send safe take-turn winning-board "o" "x") (winning-move o1 EAST PUT))
+  (check-equal? (send osafe take-turn winning-board) (winning-move o1 EAST PUT))
 
   (define-board gu-2-down-board
     [[1x1 2o1 3]
@@ -90,9 +91,4 @@
      [2   4]
      [4   4]])
 
-  (check-equal? (send safe take-turn gu-2-down-board "x" "o") (giving-up "x"))
-  
-
-  )
-
-
+  (check-equal? (send xsafe take-turn gu-2-down-board) (giving-up "x")))

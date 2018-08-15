@@ -17,7 +17,7 @@
 
 (define strategy%/c
   (class/c
-   (init-field (name string?))
+   (init-field (player string?) (other string?))
    (initialization
     ;; pick the next place for a worker
     ;; called twice 
@@ -26,6 +26,6 @@
    (take-turn 
     ;;  pick the next action
     ;; called after initialization 
-    (->i ((this any/c) (b board?) (player (b) (name/c b)) (other (b) (name/c b))) (r action?)))))
+    (->i ((this any/c) (b board?)) (r action?)))))
 
 (define strategy/c (instanceof/c strategy%/c))

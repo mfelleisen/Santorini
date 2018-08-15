@@ -22,12 +22,12 @@
     (define other-name "")
     (define strategy #f)
     
-    (define/public (other name)
-      (set! other-name name)
-      (set! strategy (new safe-strategy% [name name])))
+    (define/public (other other-name)
+      (set! other-name other-name)
+      (set! strategy (new safe-strategy% [player name][other other-name])))
 
     (define/public (placement list-of-places)
       (send strategy initialization list-of-places))
     
     (define/public (take-turn board)
-      (send strategy take-turn board name other-name))))
+      (send strategy take-turn board))))
