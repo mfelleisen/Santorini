@@ -35,10 +35,11 @@
       (define tree    (generate board player other))
       (define actions (tree-actions tree))
       (define fst-act (first actions))
-      (if (giving-up? fst-act)
-          fst-act
-          (or (for/first ((a actions) #:when (winning-move? a)) a)
-              (for/first ((a actions) #:when (safe? a tree)) a))))
+      (cond
+        [(giving-up? fst-act) fst-act]
+        [(for/first ((a actions) #:when (winning-move? a)) a) => values]
+        [(for/first ((a actions) #:when (safe? a tree)) a) => values]
+        [else (giving-up name)]))
 
     ;; Action GameTree -> Boolean 
     (define/private (safe? a gt)
@@ -58,11 +59,8 @@
     [[1x1 2o1]
      [2x2 1o2]
      [4   4]])
-
-  (define g1 (send safe take-turn b "x" "o"))
-  (define g2 (giving-up (worker "x1")))
-
-  (check-equal? (send safe take-turn b "x" "o") (giving-up (worker "x1")))
+  
+  (check-equal? (send safe take-turn b "x" "o") (giving-up "x"))
   (check-equal? (send safe take-turn b "o" "x") (move-build (worker "o1") EAST SOUTH EAST SOUTH))
 
   (define-board c
@@ -70,4 +68,17 @@
      [2x2 1o2]
      [4   4]])
 
-  (check-equal? (send safe take-turn c "o" "x") (winning-move (worker "o1") EAST PUT)))
+  (check-equal? (send safe take-turn c "o" "x") (winning-move (worker "o1") EAST PUT))
+
+  (define-board d
+    [[1x1 2o1 3]
+     [2x2 1o2]
+     [2   4]
+     [4   4]])
+
+  (check-equal? (send safe take-turn d "x" "o") (giving-up "x"))
+  
+
+  )
+
+

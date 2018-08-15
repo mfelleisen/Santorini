@@ -36,7 +36,7 @@
 - [ ] best-of N run in referee, instead of a single run 
 - [ ] GUI for watching the game (an observer) 
 - [ ] ?? GUI for playing? 
-- [ ] tournament for P players 
+- [ ] tournament for P players and O observers 
 - [ ] distributed version 
 
 ## Bugs 
@@ -45,3 +45,4 @@
 [x] bug in equality of boards; extra buildings of height 0 don't matter 
 [X] mistake in dealing with "giving up" action, use string instead of worker
 [X] actions: check-action did not check all the conditions (contract system hooray!)
+[X] strategy: take-turn produces #f if the player gets stuck 2 turns down
