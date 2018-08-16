@@ -142,11 +142,12 @@
   (define bad-action (move-build (worker "one1") EAST SOUTH PUT NORTH))
   (checker (format BAD-MOVE:fmt "one" "two" bad-action) send (play) diagonal (lambda (b) bad-action))
 
-  (define-board board-2-rounds-play
+  (define board-2-rounds-play
+    (cboard
     [[2one1 2two1 3]
      [2one2 2two2 4]
      [2     4    ]
-     [3     4    ]])
+     [3     4    ]]))
   (define actions
     (list (move-build (worker "one2") PUT SOUTH PUT SOUTH) (winning-move (worker "two1") EAST PUT)))
   (define (stepper b) (begin0 (first actions) (set! actions (rest actions))))
@@ -167,5 +168,5 @@
          [one (new player% [name "mf"])]
          [two (new player% [name "cd"])]))
 
-  (time-out-limit 1.0)
+  (time-out-limit 1.2)
   (send admin play))

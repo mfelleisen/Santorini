@@ -84,7 +84,7 @@
 (module+ test
   (provide
    ;; SYNTAX
-   #; (define-board name [[x-y ...] ...])
+   #; (board [[x-y ...] ...])
    ;; defines a literal board with cells x-y ...
    ;; Each cell must be
    ;; -- an N, which denotes a building of this height or
@@ -103,7 +103,6 @@
    ;; is a board with two "x" workers at (2,0) and (0,2), each at height 1,
    ;; and two "y" workers at (0,1) and (2,2), each at height 2; 
    ;; there is one other buildig at (1,2) of height 3. 
-   define-board
    cboard))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -441,10 +440,8 @@
                #:attr w #`(#,(string->number (second mat)) #,(third mat))))
 
     (define-syntax-class cell+
-      (pattern x:cell
-               #:attr v #'x.v)
-      (pattern ((~literal unquote) x)
-               #:attr v #'x))
+      (pattern x:cell #:attr v #'x.v)
+      (pattern ((~literal unquote) x) #:attr v #'x))
 
     (define-syntax-class literal-board
       [pattern [[x:cell ...] ...]
@@ -465,9 +462,6 @@
                #:fail-unless x-board "not a board"
                #:attr lit #'#false
                #:attr board x-board]))
-  
-  (define-syntax (define-board stx)
-    (syntax-parse stx [(_ n:id b:literal-board) #'(define n (->board b.board))]))
 
   (define-syntax (cboard stx)
     (syntax-parse stx [(_ b:literal-board) #'(->board b.board)])))
@@ -501,8 +495,8 @@
 
   (define board1
     (cboard
-      [[3x1 2  1x2]
-       [3  2o1 1o2]]))
+     [[3x1 2  1x2]
+      [3  2o1 1o2]]))
   
   (define board2
     (board
@@ -525,8 +519,8 @@
 
   (define board-find
     (cboard
-      [[0x1 0x2]
-       [3y1 2y2]]))
+     [[0x1 0x2]
+      [3y1 2y2]]))
 
   (define buildings-find (board-buildings board-find))
 
@@ -554,8 +548,8 @@
   
   (define (board-move ss tt)
     (cboard 
-      [[,ss ,tt 1x1]
-       [3   2o1 1o2]]))
+     [[,ss ,tt 1x1]
+      [3   2o1 1o2]]))
   
   (define b1-before (board-move 3 '2x2))
   (define b1-after  (board-move '3x2 2))
@@ -581,8 +575,8 @@
   
   (define (board-build ss tt (ff 0))
     (cboard 
-      [[,ss ,tt ,ff]
-       [2x1 2o1 1o2]]))
+     [[,ss ,tt ,ff]
+      [2x1 2o1 1o2]]))
   
   (check-equal? (build (board-build 2 '2x2) (worker "x2") WEST PUT) (board-build 3 '2x2))
 
@@ -594,9 +588,9 @@
 
   (define print-board
     (cboard 
-      [[3x1 0y2]
-       [0x2 0y1]
-       [1   ]]))
+     [[3x1 0y2]
+      [0x2 0y1]
+      [1   ]]))
 
   (define print-board2 
     (board `((,(worker "x1") 0 0)
@@ -612,9 +606,9 @@
 
   (define print-board3
     (cboard
-      [[3cd1 0    0mf2]
-       [0cd2 0mf1 1   ]
-       [1   ]]))
+     [[3cd1 0    0mf2]
+      [0cd2 0mf1 1   ]
+      [1   ]]))
 
   (define print-expected2 "[[3cd1 0    0mf2]\n [0cd2 0mf1 1   ]\n [1   ]]\n")
 

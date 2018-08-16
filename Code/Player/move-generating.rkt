@@ -86,7 +86,7 @@ The game ends
 
   (define-syntax-rule
     (check-generate r sel b player other)
-    (check-equal? (sel (generate (let () (define-board name b) name) player other)) r))
+    (check-equal? (sel (generate (cboard b) player other)) r))
   
   (check-generate (list (giving-up "x"))
                   tree-actions

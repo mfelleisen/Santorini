@@ -98,20 +98,20 @@ The game ends
     (check-exn exn:fail:contract? (lambda () (f b (worker c) arg ...))))
 
   (define (board-move tt)
-    (define-board b1
-      [[3 ,tt 1x2]
-       [4 2o1 1o2]])
-    b1)
+    (cboard 
+     [[3 ,tt 1x2]
+      [4 2o1 1o2]]))
 
   (define b1-before (board-move '2x1))
   (define b1-after  (board-move '3x1))
   
-  (define-board b2
-    [[]
-     [1b1]
-     [0 0 0a1]
-     [0 0 0 0a2]
-     [0 0 0 1 0b2]])
+  (define b2
+    (cboard
+     [[]
+      [1b1]
+      [0 0 0a1]
+      [0 0 0 0a2]
+      [0 0 0 1 0b2]]))
   
   (checker #t check-move b1-before ("x1") WEST PUT)
   (checker #t check-move b2 ("b1") EAST PUT)

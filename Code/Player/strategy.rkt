@@ -70,25 +70,28 @@
   (check-pred cons? (send xsafe initialization '()) "just to make sure that the mechanics work out")
 
   (define o1 (worker "o1"))
-  (define-board gu-mb-board
-    [[1x1 2o1]
-     [2x2 1o2]
-     [4   4]])
+  (define gu-mb-board
+    (cboard 
+     [[1x1 2o1]
+      [2x2 1o2]
+      [4   4]]))
   
   (check-equal? (send xsafe take-turn gu-mb-board) (giving-up "x"))
   (check-equal? (send osafe take-turn gu-mb-board) (move-build o1 EAST SOUTH EAST SOUTH))
 
-  (define-board winning-board
-    [[1x1 2o1 3]
-     [2x2 1o2]
-     [4   4]])
+  (define winning-board
+    (cboard
+     [[1x1 2o1 3]
+      [2x2 1o2]
+      [4   4]]))
 
   (check-equal? (send osafe take-turn winning-board) (winning-move o1 EAST PUT))
 
-  (define-board gu-2-down-board
-    [[1x1 2o1 3]
-     [2x2 1o2]
-     [2   4]
-     [4   4]])
+  (define gu-2-down-board
+    (cboard 
+     [[1x1 2o1 3]
+      [2x2 1o2]
+      [2   4]
+      [4   4]]))
 
   (check-equal? (send xsafe take-turn gu-2-down-board) (giving-up "x")))
