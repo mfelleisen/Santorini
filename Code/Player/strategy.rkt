@@ -26,7 +26,20 @@
     
     (define/public (initialization list-of-places)
       (initialization1 list-of-places))
-      
+
+    ;; [Listof [List String N N]] -> [List N N]
+    ;; maximize distance from other players 
+    (define/private (initialization1 lop)
+      (cond
+        [(empty? lop) (list 0 0)]
+        [else
+         (define others (filter (compose (curry string=? other) first) lop))
+         (define free-places (non-occupied-places (map rest lop)))
+         (define with-distances
+           (for*/list ((f free-places) (o (map rest others)))
+             (list f (distance f o))))
+         (first (argmax second with-distances))]))
+    
     (define/public (take-turn board (n 2))
       (define tree (generate board player other))
       ;; GameTree N -> Action
@@ -51,18 +64,22 @@
       ;; -- IN -- 
       (find-a-good-action tree n))))
 
-;; [Listof [List String N N]] -> [List N N]
-(define (initialization1 lop)
-  (list 0 0))
+(define (distance p q)
+  (sqrt (apply + (map sqr (map - p q)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
   (require (submod ".."))
+
+  (check-equal? (distance (list 3 4) (list 0 0)) 5)
+  (check-equal? (distance (list 12 5) (list 9 1)) 5)
   
   (define xsafe (new safe-strategy% [player "x"] [other "o"]))
   (define osafe (new safe-strategy% [player "o"] [other "x"]))
 
   (check-pred cons? (send xsafe initialization '()) "just to make sure that the mechanics work out")
+  (check-equal? (send xsafe initialization '()) (list 0 0))
+  (check-equal? (send xsafe initialization (list (list "o" 0 0))) (list 5 5))
 
   (define o1 (worker "o1"))
   (define gu-mb-board
