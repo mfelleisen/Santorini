@@ -23,7 +23,11 @@
 
  board ;; for debugging 
  
- (contract-out 
+ (contract-out
+  (non-occupied-places
+   ;; compute the list of places where players can still place a worker 
+   (-> (listof (list/c in-range? in-range?)) (listof (list/c in-range? in-range?))))
+
   (init
    ;; create the board and place the four worker?s on it
    (->i ((t1 init/c) (t2 init/c) (t3 init/c) (t4 init/c))
@@ -117,6 +121,21 @@
   (require rackunit)
   (require (for-syntax racket/list))
   (require syntax/macro-testing))
+
+;; ---------------------------------------------------------------------------------------------------
+;; PLACES on the initial board 
+
+(define ALL-PLACES (for*/list ([i (+ DIM 1)][j (+ DIM 1)]) (list i j)))
+
+(define (non-occupied-places list-of-places)
+  (remove* list-of-places ALL-PLACES))
+
+(module+ test
+  (check-equal? (non-occupied-places ALL-PLACES) '())
+  (check-equal? (apply set (non-occupied-places (for*/list ([i DIM][j DIM]) (list i j))))
+                (apply set 
+                       (append (for/list ([i (+ DIM 1)]) (list i 5))
+                               (for/list ([j (+ DIM 1)]) (list 5 j))))))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; The BOARD
