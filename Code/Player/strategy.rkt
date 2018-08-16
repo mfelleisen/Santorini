@@ -10,6 +10,7 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "move-generating.rkt")
+(require "../Common/board.rkt")
 (require "../Common/directions.rkt")
 (require "../Common/worker.rkt")
 (require "../Common/actions.rkt")
@@ -22,47 +23,41 @@
   (class object% (init-field player other)
 
     (super-new)
-
+    
     (define/public (initialization list-of-places)
       (initialization1 list-of-places))
       
-    (define/public (take-turn board)
+    (define/public (take-turn board (n 2))
       (define tree (generate board player other))
-      (find-a-good-action tree 2))
+      ;; GameTree N -> Action
+      ;; find first action that is a winner or guarantees n move-and-build turns
+      ;; if all else fails, give up 
+      (define (find-a-good-action tree n)
+        (define actions (tree-actions tree))
+        (or (for/first ((a actions) #:when (winning-move? a)) a)       
+            (for/first ((a actions) #:when (or (<= n 1) (safe? a tree (sub1 n)))) a)
+            (giving-up player)))
 
-    ;; GameTree N -> Action
-    ;; find first action that is a winner or guarantees n move-and-build turns
-    ;; if all else fails, give up 
-    (define/private (find-a-good-action tree n)
-      (define actions (tree-actions tree))
-      (or (for/first ((a actions) #:when (winning-move? a)) a)       
-          (for/first ((a actions) #:when (or (<= n 1) (safe? a tree (sub1 n)))) a)
-          (giving-up player)))
+      ;; Action GameTree N -> Boolean 
+      (define (safe? a gt n)
+        (define next (step gt a))
+        (for/and ((a (tree-actions next)))
+          (define mine (step next a))
+          (define acts (tree-actions mine))
+          (and
+           ;; there is more than a giving-up action available 
+           (cons? (rest acts))
+           (not (giving-up? (find-a-good-action mine (sub1 n)))))))
+      ;; -- IN -- 
+      (find-a-good-action tree n))))
 
-    ;; Action GameTree N -> Boolean 
-    (define/private (safe? a gt n)
-      (define next (step gt a))
-      (for/and ((a (tree-actions next)))
-        (define mine (step next a))
-        (define acts (tree-actions mine))
-        (and
-         ;; there is more than a giving-up action available 
-         (cons? (rest acts))
-         (not (giving-up? (find-a-good-action mine (sub1 n)))))))))
-
-(define (initialization1 list-of-places)
-  (cond
-    [(empty? list-of-places) (list 0 0)]
-    [else (define max-x (apply max (map second list-of-places)))
-          (define max-y (apply max (map third  list-of-places)))
-          (list (+ 1 max-x) (+ 1 max-y))]))
+;; [Listof [List String N N]] -> [List N N]
+(define (initialization1 lop)
+  (list 0 0))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
   (require (submod ".."))
-
-  (check-equal? (initialization1 `()) (list 0 0))
-  (check-equal? (initialization1 `(("x" 0 0))) (list 1 1))
   
   (define xsafe (new safe-strategy% [player "x"] [other "o"]))
   (define osafe (new safe-strategy% [player "o"] [other "x"]))
