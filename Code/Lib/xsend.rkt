@@ -33,6 +33,7 @@
 
 (define (xdynamic-send p m #:thrown throw-handler #:timed-out time-out-handler  . a)
   (define cust (make-custodian))
+  ;; (custodian-limit-memory cust 1048576) ;; memory limit
   (struct okay (value))
   (struct thrw (value))
   (define result
