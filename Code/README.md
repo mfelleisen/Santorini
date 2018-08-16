@@ -35,7 +35,7 @@
       [X] added generic xsend method (time, exns, raises)
 - [X] improve strategy unrolling so that 
   - [X] initialization can also use it: FAILED! 
-  - [ ] place as far away as possible from other player, as close as possible to own
+  - [X] place as far away as possible from other player, as close as possible to own
 - [ ] best-of N run in referee, instead of a single run 
 - [ ] GUI for watching the game (an observer) 
 - [ ] ?? GUI for playing? 
