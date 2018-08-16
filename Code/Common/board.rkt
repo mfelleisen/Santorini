@@ -350,41 +350,84 @@
 ;; ---------------------------------------------------------------------------------------------------
 ;; TEST FRAMEWORK for Boards (needed here to get bindings from top-level modules)
 (module* test-support #f
-  (provide ->board CELL)
+
+  ;; PreBuilding = [List N N N]
+  ;; PreWorker   = [List String N N]
+  ;; PreBoard    = [List [Listof PreWorker] [Listof PreBuilding]]
+
+  (provide
+   ;; ([Listof [Listof (U Integer [List Integer Letter])]] -> (U Board #false))
+   ->board
+
+   ;; ([Listof [Listof (U Integer [List Integer Letter])]] -> (U PreBoard #false))
+   ;; create a list-string-int based representation of a board (quasi) literal-constant 
+   ->board-workers-and-buildings 
+
+   #; ((U PreBoard #false) -> Board)
+   board-pieces->board
+
+   #; (Syntax (U PreBoard #false) -> Syntax)
+   board-pieces->syntax 
+
+   ;; (Symbol -> (U #false [List String Number]))
+   cell->n+h
+
+   CELL)
 
   (require "worker.rkt")
   (require rackunit)
 
   (define CELL #px"(\\d)([a-z]*[1,2])")
   
-  #; ([Listof [Listof (U Integer [List Integer Letter])]] -> (U Board  #false))
+  (define (cell->n+h cell)
+    (define mat (regexp-match CELL (symbol->string cell)))
+    (and mat (match mat [`(,_all ,height ,name) (list name (string->number height))])))
+
   (define (->board x)
+    (define board-pieces (->board-workers-and-buildings x))
+    (and board-pieces (board-pieces->board board-pieces)))
+
+  (define (board-pieces->syntax stx bp)
+    (define +list (curry cons 'list))
+    (define workers (+list (map +list (first bp))))
+    (define buildings (+list (map +list (second bp))))
+    (datum->syntax stx (cons 'list (list workers buildings))))
+
+  (define (board-pieces->board bp)
+    (match-define `(,pre-workers ,pre-buildings) bp)
+    (define workers (for/list ((w pre-workers)) (cons (worker (first w)) (rest w))))
+    (define buildings (for/list ((b pre-buildings)) (cons (building (first b)) (rest b))))
+    (board workers buildings))
+
+  (define (->board-workers-and-buildings x)
     (define (+worker accu cell x y)
       (cond
         [(integer? cell) accu]
-        [(pair? cell) (cons (list (second cell) (worker (second cell)) x y) accu)]
-        [(and (symbol? cell) (regexp-match CELL (symbol->string cell)))
-         => (match-lambda [`(,_all ,_height ,name) (cons (list name (worker name) x y) accu)])]
-        [else (error '->board "bad Racket value for cell: ~e" cell)]))
-    (define full-name+workers+loc (traverse-literal-board x +worker))
+        [(pair? cell) (cons (list (second cell) x y) accu)]
+        [(and (symbol? cell) (cell->n+h cell)) => (lambda (h+n) (cons `(,(first h+n) ,x ,y) accu))]
+        [else (error '->board "not a cell spec (unquoted place): ~e" cell)]))
+    ;; called when cell is guaranteed to be of CELL shape (+worker)
     (define (+building accu cell x y)
+      (define loc (list x y))
       (define b
-        (list 
-         (building
-          (cond
-            [(integer? cell) cell]
-            [(pair? cell) (first cell)]
-            [(and (symbol? cell) (regexp-match CELL (symbol->string cell)))
-             => (match-lambda [`(,_all ,height ,name) (string->number height)])]))
-         x y))
-      (cons b accu))
-    (define buildings (traverse-literal-board x +building))
-    (and (exactly-2-workers-of-2-kinds full-name+workers+loc)
-         (board (map rest full-name+workers+loc) buildings)))
-
+        (cond
+          [(integer? cell) cell]
+          [(pair? cell) (first cell)]
+          [(and (symbol? cell) (cell->n+h cell)) => second]))
+      (cons (cons b loc) accu))
+    ;; -- IN -- 
+    (define pre-workers (traverse-literal-board x +worker))
+    (define pre-buildings (traverse-literal-board x +building))
+    (and (exactly-2-workers-of-2-kinds pre-workers)
+         (list pre-workers pre-buildings)))
+  
   #; ([Listof Worker?] -> Boolean)
   (define (exactly-2-workers-of-2-kinds full-name+workers+loc)
-    (define names (for/list ((w full-name+workers+loc)) (list (first w) (worker-name (second w)))))
+    (define names
+      (for/list ((w full-name+workers+loc))
+        (define fst (first w))
+        (define proper (substring fst 0 (- (string-length fst) 1)))
+        (list (first w) proper)))
     (unless (= (length names) 4) (error '->board "too few workers"))
     
     (match-define `(,full-fst ,fst) (first names))
@@ -396,7 +439,7 @@
     [define names-snd (remf* (lambda (x) (equal? (second x) snd)) names-fst)]
     (define fulls2 (map first (filter (lambda (n) (equal? (second n) snd)) names)))
     
-    (unless(empty? names-snd) (error '->board "a third kind of worker: ~a" names-snd))
+    (unless (empty? names-snd) (error '->board "a third kind of worker: ~a" names-snd))
 
     (when (equal? (first fulls1) (second fulls1)) (error '->board "duplicate ~a worker" fst))
     (when (equal? (first fulls2) (second fulls2)) (error '->board "duplicate ~a worker" snd))
@@ -425,46 +468,38 @@
 (module+ test ;; define-board for creating scenarios in a concise form 
   (require (submod ".." test-support))
   (require (for-syntax (submod ".." test-support)))
+  (require (for-syntax "../Lib/exn-conversion.rkt"))
   
   (begin-for-syntax    
     (define-syntax-class cell
       (pattern x:integer
-               #:attr v #'x
-               #:attr w #'x)
+               #:attr vrun #'x
+               #:attr vsyn #'x)
       (pattern x:id
-               #:do [(define sym (syntax-e #'x))
-                     (define str (symbol->string sym))
-                     (define mat (regexp-match CELL str))]
-               #:fail-unless (and mat (string->number (second mat))) "not a cell spec"
-               #:attr v #`(list #,(string->number (second mat)) #,(third mat))
-               #:attr w #`(#,(string->number (second mat)) #,(third mat))))
-
-    (define-syntax-class cell+
-      (pattern x:cell #:attr v #'x.v)
-      (pattern ((~literal unquote) x) #:attr v #'x))
-
+               #:do [(define mat (cell->n+h (syntax-e #'x)))]
+               #:fail-unless mat "not a cell spec"
+               #:attr vrun #`(list #,(second mat) #,(first mat))
+               #:attr vsyn #`(#,(second mat) #,(first mat))))
+    
     (define-syntax-class literal-board
       [pattern [[x:cell ...] ...]
-               #:do [(define x-board #'((x.w ...) ...))
-                     (define d-board (syntax->datum x-board))
-                     (define checked
-                       (with-handlers ([exn:fail? (lambda (xn)
-                                                    (define msg (exn-message xn))
-                                                    (define cnm (exn-continuation-marks xn))
-                                                    (define stx (list this-syntax))
-                                                    (raise (exn:fail:syntax msg cnm stx)))])
-                         (->board d-board)))]
+               #:do [(define checked
+                       (with-handlers ([exn:fail? (runtime-exn->syntax-exn this-syntax)])
+                         (->board-workers-and-buildings (syntax->datum #'((x.vsyn ...) ...)))))]
                #:fail-unless checked "not a board"
-               #:attr lit #'#true
-               #:attr board #'(list (list x.v ...) ...)]
-      [pattern [[x:cell+ ...] ...]
-               #:do [(define x-board #'(list (list x.v ...) ...))]
-               #:fail-unless x-board "not a board"
-               #:attr lit #'#false
-               #:attr board x-board]))
+               #:attr board (board-pieces->syntax this-syntax checked)])
+
+    (define-syntax-class cell+
+      (pattern x:cell #:attr vrun #'x.vrun)
+      (pattern ((~literal unquote) x) #:attr vrun #'x))
+
+    (define-syntax-class quasiliteral-board
+      [pattern [[x:cell+ ...] ...] #:attr board #'(list (list x.vrun ...) ...)]))
 
   (define-syntax (cboard stx)
-    (syntax-parse stx [(_ b:literal-board) #'(->board b.board)])))
+    (syntax-parse stx
+      [(_ b:literal-board) #'(board-pieces->board b.board)]
+      [(_ b:quasiliteral-board) #'(->board b.board)])))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test ;; checking define-board at run-time and syntax-time
