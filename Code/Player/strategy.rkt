@@ -33,11 +33,11 @@
       (cond
         [(empty? lop) (list 0 0)]
         [else
-         (define others (filter (compose (curry string=? other) first) lop))
+         (define others (map rest (filter (compose (curry string=? other) first) lop)))
          (define free-places (non-occupied-places (map rest lop)))
          (define with-distances
-           (for*/list ((f free-places) (o (map rest others)))
-             (list f (distance f o))))
+           (for/list ((f free-places))
+             (list f (for/sum ((o others)) (distance f o)))))
          (first (argmax second with-distances))]))
     
     (define/public (take-turn board (n 2))
@@ -80,6 +80,8 @@
   (check-pred cons? (send xsafe initialization '()) "just to make sure that the mechanics work out")
   (check-equal? (send xsafe initialization '()) (list 0 0))
   (check-equal? (send xsafe initialization (list (list "o" 0 0))) (list 5 5))
+  (check-equal? (send xsafe initialization `(("o" 0 0)("x" 5 5))) (list 4 5))
+  (check-equal? (send osafe initialization `(("x" 4 5)("o" 0 0)("x" 5 5))) (list 1 0))
 
   (define o1 (worker "o1"))
   (define gu-mb-board
