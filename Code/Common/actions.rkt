@@ -132,8 +132,8 @@
 (module+ test
   (require (submod ".."))
 
-  (define-syntax-rule (check-apply b a r) (check-equal? (apply-action b a) r))
   (define-syntax-rule (check-check b a r) (check-equal? (check-action b a) r))
+  (define-syntax-rule (check-apply b a r) (check-equal? (apply-action b a) r))
 
   (define (make-board ss0 tt)
     (define ss (if (number? ss0) ss0 (string->symbol (string-append (symbol->string ss0) "2"))))
@@ -144,19 +144,19 @@
 
   (define t1 (worker "o2"))
 
-  (define t1-gu (giving-up t1))
+  (define t1-gu (giving-up "o"))
   (define t1-wm (winning-move t1 EAST SOUTH))
   (define t1-mb (move-build t1 EAST SOUTH WEST NORTH))
+  
+  (check-check (make-board '2o 4) t1-gu #t)
+  (check-check (make-board '2o 3) t1-wm #t)
+  (check-check (make-board '2o 2) t1-mb #t)
+  (check-check (make-board '2o 3) (winning-move t1 WEST PUT) #f)
+  (check-check (make-board '2o 2) (move-build t1 EAST SOUTH PUT NORTH) #f)
 
   (check-apply (make-board '2o 4) t1-gu (make-board '2o 4))
   (check-apply (make-board '2o 3) t1-wm (make-board 2 '3o2))
   (check-apply (make-board '2o 2) t1-mb (make-board 3 '2o2))
-  
-  (check-check (make-board '2o 4) (giving-up t1) #t)
-  (check-check (make-board '2o 3) (winning-move t1 EAST SOUTH) #t)
-  (check-check (make-board '2o 2) (move-build t1 EAST SOUTH WEST NORTH) #t)
-  (check-check (make-board '2o 3) (winning-move t1 WEST PUT) #f)
-  (check-check (make-board '2o 2) (move-build t1 EAST SOUTH PUT NORTH) #f)
 
   ;; bug ?
   (define bug1-board
