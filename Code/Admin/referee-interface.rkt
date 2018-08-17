@@ -8,5 +8,10 @@
 ;; -----------------------------------------------------------------------------
 (define referee%/c
    (class/c
-    (init-field (one player/c) (two player/c))
-    (play (->m string?))))
+
+    (init-field
+     (one player/c)
+     (two player/c))
+    
+    (best-of (->m (and/c natural-number/c odd?) string?))
+    (play    (->m string?))))

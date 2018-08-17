@@ -77,11 +77,29 @@
     ;; -----------------------------------------------------------------------------------------------
     ;; RUN A GAME 
 
+    ;; N -> String
+    ;; who is going to win most games 
+    ;; a rule-violating, failing or timed-out player loses regardless of prior rounds
+    (define/public (best-of n)
+      (define n-winners (+ (quotient n 2) 1))
+      (let/ec done
+        (let loop ([one# 0][two# 0])
+          (cond
+            [(>= one# n-winners) one-name]
+            [(>= two# n-winners) two-name]
+            [else (define outcome (play done))
+                  (cond
+                    [(regexp-match one-name outcome) (loop (+ one# 1) two#)]
+                    [(regexp-match two-name outcome) (loop one# (+ two# 1))]
+                    [else outcome])]))))
+    
     ;; -> String
     ;; determine the winner (and the loser)
-    (define/public (play)
-      (let/ec done
-        (if (string? board) board (play-rounds done board))))
+    (define/public (play (done #false))
+      (cond
+        [(string? board) board]
+        [done (play-rounds done board)]
+        [else (let/ec done (play-rounds done board))]))
 
     ;; [String -> Empty] Board -> String
     ;; EFFECT escape with done if
@@ -96,7 +114,6 @@
           (define bv (bad-value a))
           [(report done (format XPLAY "~a" one-name (if (exn? bv) (exn-message bv) bv)) two-name)])
         (displayln a)
-        (displayln (check-action board a))
         (unless (check-action board a)
           (displayln `(bad action ,a))
           [(report done (format BAD-MOVE:fmt "~a" one-name a) two-name)])
@@ -135,13 +152,16 @@
        (checker r (action) (args ...) lot tt ...)]))
   (define diagonal (build-list 4 (lambda (i) (list i i))))
 
-  (checker (format BAD-PLACEMENT:fmt "two") send (play) (make-list 4 (list 1 1)))
   (checker #t (lambda (r) (board? (get-field board r))) () diagonal)
-  (checker (format GIVING-UP:fmt "two" "one") send (play) diagonal (lambda (b) (giving-up "one")))
 
+  (define bad-placement (make-list 4 (list 1 1)))
+  (define one-givesup (giving-up "one"))
   (define bad-action (move-build (worker "one1") EAST SOUTH PUT NORTH))
+  
+  (checker (format BAD-PLACEMENT:fmt "two")             send (play) bad-placement)
+  (checker (format GIVING-UP:fmt "two" "one")           send (play) diagonal (lambda (b) one-givesup))
   (checker (format BAD-MOVE:fmt "one" "two" bad-action) send (play) diagonal (lambda (b) bad-action))
-
+  
   (define board-2-rounds-play
     (cboard
     [[2one1 2two1 3]
@@ -154,13 +174,22 @@
   (checker (format WINNING:fmt "two") send (play-rounds raise board-2-rounds-play) diagonal stepper)
 
   ;; --- failed method calls
-  (checker (format XOTHER "one") send (play) diagonal #:other (lambda _ (/ 1 0)))
-  (checker (format XSETUP "one") send (play) diagonal #:setup (lambda (b) (/ 1 0)))
+  (checker (format XOTHER "one")                  send (play) diagonal #:other (lambda _ (/ 1 0)))
+  (checker (format XSETUP "one")                  send (play) diagonal #:setup (lambda (b) (/ 1 0)))
   (checker (format XPLAY "two" "one" "/: division by zero") send (play) diagonal (lambda _ (/ 1 0)))
   (checker (format XPLAY "two" "one" "timed out") send (play) diagonal (lambda _ (let L () (L)))))
 
+(module+ test
+  (define admin
+    (new referee%
+         [one (new player% [name "mf"])]
+         [two (new player% [name "cd"])]))
+  (time-out-limit 1.2)
+  (send admin best-of 1))
+  
 
 ;; ---------------------------------------------------------------------------------------------------
+#;
 (module+ main
   
   (define admin
