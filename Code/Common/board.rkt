@@ -20,8 +20,6 @@
 
  ;; type board
  board?
-
- board ;; for debugging 
  
  (contract-out
   (non-occupied-places
