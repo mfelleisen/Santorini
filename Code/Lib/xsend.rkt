@@ -24,6 +24,8 @@
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
+(define EXN:fmt "xdynamic-send: ~a raised an exception for ~a:\n~e")
+
 (define time-out-limit (make-parameter .1))
 
 (define-syntax (xsend stx)
@@ -31,7 +33,7 @@
     [(xsend o m #:thrown h-thrown #:timed-out h-time-out a ...)
      #'(xdynamic-send o 'm #:thrown h-thrown #:timed-out h-time-out a ...)]))
 
-(define (xdynamic-send p m #:thrown throw-handler #:timed-out time-out-handler  . a)
+(define (xdynamic-send target m #:thrown throw-handler #:timed-out time-out-handler  . a)
   (define cust (make-custodian))
   ;; (custodian-limit-memory cust 1048576) ;; memory limit
   (struct okay (value))
@@ -42,15 +44,18 @@
       (thread
        (lambda ()
          (with-handlers ((void (lambda (x) (channel-put results-of-thread (thrw x)))))
-           (define result-of-call (apply dynamic-send p m a))
+           (define result-of-call (apply dynamic-send target m a))
            (channel-put results-of-thread (okay result-of-call)))))
       
       (sync/timeout (time-out-limit) results-of-thread)))
   (custodian-shutdown-all cust)
   (cond
     [(okay? result) (okay-value result)]
-    [(thrw? result) (throw-handler (thrw-value result))]
     [(false? result) (time-out-handler)]
+    [(thrw? result)
+     (define thrown (thrw-value result))
+     (log-info (format EXN:fmt target m (exn-message thrown)))
+     (throw-handler thrown)]
     [else (error 'xdynamic-send "something went horribly wrong: ~e" result)]))
 
 ;; ===================================================================================================
