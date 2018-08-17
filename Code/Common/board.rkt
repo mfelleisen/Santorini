@@ -18,7 +18,7 @@
  ;; type Range = [0,DIM)
  in-range?
 
- ;; type board
+ ;; type Board
  board?
  
  (contract-out

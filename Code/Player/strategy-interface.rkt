@@ -11,12 +11,12 @@
 (require "../Common/board.rkt")
 (require "../Common/actions.rkt")
 (require "../Common/player-interface.rkt")
-(module+ test (require rackunit))
+(module+ test
+  (require (submod "../Common/board.rkt" test))
+  (require rackunit))
 
 
 ;; ---------------------------------------------------------------------------------------------------
-(define (name/c b) (and/c string? (on? b)))
-
 (define strategy%/c
   (class/c
 
@@ -59,12 +59,18 @@
   (check-false  (placed-at-least-one '() "cd"))
   (check-equal? (placed-at-least-one `(("cd" 0 0)) "cd") '("cd" 0 0))
 
+  ;; -------------------------------------------------------------------------------------------------
   (define/contract mock-strategy% strategy%/c
     (class object% (init-field player other)
       (super-new)
       (define/public (initialization lop) (list 0 0))
       (define/public (take-turn b) (giving-up player))))
-  
+
+  (check-pred cons? (send (new mock-strategy% [player "x"][other "o"]) initialization '()) "test in")
+
+  (define b (cboard [[0x1 0x2][0o1 0o2]]))
+  (check-pred giving-up? (send (new mock-strategy% [player "x"][other "o"]) take-turn b) "test tt")
+
   (define (protocoled-mocked-strategy)
     (define mock-strategy (new mock-strategy% [player "x"][other "o"]))
     (placement-protocol/c mock-strategy))
