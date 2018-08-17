@@ -41,3 +41,8 @@ The game ends
 
 - if player A's token reaches the third level of a building.
 - if player A can't move or, after the move, can't build up a building.
+
+# Change Ideas 
+
+- infinite board but finite initialization 
+- add 'best-of' method after 'play' is designed 

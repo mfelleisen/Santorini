@@ -1,5 +1,8 @@
 ## TODO List 
 
+## NSF 
+- [X] protocol prototype 
+
 ## Basic Game 
 - [x] common items: board, building, tokens ~~ no awareness of rules 
 - [x] referee: rule checking, mechanics 
