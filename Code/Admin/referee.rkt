@@ -6,6 +6,7 @@
 (require "referee-interface.rkt")
 
 (provide
+ terminated
  (contract-out
   (referee% referee%/c)))
 
@@ -23,14 +24,14 @@
 ;; ---------------------------------------------------------------------------------------------------
 (define-local-member-name play-rounds) ;; make private methods visible within this module 
 
-(define GIVING-UP:fmt "~a, because ~a gave up")
-(define WINNING:fmt "~a made a winning move")
-(define BAD-PLACEMENT:fmt "~a broke the rules of placing workers")
-(define BAD-MOVE:fmt "~a\n ~a broke the rules\n [~e]")
+(define GIVING-UP:fmt     "~a, because ~a gave up")
+(define WINNING:fmt       "~a, it made a winning move")
 
-(define XOTHER "the 'other' method failed for ~a")
-(define XSETUP "the 'placement' method failed for ~a")
-(define XPLAY  "~a won, because the 'play' method failed for ~a\n[~a]")
+(define BAD-PLACEMENT:fmt "~a broke the rules of placing workers~a")
+(define BAD-MOVE:fmt      "~a broke the rules\n [~e]")
+(define XOTHER:fmt        "~a's 'other' method failed~a")
+(define XSETUP:fmt        "~a failed with the 'placement' method ~a")
+(define XPLAY:fmt         "the 'play' method failed for ~a\n[~a]")
 
 (define referee%
   (class object% (init-field one two)
@@ -38,38 +39,34 @@
 
     ;; -----------------------------------------------------------------------------------------------
     ;; SET UP
-
-    ;; [String -> Empty] FormatString(of 1) String -> Empty 
-    (define/private ((report done fmt name) . x)
-      (done (format fmt name)))
-
+    
     ;; [String -> Empty] -> (U Board String)
     ;; EFFECT escape with done if target produces a location that is already occupied or xsend fails
     (define/private (setup done)
       ;; (Player String [String -> Empty] Placements -> (values (List Worker [List N N]) Placements))
       ;; get a placement for a specific worker from target
-      (define (placement target target-name worker# lot)
-        (define ex-t (report done XSETUP target-name))
+      (define (placement target target-name worker# winner-name lot)
+        (define ex-t (report done XSETUP:fmt target-name "" winner-name))
         (define new-place (xsend target placement #:thrown ex-t #:timed-out ex-t lot))
         (when (memf (lambda (t) (equal? (rest t) new-place)) lot)
-          (done (format BAD-PLACEMENT:fmt target-name)))
+          [(report done BAD-PLACEMENT:fmt target-name "" winner-name)])
         (define full-name (string-append target-name (number->string worker#)))
         (values (cons (worker full-name) new-place) (cons (cons target-name new-place) lot)))
       ;; -- IN -- 
       (let*-values ([(                lot) '()]
-                    [(player1-worker1 lot) (placement one one-name 1 lot)]
-                    [(player2-worker1 lot) (placement two two-name 1 lot)]
-                    [(player1-worker2 lot) (placement one one-name 2 lot)]
-                    [(player2-worker2 lot) (placement two two-name 2 lot)])
+                    [(player1-worker1 lot) (placement one one-name 1 two-name lot)]
+                    [(player2-worker1 lot) (placement two two-name 1 one-name lot)]
+                    [(player1-worker2 lot) (placement one one-name 2 two-name lot)]
+                    [(player2-worker2 lot) (placement two two-name 2 one-name lot)])
         (init player1-worker1 player1-worker2 player2-worker1 player2-worker2)))
     
     (field
      [one-name (get-field name one)]
      [two-name (get-field name two)]
-     [board ;; Board ~~ the initial board, with four workers, two per player 
+     [board ;; (U Terminated Board) ~~ the initial board, with four workers, two per player 
       (let/ec done
-        (define ex-one (report done XOTHER one-name))
-        (define ex-two (report done XOTHER two-name))
+        (define ex-one (report done XOTHER:fmt one-name "" two-name))
+        (define ex-two (report done XOTHER:fmt two-name "" one-name))
         (xsend one other #:thrown ex-one #:timed-out ex-one two-name)
         (xsend two other #:thrown ex-two #:timed-out ex-two one-name)
         (setup done))])
@@ -77,31 +74,32 @@
     ;; -----------------------------------------------------------------------------------------------
     ;; RUN A GAME 
 
-    ;; N -> String
+    ;; N -> (U String Terminated)
     ;; who is going to win most games 
     ;; a rule-violating, failing or timed-out player loses regardless of prior rounds
     (define/public (best-of n)
       (define n-winners (+ (quotient n 2) 1))
+      (define one-won (regexp (string-append "^" one-name)))
+      
       (let/ec done
         (let loop ([one# 0][two# 0])
           (cond
             [(>= one# n-winners) one-name]
             [(>= two# n-winners) two-name]
             [else (define outcome (play done))
-                  (cond
-                    [(regexp-match one-name outcome) (loop (+ one# 1) two#)]
-                    [(regexp-match two-name outcome) (loop one# (+ two# 1))]
-                    [else outcome])]))))
+                  (if (regexp-match one-won outcome)
+                      (loop (+ one# 1) two#)
+                      (loop one#       (+ two# 1)))]))))
     
-    ;; -> String
+    ;; {[Terminate -> Empty]} -> String
     ;; determine the winner (and the loser)
     (define/public (play (done #false))
       (cond
-        [(string? board) board]
+        [(terminated? board) (if done (done board) board)]
         [done (play-rounds done board)]
         [else (let/ec done (play-rounds done board))]))
 
-    ;; [String -> Empty] Board -> String
+    ;; [Terminated -> Empty] Board -> String
     ;; EFFECT escape with done if
     ;; -- a player's external method does not return properly,
     ;; -- times out, or
@@ -112,25 +110,30 @@
         (define a (xsend one take-turn #:thrown bad #:timed-out (lambda () (bad "timed out")) board))
         (when (bad? a)
           (define bv (bad-value a))
-          [(report done (format XPLAY "~a" one-name (if (exn? bv) (exn-message bv) bv)) two-name)])
+          [(report done XPLAY:fmt one-name (if (exn? bv) (exn-message bv) bv) two-name)])
         (displayln a)
         (unless (check-action board a)
           (displayln `(bad action ,a))
-          [(report done (format BAD-MOVE:fmt "~a" one-name a) two-name)])
+          [(report done BAD-MOVE:fmt one-name a two-name)])
         (displayln (apply-action board a))
         (cond
           [(giving-up? a) (format GIVING-UP:fmt two-name one-name)]
           [(winning-move? a) (format WINNING:fmt one-name)]
-          [(move-build? a) (play-rounds (apply-action board a) two two-name one one-name)])))))
+          [(move-build? a) (play-rounds (apply-action board a) two two-name one one-name)])))
+    
+    ;; [String -> Empty] FormatString(of 1) String -> Empty 
+    (define/private ((report done fmt bad-guy-name extra winner-name) . _)
+      (done (terminated winner-name (format fmt bad-guy-name extra))))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
   (require (submod ".."))
 
-  (define (make-mock-player% lot
-                             (tt void)
-                             #:other (oo void)
-                             #:setup (ss (lambda (_) (begin0 (first lot) (set! lot (rest lot))))))
+  (define (make-mock-player%
+           lot
+           (tt void)
+           #:other (oo void)
+           #:setup (ss (lambda (_) (begin0 (first lot) (set! lot (rest lot))))))
     (class object% (init-field name)
       (super-new)
       (define/public (other s) (oo s))
@@ -141,7 +144,7 @@
     (syntax-rules ()
       [(checker r action (args ...) lot tt ...)
        (check-equal?
-        (parameterize ([current-output-port #;(current-output-port) (open-output-string)])
+        (parameterize ([current-output-port (open-output-string)])
           [define player% (make-mock-player% lot tt ...)]
           [define player1 (new player% [name "one"])]
           [define player2 (new player% [name "two"])]
@@ -154,40 +157,58 @@
 
   (checker #t (lambda (r) (board? (get-field board r))) () diagonal)
 
-  (define bad-placement (make-list 4 (list 1 1)))
-  (define one-givesup (giving-up "one"))
-  (define bad-action (move-build (worker "one1") EAST SOUTH PUT NORTH))
-  
-  (checker (format BAD-PLACEMENT:fmt "two")             send (play) bad-placement)
-  (checker (format GIVING-UP:fmt "two" "one")           send (play) diagonal (lambda (b) one-givesup))
-  (checker (format BAD-MOVE:fmt "one" "two" bad-action) send (play) diagonal (lambda (b) bad-action))
-  
   (define board-2-rounds-play
     (cboard
-    [[2one1 2two1 3]
-     [2one2 2two2 4]
-     [2     4    ]
-     [3     4    ]]))
+     [[2one1 2two1 3]
+      [2one2 2two2 4]
+      [2     4    ]
+      [3     4    ]]))
   (define actions
     (list (move-build (worker "one2") PUT SOUTH PUT SOUTH) (winning-move (worker "two1") EAST PUT)))
   (define (stepper b) (begin0 (first actions) (set! actions (rest actions))))
   (checker (format WINNING:fmt "two") send (play-rounds raise board-2-rounds-play) diagonal stepper)
 
-  ;; --- failed method calls
-  (checker (format XOTHER "one")                  send (play) diagonal #:other (lambda _ (/ 1 0)))
-  (checker (format XSETUP "one")                  send (play) diagonal #:setup (lambda (b) (/ 1 0)))
-  (checker (format XPLAY "two" "one" "/: division by zero") send (play) diagonal (lambda _ (/ 1 0)))
-  (checker (format XPLAY "two" "one" "timed out") send (play) diagonal (lambda _ (let L () (L)))))
+  (define bad-placement (make-list 4 (list 1 1)))
+  (define ((givesup n) b) (giving-up n))
+  (define (bad-action b) (move-build (worker "one1") EAST SOUTH PUT NORTH))
+  (define (div-by-zero b) (/ 1 0))
 
-(module+ test
-  (define admin
-    (new referee%
-         [one (new player% [name "mf"])]
-         [two (new player% [name "cd"])]))
-  (time-out-limit 1.2)
-  (send admin best-of 1))
+  (define div0  "/: division by zero")
+  (define timed "timed out")
+
+  (define-syntax-rule
+    (check-run (m a ...) (stuff ... msg) ...)
+    (begin (checker msg send (m a ...) stuff ...) ... ))
+
+  (check-run
+   (play)
+   (bad-placement                      (terminated "one" (format BAD-PLACEMENT:fmt "two" "")))
+   (diagonal (givesup "one")           (format GIVING-UP:fmt "two" "one"))
+   (diagonal bad-action                (terminated "one" (format BAD-MOVE:fmt "two" (bad-action '_))))
+   (diagonal #:other div-by-zero       (terminated "two" (format XOTHER:fmt "one" "")))
+   (diagonal #:setup div-by-zero       (terminated "two" (format XSETUP:fmt "one" "")))
+   (diagonal (lambda _ (let L () (L))) (terminated "two" (format XPLAY:fmt "one" timed)))
+   (diagonal div-by-zero               (terminated "two" (format XPLAY:fmt "one" div0))))
+
+  (check-run
+   (best-of 1)
+   (bad-placement                      (terminated "one" (format BAD-PLACEMENT:fmt "two" "")))
+   (diagonal (givesup "one")           "two")
+   (diagonal bad-action                (terminated "one" (format BAD-MOVE:fmt "two" (bad-action '_))))
+   (diagonal #:other div-by-zero       (terminated "two" (format XOTHER:fmt "one" "")))
+   (diagonal #:setup div-by-zero       (terminated "two" (format XSETUP:fmt "one" "")))
+   (diagonal (lambda _ (let L () (L))) (terminated "two" (format XPLAY:fmt "one" timed)))
+   (diagonal div-by-zero               (terminated "two" (format XPLAY:fmt "one" div0))))
+
+  (check-equal? (parameterize ([current-output-port (open-output-string)])
+                  (let* ([pl (make-mock-player% diagonal (givesup "two"))]
+                         [p1 (new pl [name "one"])]
+                         [p2 (new pl [name "two"])]
+                         [re (new referee% [one p2][two p1])])
+                    (send re best-of 1)))
+                "one"
+                "it is not clear why I have this test; it doesn't cover anything"))
   
-
 ;; ---------------------------------------------------------------------------------------------------
 #;
 (module+ main
