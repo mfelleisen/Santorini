@@ -6,7 +6,7 @@
 
 (provide
  (contract-out
-  (safe-strategy% strategy%/c)))
+  (strategy% strategy%/c)))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "move-generating.rkt")
@@ -19,7 +19,7 @@
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define safe-strategy%
+(define strategy%
   (class object% (init-field player other)
 
     (super-new)
@@ -74,7 +74,7 @@
   (check-equal? (distance (list 3 4) (list 0 0)) 5)
   (check-equal? (distance (list 12 5) (list 9 1)) 5)
   
-  (define (make-safe x o) (new safe-strategy% [player x] [other o]))
+  (define (make-safe x o) (new strategy% [player x] [other o]))
 
   ;; -------------------------------------------------------------------------------------------------
   ;; initialization 
