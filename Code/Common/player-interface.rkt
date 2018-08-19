@@ -28,7 +28,7 @@
 (define player%/c
   (class/c
    #:opaque
-   (init-field name)
+   (init-field (name string?) strategy%)
    (other
     ;; name of opponent of this player 
     (->m string? any))

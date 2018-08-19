@@ -17,6 +17,7 @@
 (require "../Common/actions.rkt")
 (require "../Lib/xsend.rkt")
 (module+ test
+  (require "../Player/strategy.rkt")
   (require "../Common/directions.rkt")
   (require (submod "../Common/board.rkt" test))
   (require rackunit))
@@ -134,7 +135,7 @@
            (tt void)
            #:other (oo void)
            #:setup (ss (lambda (_) (begin0 (first lot) (set! lot (rest lot))))))
-    (class object% (init-field name)
+    (class object% (init-field name strategy%) ;; <-- throw away strategy
       (super-new)
       (define/public (other s) (oo s))
       (define/public (placement _lot) (ss _lot))
@@ -146,8 +147,8 @@
        (check-equal?
         (parameterize ([current-output-port (open-output-string)])
           [define player% (make-mock-player% lot tt ...)]
-          [define player1 (new player% [name "one"])]
-          [define player2 (new player% [name "two"])]
+          [define player1 (new player% [name "one"][strategy% strategy%])]
+          [define player2 (new player% [name "two"][strategy% strategy%])]
           [define referee (new referee% [one player1] [two player2])]
           (action referee args ...))
         r)]
@@ -215,10 +216,12 @@
     (let ((two "two"))
       (stepper (append (actions1 two) (actions2 two) (actions1 two) (actions2 two) (actions2 two)))))
   (check-equal? (parameterize ([current-output-port (open-output-string)])
-                  (let* ([p1 (new (make-mock-player% '((0 0) (1 1)) stepper1) [name "one"])]
-                         [p2 (new (make-mock-player% '((2 2) (3 3)) stepper2) [name "two"])]
-                         [re (new referee% [one p1][two p2])])
-                    (send re best-of 3)))
+		  [define player-1% (make-mock-player% '((0 0) (1 1)) stepper1)]
+		  [define player-2% (make-mock-player% '((2 2) (3 3)) stepper2)]
+		  [define p1 (new player-1% [name "one"][strategy% strategy%])]
+		  [define p2 (new player-2% [name "two"][strategy% strategy%])]
+		  [define re (new referee% [one p1][two p2])]
+		  (send re best-of 3))
                 "one"
                 "complete test coverage for referee"))
   

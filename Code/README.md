@@ -40,9 +40,13 @@
   - [X] initialization can also use it: FAILED! 
   - [X] place as far away as possible from other player, as close as possible to own
 - [X] best-of N run in referee, instead of a single run 
-- [ ] GUI for watching the game (an observer) 
 - [ ] tournament for P players and O observers 
+      [X] DESIGN FLAW: player must consume the strategy itself 
+      [X] DESIGN FLAW: a strategy module must export a strategy, no funny names;
+      	  otherwiseit can't be loaded dynamically 
 - [ ] distributed version 
+
+- [ ] GUI for watching the game (an observer) 
 - [ ] ?? GUI for playing? 
 
 ## Bugs 

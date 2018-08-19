@@ -16,7 +16,7 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (define player%
-  (class object% (init-field name)
+  (class object% (init-field name strategy%)
     (super-new)
 
     (define other-name "")
@@ -24,7 +24,7 @@
     
     (define/public (other other-name)
       (set! other-name other-name)
-      (set! strategy (new safe-strategy% [player name][other other-name])))
+      (set! strategy (new strategy% [player name][other other-name])))
 
     (define/public (placement list-of-places)
       (send strategy initialization list-of-places))
