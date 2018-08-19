@@ -17,6 +17,7 @@ exec racket -tm "$0" ${1+"$@"}
 ;; its opponents.
 
 ;; ---------------------------------------------------------------------------------------------------
+(require "referee.rkt")
 (require "../Player/player.rkt")
 (require "../Player/strategy.rkt")
 
@@ -28,13 +29,18 @@ exec racket -tm "$0" ${1+"$@"}
 (struct player-info (name mechanics strategy) #:transparent)
 
 (define (command-line-main)
-  (read-player-info))
+  (tournament-manager (info->players (read-player-info))))
 
 ;; [Listof [List String Player]] -> [Listof String]
 ;; determine the winners of a round-robin tourhament 
 (define (tournament-manager lop)
-  (all-pairings lop))
-
+  (define schedule (all-pairings lop))
+  (for/fold ([results '()][cheaters '()]) ((pairing schedule))
+    (match-define (list (list name1 player1) (list name2 player2)) pairing)
+    (define referee (new referee% [one player1][two player2]))
+    (define result  (send referee best-of 3))
+    (values (cons result results) cheaters)))
+      
 ;; [Listof [List String Player]] -> [Listof [List String String Referees]]
 (define (all-pairings lop)
   (let loop ([lop lop][others lop])
@@ -46,7 +52,7 @@ exec racket -tm "$0" ${1+"$@"}
                     (loop (rest lop) nuothers))])))
 
 ;; [Listof PlayerInfo] -> [Listof [List String Player]]
-(define (info->player lopi)
+(define (info->players lopi)
   (for/list ((pi lopi))
     (match-define (player-info name mechanics strategy) pi)
     (define player% (dynamic-require mechanics 'player%))
@@ -79,5 +85,9 @@ christos ../Player/player.rkt ../Player/strategy.rkt
      (player-info "christos" "../Player/player.rkt" "../Player/strategy.rkt")))
 
   (check-equal? (with-input-from-string player-info:string read-player-info) player-info:struct)
+  (check-pred cons? (info->players player-info:struct))
 
   (check-equal? (all-pairings '(a b)) '((a b))))
+
+(module+ test 
+  (tournament-manager (info->players player-info:struct)))
