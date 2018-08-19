@@ -27,8 +27,8 @@
 
 ### testing 
 - [X] complete tests for strategies 
-- [ ] set up tests for players 
-- [X] set up tests for referee
+- [X] set up tests for players, just mechanics 
+- [X] set up tests for referee, competed 
 
 ## Larger Follow-up Steps 
 - [X] board printer 
@@ -39,11 +39,11 @@
 - [X] improve strategy unrolling so that 
   - [X] initialization can also use it: FAILED! 
   - [X] place as far away as possible from other player, as close as possible to own
-- [ ] best-of N run in referee, instead of a single run 
+- [X] best-of N run in referee, instead of a single run 
 - [ ] GUI for watching the game (an observer) 
-- [ ] ?? GUI for playing? 
 - [ ] tournament for P players and O observers 
 - [ ] distributed version 
+- [ ] ?? GUI for playing? 
 
 ## Bugs 
 

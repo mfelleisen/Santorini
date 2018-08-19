@@ -165,8 +165,8 @@
       [3     4    ]]))
   (define actions
     (list (move-build (worker "one2") PUT SOUTH PUT SOUTH) (winning-move (worker "two1") EAST PUT)))
-  (define (stepper b) (begin0 (first actions) (set! actions (rest actions))))
-  (checker (format WINNING:fmt "two") send (play-rounds raise board-2-rounds-play) diagonal stepper)
+  (define ((stepper actions) b) (begin0 (tee (first actions)) (set! actions (rest actions))))
+  (define (tee x) (displayln x) x)
 
   (define bad-placement (make-list 4 (list 1 1)))
   (define ((givesup n) b) (giving-up n))
@@ -180,6 +180,10 @@
     (check-run (m a ...) (stuff ... msg) ...)
     (begin (checker msg send (m a ...) stuff ...) ... ))
 
+  (check-run
+   (play-rounds raise board-2-rounds-play)
+   (diagonal (stepper actions)         (format WINNING:fmt "two")))
+   
   (check-run
    (play)
    (bad-placement                      (terminated "one" (format BAD-PLACEMENT:fmt "two" "")))
@@ -200,14 +204,23 @@
    (diagonal (lambda _ (let L () (L))) (terminated "two" (format XPLAY:fmt "one" timed)))
    (diagonal div-by-zero               (terminated "two" (format XPLAY:fmt "one" div0))))
 
-  (check-equal? (parameterize ([current-output-port (open-output-string)])
-                  (let* ([pl (make-mock-player% diagonal (givesup "two"))]
-                         [p1 (new pl [name "one"])]
-                         [p2 (new pl [name "two"])]
-                         [re (new referee% [one p2][two p1])])
-                    (send re best-of 1)))
+  (define (actions1 one)
+    `(,(move-build (worker (string-append one "1")) PUT SOUTH PUT SOUTH) ,(giving-up one)))
+  (define (actions2 two)
+    `(,(move-build (worker (string-append two "2")) PUT SOUTH PUT SOUTH)))
+  (define stepper1
+    (let ((one "one"))
+      (stepper (append (actions2 one) (actions1 one) (actions2 one) (actions2 one) (actions1 one)))))
+  (define stepper2
+    (let ((two "two"))
+      (stepper (append (actions1 two) (actions2 two) (actions1 two) (actions2 two) (actions2 two)))))
+  (check-equal? (parameterize ([current-output-port (current-output-port) #;(open-output-string)])
+                  (let* ([p1 (new (make-mock-player% '((0 0) (1 1)) stepper1) [name "one"])]
+                         [p2 (new (make-mock-player% '((2 2) (3 3)) stepper2) [name "two"])]
+                         [re (new referee% [one p1][two p2])])
+                    (send re best-of 3)))
                 "one"
-                "it is not clear why I have this test; it doesn't cover anything"))
+                "complete test coverage for referee"))
   
 ;; ---------------------------------------------------------------------------------------------------
 #;
