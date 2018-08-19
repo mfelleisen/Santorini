@@ -214,7 +214,7 @@
   (define stepper2
     (let ((two "two"))
       (stepper (append (actions1 two) (actions2 two) (actions1 two) (actions2 two) (actions2 two)))))
-  (check-equal? (parameterize ([current-output-port (current-output-port) #;(open-output-string)])
+  (check-equal? (parameterize ([current-output-port (open-output-string)])
                   (let* ([p1 (new (make-mock-player% '((0 0) (1 1)) stepper1) [name "one"])]
                          [p2 (new (make-mock-player% '((2 2) (3 3)) stepper2) [name "two"])]
                          [re (new referee% [one p1][two p2])])
@@ -223,13 +223,4 @@
                 "complete test coverage for referee"))
   
 ;; ---------------------------------------------------------------------------------------------------
-#;
-(module+ main
-  
-  (define admin
-    (new referee%
-         [one (new player% [name "mf"])]
-         [two (new player% [name "cd"])]))
 
-  (time-out-limit 1.2)
-  (send admin play))
