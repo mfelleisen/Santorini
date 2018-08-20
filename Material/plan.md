@@ -144,7 +144,17 @@ wreck your own machine.
 ## Stage 5 
 
 Expand the server-client framework to run entire knock-out tournaments. 
-Each round is a best-of-five series, with the winner moving on and the
-loser dropping out. 
+Each round is a best-of series, with the winner moving on and the loser 
+dropping out. 
+
+A tournament pitches n players against each other in a round-robin
+("everyone against everyone"]. A player is specified with two pieces of
+information per line 
+-- an identifying name; and
+-- a path to a file that implements the player mechanics.
+
+Each confrontation between two players is run as a "best of (3 for now)"
+game.  A player that fails or cheats gets eliminated and all of its past
+results are counter in favor of its opponents.
 
 The End. 
