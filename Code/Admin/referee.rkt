@@ -135,7 +135,7 @@
            (tt void)
            #:other (oo void)
            #:setup (ss (lambda (_) (begin0 (first lot) (set! lot (rest lot))))))
-    (class object% (init-field name strategy%) ;; <-- throw away strategy
+    (class object% (init-field name) 
       (super-new)
       (define/public (other s) (oo s))
       (define/public (placement _lot) (ss _lot))
@@ -147,8 +147,8 @@
        (check-equal?
         (parameterize ([current-output-port (open-output-string)])
           [define player% (make-mock-player% lot tt ...)]
-          [define player1 (new player% [name "one"][strategy% strategy%])]
-          [define player2 (new player% [name "two"][strategy% strategy%])]
+          [define player1 (new player% [name "one"])]
+          [define player2 (new player% [name "two"])]
           [define referee (new referee% [one player1] [two player2])]
           (action referee args ...))
         r)]
@@ -218,8 +218,8 @@
   (check-equal? (parameterize ([current-output-port (open-output-string)])
 		  [define player-1% (make-mock-player% '((0 0) (1 1)) stepper1)]
 		  [define player-2% (make-mock-player% '((2 2) (3 3)) stepper2)]
-		  [define p1 (new player-1% [name "one"][strategy% strategy%])]
-		  [define p2 (new player-2% [name "two"][strategy% strategy%])]
+		  [define p1 (new player-1% [name "one"])]
+		  [define p2 (new player-2% [name "two"])]
 		  [define re (new referee% [one p1][two p2])]
 		  (send re best-of 3))
                 "one"

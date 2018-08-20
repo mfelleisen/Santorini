@@ -16,7 +16,7 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (define player%
-  (class object% (init-field name strategy%)
+  (class object% (init-field name)
     (super-new)
 
     (define other-name "")

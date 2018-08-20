@@ -56,8 +56,7 @@ exec racket -tm "$0" ${1+"$@"}
   (for/list ((pi lopi))
     (match-define (player-info name mechanics strategy) pi)
     (define player% (dynamic-require mechanics 'player%))
-    (define strategy% (dynamic-require strategy 'strategy%))
-    (list name (new player% [name name][strategy% strategy%]))))
+    (list name (new player% [name name]))))
 
 ;; -> [Listof PlayerInfo]
 (define (read-player-info)
@@ -74,8 +73,8 @@ exec racket -tm "$0" ${1+"$@"}
 (module+ test
   (define player-info:string
     #<< eos
-matthias ../Player/player.rkt ../Player/strategy.rkt
-christos ../Player/player.rkt ../Player/strategy.rkt
+matthias ../Player/player.rkt
+christos ../Player/player.rkt
  eos
     )
 

@@ -7,8 +7,8 @@
 
 (define referee
   (new referee%
-       [one (new player% [name "mf"][strategy% strategy%])]
-       [two (new player% [name "cd"][strategy% strategy%])]))
+       [one (new player% [name "mf"])]
+       [two (new player% [name "cd"])]))
 
 (module+ main 
   (time-out-limit 1.2)
