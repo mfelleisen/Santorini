@@ -6,7 +6,6 @@
 (require "referee-interface.rkt")
 
 (provide
- terminated
  (contract-out
   (referee% referee%/c)))
 
@@ -224,6 +223,3 @@
 		  (send re best-of 3))
                 "one"
                 "complete test coverage for referee"))
-  
-;; ---------------------------------------------------------------------------------------------------
-

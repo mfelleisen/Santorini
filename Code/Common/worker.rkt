@@ -7,13 +7,13 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 
-(define NAME #px"([a-z]+)[1,2]")
+(define NAME #px"^([a-z]+)[1,2]")
 
 (provide
  ;; type Worker = (worker String Range Range)
  worker?
  (contract-out
-  (worker       (-> (curry regexp-match NAME) worker?))
+  (worker       (-> (flat-named-contract "properly named worker" (curry regexp-match NAME)) worker?))
   (worker-name+no (-> worker? string?))
   (worker-name  (-> worker? string?))))
 
@@ -29,4 +29,6 @@
   (with worker w (second (regexp-match NAME name+no))))
 
 (module+ test
+  (require (submod ".."))
+  (check-exn #px"properly named worker" (lambda () (worker "baddy-1")))
   (check-equal? (worker-name (worker "x1")) "x"))

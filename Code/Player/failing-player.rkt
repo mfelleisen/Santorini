@@ -6,7 +6,7 @@
  (contract-out 
   (make-failing-player%
    (->i ((n (and natural-number/c positive?)))
-        (#:placement-failure (pf void)
+        (#:p-failure (pf void)
          #:tt-failure (tff void))
         #:pre/name (pf tff) "exactly one of them is not specified"
         (and (or (unsupplied-arg? pf) (unsupplied-arg? tff)) (not (eq? pf tff)))
@@ -22,7 +22,7 @@
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define (make-failing-player% n #:placement-failure (pf void) #:tt-failure (tff void))
+(define (make-failing-player% n #:p-failure (pf void) #:tt-failure (tff void))
   (class object% (init-field name)
     (super-new)
 
@@ -49,7 +49,7 @@
   (require (submod ".."))
 
   (check-exn #px"exactly one of them is not specified"
-             (lambda () (make-failing-player% 1 #:placement-failure list #:tt-failure cons)))
+             (lambda () (make-failing-player% 1 #:p-failure list #:tt-failure cons)))
 
   (define (mk-baddy keywords kw-args)
     (define bad-player% (keyword-apply make-failing-player% keywords kw-args 1 '()))
@@ -57,18 +57,10 @@
     (send bad-player other "christos")
     bad-player)
 
-  (define baddy-placements
-    (mk-baddy '(#:placement-failure) `(,(lambda (lop) (if (empty? lop) '(-1 0) (rest (first lop)))))))
-  
-  (check-equal? (send baddy-placements placement '(("christos" 0 0))) '(0 0))
-  (check-exn exn:fail:contract? (lambda () (send baddy-placements placement '())))
+  (define baddy-p (mk-baddy '(#:p-failure) `(,(λ (l) (if (empty? l) '(-1 0) (rest (first l)))))))  
+  (check-equal? (send baddy-p placement '(("christos" 0 0))) '(0 0))
+  (check-exn exn:fail:contract? (lambda () (send baddy-p placement '())))
 
-  (define baddy-take-turn
-    (mk-baddy '(#:tt-failure) `(,(lambda (board) (/ 1 0)))))
-
-  (define board0
-    (cboard
-     [[1matthias1 1matthias2]
-      [1christos1 1christos2]]))
-
+  (define baddy-take-turn (mk-baddy '(#:tt-failure) `(,(lambda (board) (/ 1 0)))))
+  (define board0 (cboard [[1matthias1 1matthias2] [1christos1 1christos2]]))
   (check-exn exn:fail:contract:divide-by-zero? (lambda () (send baddy-take-turn take-turn board0))))
