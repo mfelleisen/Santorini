@@ -29,7 +29,9 @@ exec racket -tm "$0" ${1+"$@"}
 
 ;; ---------------------------------------------------------------------------------------------------
 
-;; [Listof [List String Player]] -> [Listof String]
+;; type Result = [List String[winner] String[loser]]
+
+;; [Listof [List String Player]] -> [Listof Result]
 ;; determine the winners of a round-robin tourhament 
 (define (tournament-manager lop)
   (define schedule (all-pairings lop))
@@ -37,44 +39,35 @@ exec racket -tm "$0" ${1+"$@"}
   (define-values (results _cheaters)
     (for/fold ([results '()][cheaters '()])
               ((pairing schedule)
-               #:unless (tee 'cheating (or (member (first (first pairing)) cheaters)
-                            (member (first (second pairing)) cheaters))))
-      (tee 'fold pairing)
+               #:unless (or (member (first (first pairing)) cheaters)
+                            (member (first (second pairing)) cheaters)))
       (match-define (list (list name1 player1) (list name2 player2)) pairing)
       (define referee (new referee% [one player1][two player2]))
-      (define result (tee 'result (send referee best-of 3)))
+      (define result  (send referee best-of 3))
       (match result
         [(? string? winner)
          (define loser (other-one winner name1 name2))
          (values (cons (list winner loser) results) cheaters)]
         [(terminated winner reason)
          (define loser (other-one winner name1 name2))
-         (tee 'termination reason)
-         (values (cons (list winner loser) (purge loser results)) (cons loser cheaters))])))
-  results
-  #;
-  (map first results))
+         (values (cons (list winner loser) (purge loser results cheaters)) (cons loser cheaters))])))
+  results)
 
 ;; String String String -> String 
 (define (other-one winner name1 name2)
-    (if (string=? winner name1) name2 name1))
+  (if (string=? winner name1) name2 name1))
 
-;; String [Listof ...] -> [Listof ...]
+;; String [Listof Result] [Listof String] -> [Listof Result]
 ;; flip the results of any past games 
-(define (purge name results)
-  (tee 'purging `(purge ,name ,results))
-  (tee 'purge
-  (for*/list ((r results))
+(define (purge name results cheaters)
+  (for/fold ((purged '())) ((r results))
     (match-define `(,winner ,loser) r)
     (if (string=? winner name)
-        (list loser winner)
-        r))))
+        (if (member loser cheaters)
+            purged
+            (cons (list loser winner) purged))
+        (cons r purged))))
 
-(define (tee tag x)
-  (displayln `(,tag = ,x) (current-error-port))
-  x)
-
-      
 ;; [Listof [List String Player]] -> [Listof [List String String Referees]]
 (define (all-pairings lop)
   (let loop ([lop lop][others lop])
@@ -108,8 +101,8 @@ exec racket -tm "$0" ${1+"$@"}
   (define (baddy-tt%) (make-failing-player% 2 #:tt-failure (lambda (board) (/ 1 0))))
   (define (tournament+bad-pl+bad-tt) (cons (make-player "baddytt" (baddy-tt%)) (tournament+bad-pl)))
 
-  (check-tm tournament           '("matthias") "plain 1")
-  (check-tm (reverse tournament) '("christos") "plain 2")
-  (check-tm (tournament+bad-pl)  '("matthias" "matthias") "bad pl")
-  (check-tm (reverse (tournament+bad-pl+bad-tt)) '("matthias" "christos" "matthias") "bad tt"))
+  (check-tm tournament           '(("matthias" "christos")) "plain 1")
+  (check-tm (reverse tournament) '(("christos" "matthias")) "plain 2")
+  (check-tm (tournament+bad-pl)  '(("matthias" "christos") ("matthias" "baddy")) "bad pl")
+  (check-tm (tournament+bad-pl+bad-tt) '(("matthias" "christos") ("matthias" "baddytt")) "bad tt"))
   
