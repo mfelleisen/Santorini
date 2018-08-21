@@ -28,11 +28,14 @@
    ;; is the given action legal on this board? 
    (-> board? action? boolean?))))
 
+;; there is also a submodule json, which provides action->jsexpr and jsexpr->action
+
 ;; ---------------------------------------------------------------------------------------------------
 (require "board.rkt")
 (require "rule-checking.rkt")
 (require "worker.rkt")
 (require "directions.rkt")
+(require (submod "directions.rkt" json))
 (require "buildings.rkt")
 (require "../Lib/struct-with.rkt")
 
@@ -54,16 +57,16 @@
 
 ;; -- * 
 (struct winning-move action (actor e-w-move n-s-move)
-;;      [winning-move Worker EWDIR NSDIR]
-;;                     t moves e-w & n-s and thus arrives at level 3 
+  ;;      [winning-move Worker EWDIR NSDIR]
+  ;;                     t moves e-w & n-s and thus arrives at level 3 
   #:transparent
   #:methods gen:custom-write
   [(define (write-proc b op mode) (write-winning b op mode))])
 
 ;; -- * 
 (struct move-build action (actor e-w-move n-s-move e-w-build n-s-build)
-;;      [move-build Worker EWDIR NSDIR EWDIR NSDIR]
-;;                     t moves e-w & n-s, then builds in the specified directions
+  ;;      [move-build Worker EWDIR NSDIR EWDIR NSDIR]
+  ;;                     t moves e-w & n-s, then builds in the specified directions
   #:transparent
   #:methods gen:custom-write
   [(define (write-proc b op mode) (write-move-build b op mode))])
@@ -97,36 +100,51 @@
 
 ;; Giving-up OutputPort Boolean? -> Void 
 (define (write-giving-up b op mode)
-  (with giving-up b
-        (define name actor)
-        (display `(,name is giving up) op)))
+  (output op mode
+   (with giving-up b
+         (define name actor)
+         (giving-up-pattern name))))
 
 ;; Winning-move OutputPort Boolean? -> Void 
 (define (write-winning b op mode)
-  (with winning-move b
-        (define name (worker-name actor))
-        (define ews (e-w->string e-w-move))
-        (define nss (n-s->string n-s-move))
-        (display (append (move-pattern name ews nss) winner) op)))
+  (output op mode
+   (with winning-move b
+         (define name (worker-name+no actor))
+         (define ews  (e-w->string e-w-move))
+         (define nss  (n-s->string n-s-move))
+         (append (move-pattern name ews nss) winner))))
 
 ;; Move-build OutputPort Boolean? -> Void 
 (define (write-move-build b op mode)
-  (with move-build b
-        (define name (worker-name actor))
-        (define ews (e-w->string e-w-move))
-        (define nss (n-s->string n-s-move))
-        (define bews (e-w->string e-w-build))
-        (define bnss (n-s->string n-s-build))
-        (display (append (move-pattern name ews nss) (mb-pattern bews bnss)) op)))
+  (output op mode
+   (with move-build b
+         (define name (worker-name+no actor))
+         (define ews  (e-w->string e-w-move))
+         (define nss  (n-s->string n-s-move))
+         (define bews (e-w->string e-w-build))
+         (define bnss (n-s->string n-s-build))
+         (append (move-pattern name ews nss) (mb-pattern bews bnss)))))
 
-;; String String String -> S-expression 
+(define (output op mode out)
+  (define out:prepped (if mode (symbols->strings out) out))
+  (display out:prepped op))
+
+(define (symbols->strings loss)
+  (for/list ((s loss) #:when (string? s)) (string-append "\"" s "\"")))
+
+;; String -> S-expression 
+(define (giving-up-pattern name)
+  `(,name is giving up))
+
+;; String String String -> S-expression
 (define (move-pattern name ews nss)
   `(,name requests to move ,ews and ,nss))
 
 (define (mb-pattern bews bnss)
   `(and then to build to its ,bews and ,bnss))
 
-(define winner '(and claims this move is a winner))
+(define winner
+  '(and claims this move is a winner))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
@@ -138,9 +156,9 @@
   (define (make-board ss0 tt)
     (define ss (if (number? ss0) ss0 (string->symbol (string-append (symbol->string ss0) "2"))))
     (cboard
-      [[1x1 2o1 4]
-       [2x2 ,ss 4]
-       [4   4   ,tt]]))
+     [[1x1 2o1 4]
+      [2x2 ,ss 4]
+      [4   4   ,tt]]))
 
   (define t1 (worker "o2"))
 
@@ -161,19 +179,19 @@
   ;; bug ?
   (define bug1-board
     (cboard
-    [[0mf1 ]
-     [0    0   0mf2]
-     [0    0   0cd1 1  ]
-     [0    0   0    0cd2]]))
+     [[0mf1 ]
+      [0    0   0mf2]
+      [0    0   0cd1 1  ]
+      [0    0   0    0cd2]]))
 
   (define bug1-expected
     (cboard
-    [[0mf1 ]
-     [0    0   0mf2]
-     [0    0   0cd1 1   ]
-     [0    0   0    0   ]
-     [0    0   0    0   0cd2]
-     [0    0   0    0   0    1]]))
+     [[0mf1 ]
+      [0    0   0mf2]
+      [0    0   0cd1 1   ]
+      [0    0   0    0   ]
+      [0    0   0    0   0cd2]
+      [0    0   0    0   0    1]]))
   
   (check-apply bug1-board (move-build (worker "cd2") 1 1 1 1) bug1-expected))
 
@@ -184,6 +202,46 @@
     (check-out a r) (check-equal? (with-output-to-string (lambda () (displayln a))) r))
 
   (check-out t1-gu "(o is giving up)\n")
-  (check-out t1-wm "(o requests to move EAST and SOUTH and claims this move is a winner)\n")
-  (check-out t1-mb "(o requests to move EAST and SOUTH and then to build to its WEST and NORTH)\n"))
+  (check-out t1-wm "(o2 requests to move EAST and SOUTH and claims this move is a winner)\n")
+  (check-out t1-mb "(o2 requests to move EAST and SOUTH and then to build to its WEST and NORTH)\n"))
+  
+;; ---------------------------------------------------------------------------------------------------
+(module* json #f
+  (provide
+   action->jsexpr
+   jsexpr->action)
+
+  (require (submod ".."))
+
+  (define (action->jsexpr b:board)
+    (define board:string (with-output-to-string (lambda () (write b:board))))
+    (define board:json   (with-input-from-string board:string read))
+    board:json)
+
+  (define (jsexpr->action x)
+    (match x
+      [`(,name)
+       (giving-up name)]
+      [`(,work ,x ,y)
+       (winning-move (worker work) (string->e-w x) (string->n-s y))]
+      [`(,work ,x ,y ,xb ,yb)
+       (move-build (worker work) (string->e-w x) (string->n-s y) (string->e-w xb) (string->n-s yb))]
+      [_ (error '->action "expected an action, given: ~e" x)])))
+
+(module+ test
+  (require (submod ".." json))
+  (require json)
+  
+  (define gu (giving-up "a"))
+  (define wm (winning-move (worker "a1") PUT SOUTH))
+  (define mb (move-build (worker "a1") PUT SOUTH PUT SOUTH))
+  
+  (check-pred jsexpr? (action->jsexpr gu) "gu")
+  (check-pred jsexpr? (action->jsexpr wm) "wm")
+  (check-pred jsexpr? (action->jsexpr mb) "mb")
+
+  (check-equal? (jsexpr->action (action->jsexpr gu)) gu "and back gu")
+  (check-equal? (jsexpr->action (action->jsexpr wm)) wm "and back wm")
+  (check-equal? (jsexpr->action (action->jsexpr mb)) mb "and back wm")
+  (check-exn exn:fail? (lambda () (jsexpr->action "giving up"))))
   

@@ -48,6 +48,8 @@
       [X] DESIGN FLAW: a strategy module must export a strategy, no funny names;
       	  otherwiseit can't be loaded dynamically 
 - [ ] distributed version 
+      [X] json for testing individual steps: board 
+      [X] json for testing individual steps: actions 
 
 - [ ] GUI for watching the game (an observer) 
 - [ ] ?? GUI for playing? 
@@ -60,4 +62,4 @@
 [X] actions: check-action did not check all the conditions (contract system hooray!)
 [X] strategy: take-turn produces #f if the player gets stuck 2 turns down
 
-[X] OUCH: a bad contract introduced a bug into the program 
+[X] OUCH: a bad contract and default values introduced a bug into the program 
