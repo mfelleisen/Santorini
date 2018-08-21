@@ -9,7 +9,7 @@
 
 (provide
  ;; type Action
- action?
+ action? ;; is one of: 
  giving-up?    
  winning-move? 
  move-build?   
