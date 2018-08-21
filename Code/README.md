@@ -49,7 +49,11 @@
       	  otherwiseit can't be loaded dynamically 
 - [ ] distributed version 
       [X] json for testing individual steps: board 
-      [X] json for testing individual steps: actions 
+      [X] json for testing individual steps: action
+      [ ] json for testing individual steps: placements and places 
+      [X] protocol for communication (first draft)
+      [ ] remote proxy for players 
+      [ ] remote proxy for tournament administrators s 
 
 - [ ] GUI for watching the game (an observer) 
 - [ ] ?? GUI for playing? 
