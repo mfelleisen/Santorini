@@ -107,6 +107,8 @@
    ;; there is one other buildig at (1,2) of height 3. 
    cboard))
 
+;; there is also a submodule json, which provides board->jsexpr and jsexpr->board 
+
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCIES
 
@@ -154,7 +156,9 @@
    (define (hash2-proc bd rhash2) 1)]
   #:methods gen:custom-write
   [;; Board OutputPort Boolean? -> Void 
-   (define (write-proc b op mode)
+   (define (write-proc b op write-mode)
+     (define workers-as-strings (if write-mode (lambda (x) (string-append "\"" x "\"")) values))
+
      (define buildings (board-buildings b))
      
      (define workers   (board-workers b))
@@ -175,8 +179,9 @@
               (define bldg (find-building buildings x y))
               (define hght (if (boolean? bldg) "0" (number->string (building-height bldg))))
               (define wrkr (find-worker workers x y))
-              (define name (if (boolean? wrkr) blank (worker-name+no wrkr)))
-              (string-append hght name))))
+              (if (boolean? wrkr)
+                  (string-append hght blank)
+                  (workers-as-strings (string-append hght (worker-name+no wrkr)))))))
          (cons (format " [~a]" (string-join cleansed)) lines)))
 
      (parameterize ([current-output-port op])
@@ -665,3 +670,35 @@
   (define print-expected2 "[[3cd1 0    0mf2]\n [0cd2 0mf1 1   ]\n [1   ]]\n")
 
   (check-equal? (with-output-to-string (lambda () (display print-board3))) print-expected2))
+
+;; ---------------------------------------------------------------------------------------------------
+(module* json #f
+  (provide
+   board->jsexpr
+   jsexpr->board)
+
+  (require (submod ".." test-support))
+
+  (define (board->jsexpr b:board)
+    (define board:string (with-output-to-string (lambda () (write b:board))))
+    (define board:json   (with-input-from-string board:string read))
+    board:json)
+
+  (define (jsexpr->board b:json)
+    (define b:sexpr (strings->symbols b:json))
+    (define b:board (->board b:sexpr))
+    b:board)
+
+  (define (strings->symbols x)
+    (cond
+      [(cons? x) (map strings->symbols x)]
+      [(string? x) (string->symbol x)]
+      [(number? x) x])))
+
+(module+ test
+  (require (submod ".." json))
+  (require json)
+  
+  (check-pred jsexpr? (board->jsexpr board0) "to json")
+  (check-equal? (jsexpr->board (board->jsexpr board0)) board0 "and back")
+  (check-equal? (jsexpr->board (board->jsexpr print-board2)) print-board "and back 2"))
