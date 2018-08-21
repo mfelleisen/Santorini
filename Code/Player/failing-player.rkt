@@ -6,13 +6,14 @@
  (contract-out 
   (make-failing-player%
    (->i ((n (and natural-number/c positive?)))
-        (#:p-failure (pf void)
-         #:tt-failure (tff void))
+        (#:p-failure  (pf  (-> placements/c place/c))
+         #:tt-failure (tff (-> board? action?)))
         #:pre/name (pf tff) "exactly one of them is not specified"
         (and (or (unsupplied-arg? pf) (unsupplied-arg? tff)) (not (eq? pf tff)))
         (result player%/c)))))
  
 ;; ---------------------------------------------------------------------------------------------------
+(require "../Common/player-interface.rkt")
 (require "../Common/board.rkt")
 (require "../Common/actions.rkt")
 (require "strategy.rkt")
@@ -22,7 +23,7 @@
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define (make-failing-player% n #:p-failure (pf void) #:tt-failure (tff void))
+(define (make-failing-player% n #:p-failure (pf #f) #:tt-failure (tff #f))
   (class object% (init-field name)
     (super-new)
 
@@ -35,12 +36,12 @@
       (set! strategy (new strategy% [player name][other other-name])))
     
     (define/public (placement list-of-places)
-      (if (= n 0)
+      (if (and (= n 0) pf)
           (pf list-of-places)
           (send strategy initialization list-of-places)))
     
     (define/public (take-turn board)
-      (if (= n 0)
+      (if (and (= n 0) tff)
           (tff board)
           (send strategy take-turn board)))))
 
