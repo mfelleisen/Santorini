@@ -13,9 +13,6 @@
         (result player%/c)))))
  
 ;; ---------------------------------------------------------------------------------------------------
-(require "../Common/player-interface.rkt")
-(require "../Common/board.rkt")
-(require "../Common/actions.rkt")
 (require "strategy.rkt")
 
 (module+ test

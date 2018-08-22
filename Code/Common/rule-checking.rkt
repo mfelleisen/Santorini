@@ -19,12 +19,6 @@ The game ends
 |#
 
 ;; ---------------------------------------------------------------------------------------------------
-(require "../Lib/require.rkt")
-(require "worker.rkt")
-(require "directions.rkt")
-(require "buildings.rkt")
-(require "board.rkt")
-
 (provide
  (contract-out
   (can-move-and-build?
@@ -54,8 +48,13 @@ The game ends
         #:pre/name (b t e-w n-s b-e-w b-n-s) "worker must build on board"
         (stay-on-board? (move b t e-w n-s) t b-e-w b-n-s)
         (r boolean?)))))
-
+ 
 ;; ---------------------------------------------------------------------------------------------------
+(require "worker.rkt")
+(require "directions.rkt")
+(require "buildings.rkt")
+(require "board.rkt")
+
 (module+ test
   (require (submod "../Common/board.rkt" test))
   (require rackunit))

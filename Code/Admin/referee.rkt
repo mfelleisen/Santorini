@@ -10,14 +10,10 @@
   (referee% referee%/c)))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require "../Player/player.rkt")
-(require "../Common/worker.rkt")
-(require "../Common/board.rkt")
-(require "../Common/actions.rkt")
+(require "../Common/player-interface.rkt")
 (require "../Lib/xsend.rkt")
 (module+ test
-  (require "../Player/strategy.rkt")
-  (require "../Common/directions.rkt")
+  (require "../Player/player.rkt") ;; ??? 
   (require (submod "../Common/board.rkt" test))
   (require rackunit))
 

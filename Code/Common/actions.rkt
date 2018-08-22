@@ -5,8 +5,6 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 
-(require "../Lib/require.rkt")
-
 (provide
  ;; type Action
  action? ;; is one of: 
@@ -26,7 +24,12 @@
 
   (check-action
    ;; is the given action legal on this board? 
-   (-> board? action? boolean?))))
+   (-> board? action? boolean?)))
+
+ (all-from-out "board.rkt")
+ (all-from-out "directions.rkt")
+ (all-from-out "worker.rkt"))
+
 
 ;; there is also a submodule json, which provides action->jsexpr and jsexpr->action
 
@@ -36,9 +39,7 @@
 (require "worker.rkt")
 (require "directions.rkt")
 (require (submod "directions.rkt" json))
-(require "buildings.rkt")
 (require "../Lib/struct-with.rkt")
-
 
 (module+ test
   (require (submod "board.rkt" test))

@@ -18,7 +18,6 @@
   (worker-name  (-> worker? string?))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require "directions.rkt")
 (require "../Lib/struct-with.rkt")
 (module+ test (require rackunit))
 

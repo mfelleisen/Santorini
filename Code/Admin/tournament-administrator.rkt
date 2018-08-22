@@ -14,12 +14,20 @@ exec racket -tm "$0" ${1+"$@"}
 ;; A player that fails or cheats gets eliminated and all of its past results are counted in favor of
 ;; its opponents.
 
+(require "../Common/player-interface.rkt")
+
+(define result/c (list/c string? #;=winner string? #;=loser))
+
 (provide
- tournament-manager)
+ (contract-out
+  (tournament-manager
+   ;; [Listof [List String Player]] -> [Listof Result]
+   ;; determine the winners of a round-robin tourhament 
+   (-> (listof player/c) (listof result/c)))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require "referee.rkt")
 (require "referee-interface.rkt")
+(require "referee.rkt")
 
 (module+ test
   (require rackunit)
@@ -28,12 +36,8 @@ exec racket -tm "$0" ${1+"$@"}
   (require "../Lib/xsend.rkt"))
 
 ;; ---------------------------------------------------------------------------------------------------
-
-;; type Result = [List String[winner] String[loser]]
-
-;; [Listof [List String Player]] -> [Listof Result]
-;; determine the winners of a round-robin tourhament 
-(define (tournament-manager lop)
+(define (tournament-manager lop0)
+  (define lop (map (lambda (p) (list (get-field name p) p)) lop0))
   (define schedule (all-pairings lop))
   ;; [Listof [List String[winner] String[loser]]] __
   (define-values (results _cheaters)
@@ -93,7 +97,7 @@ exec racket -tm "$0" ${1+"$@"}
                   expected msg))
   
   (define (make-player name player%)
-    (list name (new player% [name name])))
+    (new player% [name name]))
 
   (define tournament (list (make-player "matthias" player%) (make-player "christos" player%)))
   (define (baddy%) (make-failing-player% 1 #:p-failure (lambda (l) (if (empty? l) '(0 -1) (caar l)))))

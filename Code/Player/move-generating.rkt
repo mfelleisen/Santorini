@@ -42,9 +42,6 @@ The game ends
         (result tree?)))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require "../Common/board.rkt")
-(require "../Common/worker.rkt")
-(require "../Common/directions.rkt")
 (require "../Common/actions.rkt")
 (require "../Common/rule-checking.rkt")
 (require "../Lib/struct-with.rkt")

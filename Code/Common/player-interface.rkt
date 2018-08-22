@@ -9,11 +9,9 @@
 
  ;; the rest of the interface 
  (all-from-out "actions.rkt")
- (all-from-out "placements.rkt")
- (all-from-out "board.rkt"))
+ (all-from-out "placements.rkt"))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require "board.rkt")
 (require "actions.rkt")
 (require "placements.rkt")
 

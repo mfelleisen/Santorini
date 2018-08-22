@@ -7,12 +7,7 @@
   (player% player%/c)))
  
 ;; ---------------------------------------------------------------------------------------------------
-(require "../Common/board.rkt")
-(require "../Common/actions.rkt")
 (require "strategy.rkt")
-
-(module+ test
-  (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
 (define player%

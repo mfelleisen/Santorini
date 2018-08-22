@@ -10,10 +10,7 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "move-generating.rkt")
-(require "../Common/board.rkt")
-(require "../Common/directions.rkt")
-(require "../Common/worker.rkt")
-(require "../Common/actions.rkt")
+(require "../Common/player-interface.rkt")
 (module+ test
   (require (submod "../Common/board.rkt" test))
   (require rackunit))
