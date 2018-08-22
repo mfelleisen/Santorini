@@ -50,10 +50,11 @@
 - [ ] distributed version 
   - [X] json for testing individual steps: board 
   - [X] json for testing individual steps: action
-  - [ ] json for testing individual steps: placements and places 
+  - [X] json for testing individual steps: placements and places 
   - [X] protocol for communication (first draft)
   - [ ] remote proxy for players 
   - [ ] remote proxy for tournament administrators s 
+  - [ ] how to communicate final results 
 
 - [ ] GUI for watching the game (an observer) 
 - [ ] ?? GUI for playing? 
