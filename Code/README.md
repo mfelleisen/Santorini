@@ -42,7 +42,7 @@
 - [X] best-of N run in referee, instead of a single run 
 - [X] tournament for P players and O observers 
   - [X] DESIGN FLAW: player must consume the strategy itself 
-    - [x] turns out, this is a mistake but it's quite an undo
+    - [x] turns out, this is a mistake but it's not quite an undo
 	        because what I want is configure the same mechanical player
 	        with different strategies and then load those dynamically 
   - [X] DESIGN FLAW: a strategy module must export a strategy, no funny names;
@@ -66,4 +66,4 @@
 - [X] actions: check-action did not check all the conditions (contract system hooray!)
 - [X] strategy: take-turn produces #f if the player gets stuck 2 turns down
 
-[X] OUCH: a bad contract and default values introduced a bug into the program 
+- [X] OUCH: a bad contract and default values introduced a bug into the program 
