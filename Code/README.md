@@ -35,25 +35,25 @@
 - [X] action printer 
 - [X] make referee robust against failures in player code;
       it's okay to assume correctness of Common code 
-      - [X] added generic xsend method (time, exns, raises)
+  - [X] added generic xsend method (time, exns, raises)
 - [X] improve strategy unrolling so that 
   - [X] initialization can also use it: FAILED! 
   - [X] place as far away as possible from other player, as close as possible to own
 - [X] best-of N run in referee, instead of a single run 
 - [X] tournament for P players and O observers 
-      - [X] DESIGN FLAW: player must consume the strategy itself 
-          - [x] turns out, this is a mistake but it's quite an undo
+  - [X] DESIGN FLAW: player must consume the strategy itself 
+    - [x] turns out, this is a mistake but it's quite an undo
 	        because what I want is configure the same mechanical player
 	        with different strategies and then load those dynamically 
-      - [X] DESIGN FLAW: a strategy module must export a strategy, no funny names;
+  - [X] DESIGN FLAW: a strategy module must export a strategy, no funny names;
       	  otherwiseit can't be loaded dynamically 
 - [ ] distributed version 
-      - [X] json for testing individual steps: board 
-      - [X] json for testing individual steps: action
-      - [ ] json for testing individual steps: placements and places 
-      - [X] protocol for communication (first draft)
-      - [ ] remote proxy for players 
-      - [ ] remote proxy for tournament administrators s 
+  - [X] json for testing individual steps: board 
+  - [X] json for testing individual steps: action
+  - [ ] json for testing individual steps: placements and places 
+  - [X] protocol for communication (first draft)
+  - [ ] remote proxy for players 
+  - [ ] remote proxy for tournament administrators s 
 
 - [ ] GUI for watching the game (an observer) 
 - [ ] ?? GUI for playing? 
