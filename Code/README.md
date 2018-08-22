@@ -52,9 +52,11 @@
   - [X] json for testing individual steps: action
   - [X] json for testing individual steps: placements and places 
   - [X] protocol for communication (first draft)
-  - [ ] remote proxy for players 
+  - [X] remote proxy for players 
+  - [ ] fix up common and use for remote proxy 
+  - [ ] fix up referee interface (if needed) for next step 
   - [ ] remote proxy for tournament administrators s 
-  - [ ] how to communicate final results 
+  - [ ] how to communicate final results ???
 
 - [ ] GUI for watching the game (an observer) 
 - [ ] ?? GUI for playing? 
