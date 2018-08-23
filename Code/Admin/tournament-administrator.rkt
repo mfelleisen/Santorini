@@ -26,7 +26,6 @@ exec racket -tm "$0" ${1+"$@"}
    (-> (listof player/c) (listof result/c)))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require "referee-interface.rkt")
 (require "referee.rkt")
 
 (module+ test

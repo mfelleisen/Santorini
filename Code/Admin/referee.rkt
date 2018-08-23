@@ -3,11 +3,20 @@
 ;; The Referee plays a single game for two players.
 ;; The class is instanitated with two players. 
 
-(require "referee-interface.rkt")
-
 (provide
+ ;; type Terminated = (terminated String String)
+ terminated
+ terminated?
+
  (contract-out
-  (referee% referee%/c)))
+  (referee%
+   (class/c
+    (init-field
+     (one player/c)
+     (two player/c))
+    
+    (best-of (->m (and/c natural-number/c odd?) (or/c string? terminated?)))
+    (play    (->m (or/c string? terminated?)))))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "../Common/player-interface.rkt")
@@ -19,6 +28,8 @@
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
+(struct terminated [winner message] #:transparent)
+
 (define-local-member-name play-rounds) ;; make private methods visible within this module 
 
 (define GIVING-UP:fmt     "~a, because ~a gave up")

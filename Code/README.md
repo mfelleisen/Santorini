@@ -53,8 +53,8 @@
   - [X] json for testing individual steps: placements and places 
   - [X] protocol for communication (first draft)
   - [X] remote proxy for players 
-  - [ ] fix up common and use for remote proxy 
-  - [ ] fix up referee interface (if needed) for next step 
+  - [X] fix up common and use for remote proxy 
+  - [X] fix up referee interface (if needed) for next step 
   - [ ] remote proxy for tournament administrators s 
   - [ ] how to communicate final results ???
 
