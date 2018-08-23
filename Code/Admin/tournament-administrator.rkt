@@ -33,6 +33,7 @@ exec racket -tm "$0" ${1+"$@"}
   (require rackunit)
   (require "../Player/player.rkt")
   (require "../Player/failing-player.rkt")
+  (require "../Lib/with-output-to-dev-null.rkt")
   (require "../Lib/xsend.rkt"))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -90,11 +91,7 @@ exec racket -tm "$0" ${1+"$@"}
 
   (define-syntax-rule
     (check-tm players expected msg)
-    (check-equal? (let ([op (open-output-string)])
-                    (begin0
-                      (parameterize ((current-output-port op))
-                        (tournament-manager players))))
-                  expected msg))
+    (check-equal? (with-output-to-dev-null (lambda () (tournament-manager players))) expected msg))
   
   (define (make-player name player%)
     (new player% [name name]))

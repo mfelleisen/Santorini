@@ -15,6 +15,7 @@
 (module+ test
   (require "../Player/player.rkt") ;; ??? 
   (require (submod "../Common/board.rkt" test))
+  (require "../Lib/with-output-to-dev-null.rkt")
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -140,12 +141,12 @@
     (syntax-rules ()
       [(checker r action (args ...) lot tt ...)
        (check-equal?
-        (parameterize ([current-output-port (open-output-string)])
+        (let ()
           [define player% (make-mock-player% lot tt ...)]
           [define player1 (new player% [name "one"])]
           [define player2 (new player% [name "two"])]
           [define referee (new referee% [one player1] [two player2])]
-          (action referee args ...))
+          (with-output-to-dev-null (lambda () (action referee args ...))))
         r)]
       [(checker r action (args ...) lot tt ...)
        (checker r (action) (args ...) lot tt ...)]))
@@ -210,12 +211,12 @@
   (define stepper2
     (let ((two "two"))
       (stepper (append (actions1 two) (actions2 two) (actions1 two) (actions2 two) (actions2 two)))))
-  (check-equal? (parameterize ([current-output-port (open-output-string)])
-		  [define player-1% (make-mock-player% '((0 0) (1 1)) stepper1)]
-		  [define player-2% (make-mock-player% '((2 2) (3 3)) stepper2)]
-		  [define p1 (new player-1% [name "one"])]
-		  [define p2 (new player-2% [name "two"])]
-		  [define re (new referee% [one p1][two p2])]
-		  (send re best-of 3))
+  (check-equal? (let ()
+                  [define player-1% (make-mock-player% '((0 0) (1 1)) stepper1)]
+                  [define player-2% (make-mock-player% '((2 2) (3 3)) stepper2)]
+                  [define p1 (new player-1% [name "one"])]
+                  [define p2 (new player-2% [name "two"])]
+                  [define re (new referee% [one p1][two p2])]
+                  (with-output-to-dev-null (lambda () (send re best-of 3))))
                 "one"
                 "complete test coverage for referee"))
