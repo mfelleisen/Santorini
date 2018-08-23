@@ -13,6 +13,7 @@
 (require "../Common/player-interface.rkt")
 (module+ test
   (require (submod "../Common/board.rkt" test))
+  (require "../Lib/with-output-to-dev-null.rkt")
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -93,13 +94,16 @@
                   (send o-x--snd-call-safe initialization `(("x" 4 5)("o" 0 0)("x" 5 5))))
                 (list 1 0))
 
-  (define-syntax-rule (check-protocol lop1 lop2 ... msg)
-    (check-exn exn:fail:contract?
-             (lambda ()
-               (define x-o (make-safe "x" "o"))
-               (send x-o initialization 'lop1)
-               (send x-o initialization 'lop2) ...)
-             msg))
+  (define-syntax-rule
+    (check-protocol lop1 lop2 ... msg)
+    (with-output-to-dev-null
+        (lambda ()
+          (check-exn exn:fail:contract?
+                     (lambda ()
+                       (define x-o (make-safe "x" "o"))
+                       (send x-o initialization 'lop1)
+                       (send x-o initialization 'lop2) ...)
+                     #; msg))))
 
   (check-protocol (("x" 1 1)) "first call, but already placed a token")
   (check-protocol (("o" 1 1)) (("o" 1 1)) "second call, 'I' have not placed a token yet")
