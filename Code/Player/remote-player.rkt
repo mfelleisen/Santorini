@@ -11,7 +11,7 @@
 (require (submod "../Common/actions.rkt" json))
 (require (submod "../Common/board.rkt" json))
 (require (submod "../Common/placements.rkt" json))
-; (require "../Lib/common.rkt") ;; see below 
+(require "../Lib/io.rkt") ;; see below 
 
 (module+ test
   (require rackunit))
@@ -34,32 +34,13 @@
       (jsexpr->action (read-message in)))))
 
 ;; ---------------------------------------------------------------------------------------------------
-;; wish list (done)
-
-(module tcp racket
-  (provide
-   (contract-out
-    (send-message    (-> jsexpr? output-port? void))
-    (read-message (-> input-port? jsexpr?))))
-
-  (require json)
-
-  (define (send-message j out)
-    (write-json j out)
-    (flush-output out))
-
-  (define (read-message in)
-    (read-json in)))
-(require 'tcp)
-  
-;; ---------------------------------------------------------------------------------------------------
 (module+ test
   (require (submod ".."))
   (require (submod "../Common/board.rkt" test))
   (require json)
 
   (define (jsexpr->string ->jsexpr x)
-    (with-output-to-string (lambda () (define y (->jsexpr x)) (if (jsexpr? y) (write-json y) y))))
+    (with-output-to-string (lambda () (define y (->jsexpr x)) (if (jsexpr? y) (send-message y) y))))
   (define-syntax-rule
     (chk-mtd (method arg) expected expected->jsexpr arg->json)
     (check-equal? (let ()
@@ -75,8 +56,9 @@
                     (list actual-result actual-message))
                   (let () 
                     (list expected (jsexpr->string arg->json arg)))))
-  
 
+  (trailing-newline? #f)
+  
   (chk-mtd (other "christos") (void) void values)
 
   (chk-mtd (placement '())                 '(0 0) place->jsexpr placements->jsexpr)
@@ -90,5 +72,3 @@
   (chk-mtd (take-turn b0) (giving-up "m") action->jsexpr board->jsexpr)
   (chk-mtd (take-turn b0) (winning-move (worker "m2") EAST PUT) action->jsexpr board->jsexpr)
   (chk-mtd (take-turn b0) (move-build (worker "m1") EAST PUT PUT NORTH) action->jsexpr board->jsexpr))
-
-
