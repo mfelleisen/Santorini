@@ -42,12 +42,17 @@
      (define old-me (substring me 2))
      (set-field! player this old-me)
      (define you (get-field other this))
-     (and (placed-at-least-one placements old-me)
-          (placed-at-least-one placements you))]
+     (unless (placed-at-least-one placements old-me)
+       (displayln `(during the second call *I* must have placed one worker) (current-error-port)))
+     (unless (placed-at-least-one placements you)
+       (displayln `(during the second call *you* must have placed one worker) (current-error-port)))
+     #true]
     ;; first call: 
     [else
      (set-field! player this (string-append "1-" me))
-     (not (placed-at-least-one placements me))]))
+     (when (placed-at-least-one placements me)
+       (displayln `(during the first call *I* must not have placed a worker) (current-error-port)))
+     #true]))
 
 (define (placed-at-least-one placements you)
   (for/first ((p placements) #:when (string=? (first p) you)) p))
@@ -77,5 +82,4 @@
   (check-equal? (let ([s (protocoled-mocked-strategy)])
                   (s '()) ;; first, irrelevant call 
                   (s '(("o" 1 1) ("x" 1 2))))
-                '("o" 1 1)))
-
+                #true))

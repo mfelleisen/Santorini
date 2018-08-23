@@ -10,7 +10,7 @@
   (encode-all-unicode?  (boolean-parameter/c default: #f))
    
   (send-message (->* (jsexpr?) (output-port?) any))
-  (read-message (->* () (input-port?) jsexpr?))
+  (read-message (->* () (input-port?) (or/c eof-object? jsexpr?)))
 
   (LOCALHOST      string?)
   (REMOTE-PORT    (between/c 0 64000))
