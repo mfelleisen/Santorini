@@ -1,8 +1,3 @@
-#! /bin/sh
-#| -*- racket -*-
-exec racket -tm "$0" ${1+"$@"}
-|#
-
 #lang racket
 
 ;; A tournament pitches n players against each other in a round-robin ("everyone against everyone"].
@@ -21,7 +16,6 @@ exec racket -tm "$0" ${1+"$@"}
 (provide
  (contract-out
   (tournament-manager
-   ;; [Listof [List String Player]] -> [Listof Result]
    ;; determine the winners of a round-robin tourhament 
    (-> (listof player/c) (listof result/c)))))
 
