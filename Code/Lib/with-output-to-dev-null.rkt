@@ -11,15 +11,13 @@
 	[else
 	  (define result (cmd))
 	  (define output (get-output-bytes outp))
-	  (values result output)]))))
+	  (list result output)]))))
 
 (module+ test
   (require rackunit)
   (check-equal? (with-output-to-dev-null (lambda () (displayln "hello world") 0)) 0)
-  (check-equal? (let-values ([(r o)
-			      (with-output-to-dev-null
-				(lambda () (display "hello world") 0)
-				#:hide #false)])
-		  (list r o))
+  (check-equal? (with-output-to-dev-null
+                    (lambda () (display "hello world") 0)
+                  #:hide #false)
                (list 0 #"hello world")))
     
