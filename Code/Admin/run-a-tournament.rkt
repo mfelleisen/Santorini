@@ -3,7 +3,7 @@
 ;; run a tournament from command line
 
 ;; ---------------------------------------------------------------------------------------------------
-(require "tournament-administrator.rkt")
+(require "tournament-manager.rkt")
 (module+ test
   (require "../Lib/xsend.rkt")
   (require "../Lib/with-output-to-dev-null.rkt")
