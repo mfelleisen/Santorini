@@ -96,14 +96,14 @@
 
   (define-syntax-rule
     (check-protocol lop1 lop2 ... msg)
-    (with-output-to-dev-null
-        (lambda ()
-          (check-exn exn:fail:contract?
+    (check-exn exn:fail:contract?
+               (lambda ()
+                 (with-output-to-dev-null #:error-port #true
                      (lambda ()
                        (define x-o (make-safe "x" "o"))
                        (send x-o initialization 'lop1)
-                       (send x-o initialization 'lop2) ...)
-                     #; msg))))
+                       (send x-o initialization 'lop2) ...)))
+               msg))
 
   (check-protocol (("x" 1 1)) "first call, but already placed a token")
   (check-protocol (("o" 1 1)) (("o" 1 1)) "second call, 'I' have not placed a token yet")
