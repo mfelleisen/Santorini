@@ -25,6 +25,7 @@
    (-> input-port? output-port? (-> player/c (listof result/c))))))
 
 ;; ---------------------------------------------------------------------------------------------------
+(require (submod "tournament-administrator.rkt" json))
 (require (submod "../Common/actions.rkt" json))
 (require (submod "../Common/board.rkt" json))
 (require (submod "../Common/placements.rkt" json))
@@ -43,20 +44,68 @@
 
   (parameterize ([current-input-port in]
                  [current-output-port out])
-    (with-handlers ((exn:fail? (lambda (xn) (log-info (format "remote UA: ~e" (exn-message xn))))))
-      ;; register the player with the server-side tournament manager 
-      (send-message name out)
+    ;; register the player with the server-side tournament manager 
+    (send-message name out)
 
-      ;; deal with all game interactions from, and back to, the server-side referee 
-      (let/ec return 
-        (let loop ()
-          (define message (read-message in))
-          (define response 
-            (cond
-              [(string? message) (send player other message)]
-              [(jsexpr->placements message)
-               => (lambda (p) (send-message (place->jsexpr (send player placemement p))))]
-              [(jsexpr->board message)
-               => (lambda (b) (send-message (action->jsexpr (send player take-turn b))))]
-              [else (return message)]))
-          (loop))))))
+    ;; deal with all game interactions from, and back to, the server-side referee 
+    (let loop ()
+      (define message (read-message in))
+      (cond
+        [(eof-object? message) (error 'manager "the server unexpectedly closed the connection")]
+        [(string? message) (send player other message) (loop)]
+        [(jsexpr->placements message)
+         => (lambda (p) (send-message (place->jsexpr (send player placement p))) (loop))]
+        [(jsexpr->board message)
+         => (lambda (b) (send-message (action->jsexpr (send player take-turn b))) (loop))]
+        [(jsexpr->results message) message]
+        [else (error 'manager "the server sent an unexpected message: ~e" message)]))))
+
+;; ---------------------------------------------------------------------------------------------------
+(module+ test
+  (require (submod ".."))
+  (require (submod "../Common/board.rkt" test))
+  (require json)
+  
+  (define (jsexpr->string ->jsexpr x)
+    (with-output-to-string (lambda () (define y (->jsexpr x)) (if (jsexpr? y) (send-message y) y))))
+  (define-syntax-rule
+    (chk-manager ((received-message0 ...) ...) ((sent-message0 ...) ...))
+    (let ()
+      (define received-messages (list (jsexpr->string received-message0 ...) ...))
+      (define sent-messages (list (string->bytes/locale (jsexpr->string sent-message0 ...)) ...))
+      (check-equal? (with-output-to-dev-null #:hide #false
+                      (lambda ()
+                        (define matthias (new player% [name "matthias"]))
+                        (define in (open-input-string (apply string-append received-messages)))
+                        ((tournament-manager in (current-output-port)) matthias)))
+                    `((("matthias" "christos")) ,(apply bytes-append sent-messages)))))
+
+  (trailing-newline? #f)
+
+  (define received-messages
+    (list
+     (jsexpr->string values "christos")
+     (jsexpr->string placements->jsexpr '())
+     (jsexpr->string placements->jsexpr '(("christos" 0 0) ("matthias" 1 1)))
+     (jsexpr->string board->jsexpr (cboard [[0christos1 2matthias1 3] [0christos2 1matthias2 2]]))
+     (jsexpr->string values '(("matthias" "christos")))))
+
+  (define sent-messages
+    (list
+     (string->bytes/locale (jsexpr->string values "matthias"))
+     (string->bytes/locale (jsexpr->string place->jsexpr '(0 0)))
+     (string->bytes/locale (jsexpr->string place->jsexpr '(5 5)))
+     (string->bytes/locale (jsexpr->string action->jsexpr (winning-move (worker "matthias1") EAST PUT)))))
+
+  (chk-manager
+   ;; --- received messages 
+   ((values "christos")
+    (placements->jsexpr '())
+    (placements->jsexpr '(("christos" 0 0) ("matthias" 1 1)))
+    (board->jsexpr (cboard [[0christos1 2matthias1 3] [0christos2 1matthias2 2]]))
+    (values '(("matthias" "christos"))))
+   ;; --- sent messages 
+   ((values "matthias")
+    (place->jsexpr '(0 0))
+    (place->jsexpr '(5 5))
+    (action->jsexpr (winning-move (worker "matthias1") EAST PUT)))))
