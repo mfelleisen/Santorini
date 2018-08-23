@@ -5,6 +5,8 @@
 ;; ---------------------------------------------------------------------------------------------------
 (require "tournament-administrator.rkt")
 (module+ test
+  (require "../Lib/xsend.rkt")
+  (require "../Lib/with-output-to-dev-null.rkt")
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -18,14 +20,14 @@
   (for/list ((pi lopi))
     (match-define (player-info name mechanics) pi)
     (define player% (dynamic-require mechanics 'player%))
-    (list name (new player% [name name]))))
+    (new player% [name name])))
 
 ;; -> [Listof PlayerInfo]
 (define (read-player-info)
   (for/list ((player-information (in-port read-line)))
     (with-input-from-string player-information
       (lambda ()
-        (player-info (read-element) (read-element) (read-element) )))))
+        (player-info (read-element) (read-element) )))))
 
 ;; -> String
 (define (read-element)
@@ -46,4 +48,9 @@ christos ../Player/player.rkt
      (player-info "christos" "../Player/player.rkt")))
 
   (check-equal? (with-input-from-string player-info:string read-player-info) player-info:struct)
-  (check-pred cons? (info->players player-info:struct)))
+  (check-pred cons? (info->players player-info:struct))
+
+  (time-out-limit 1.2)
+
+  (check-equal? (with-output-to-dev-null (lambda () (with-input-from-string player-info:string main)))
+                '(("matthias" "christos"))))
