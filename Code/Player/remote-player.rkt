@@ -14,6 +14,7 @@
 (require "../Lib/io.rkt") ;; see below 
 
 (module+ test
+  (require "../Lib/with-output-to-dev-null.rkt")
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -43,19 +44,12 @@
     (with-output-to-string (lambda () (define y (->jsexpr x)) (if (jsexpr? y) (send-message y) y))))
   (define-syntax-rule
     (chk-mtd (method arg) expected expected->jsexpr arg->json)
-    (check-equal? (let ()
-                    (define response (jsexpr->string expected->jsexpr expected))
-                    (define in  (open-input-string response))
-                    (define out (open-output-string))
-                    ;; - - - 
-                    (define rp% (make-remote-player% in out))
-                    (define rp  (new rp% [name "m"]))
-                    ;; - - - 
-                    (define actual-result  (send rp method arg))
-                    (define actual-message (get-output-string out))
-                    (list actual-result actual-message))
-                  (let () 
-                    (list expected (jsexpr->string arg->json arg)))))
+    (check-equal? (with-output-to-dev-null #:hide #false
+                    (lambda ()
+                      (define in (open-input-string (jsexpr->string expected->jsexpr expected)))
+                      (define rp (new (make-remote-player% in (current-output-port)) [name "m"]))
+                      (send rp method arg)))
+                  (list expected (string->bytes/locale (jsexpr->string arg->json arg)))))
 
   (trailing-newline? #f)
   
