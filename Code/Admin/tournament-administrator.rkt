@@ -99,4 +99,12 @@
   (check-tm (reverse tournament) '(("christos" "matthias")) "plain 2")
   (check-tm (tournament+bad-pl)  '(("matthias" "christos") ("matthias" "baddy")) "bad pl")
   (check-tm (tournament+bad-pl+bad-tt) '(("matthias" "christos") ("matthias" "baddytt")) "bad tt"))
-  
+
+(module json racket
+  (provide
+   jsexpr->results)
+
+  (define (jsexpr->results j)
+    (match j
+      [`((,(? string?) ,(? string?)) ...) j]
+      [else #false])))

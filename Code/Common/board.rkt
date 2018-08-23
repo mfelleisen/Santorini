@@ -378,10 +378,10 @@
   ;; PreBoard    = [List [Listof PreWorker] [Listof PreBuilding]]
 
   (provide
-   ;; ([Listof [Listof (U Integer [List Integer Letter])]] -> (U Board #false))
+   ;; ([Listof [Listof (U Integer [List Integer Identifier])]] -> (U Board #false))
    ->board
 
-   ;; ([Listof [Listof (U Integer [List Integer Letter])]] -> (U PreBoard #false))
+   ;; ([Listof [Listof (U Integer [List Integer Identifier])]] -> (U PreBoard #false))
    ;; create a list-string-int based representation of a board (quasi) literal-constant 
    ->board-workers-and-buildings 
 
@@ -686,14 +686,26 @@
 
   (define (jsexpr->board b:json)
     (define b:sexpr (strings->symbols b:json))
-    (define b:board (->board b:sexpr))
-    b:board)
+    #; ([Listof [Listof (U Integer [List Integer WorkerId] WorkerId)]] -> (U Board #false))
+    (match b:sexpr
+      [`((,(? int-or-int-x-worker-id?) ...) ...)
+       (define b:board (with-handlers ((exn? (lambda (xn) #false))) (->board b:sexpr)))
+       b:board]
+      [else #false]))
 
+  (define (int-or-int-x-worker-id? j)
+    (match j
+      [(? natural-number/c) #t]
+      [`(,(? natural-number/c) ,(? symbol?)) #t]
+      [(? cell->n+h) #t]
+      [else #f]))
+    
   (define (strings->symbols x)
     (cond
       [(cons? x) (map strings->symbols x)]
       [(string? x) (string->symbol x)]
-      [(number? x) x])))
+      [(number? x) x]
+      [else x])))
 
 (module+ test
   (require (submod ".." json))
