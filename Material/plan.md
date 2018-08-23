@@ -117,6 +117,16 @@ It can generate all possible moves and then decide
 
 (in that order). 
 
+### Testing 
+
+Since y'all chosen different languages, I need a testing DSL. 
+We will use JSON for that. Each test consists of two files: 
+- an file that specifies the input for a function/method
+- another file that specifies the expected output. 
+You may also want a testing harness that runs such tests 
+automatically. Or you do it by hand and perhaps remember 
+the design recipe for abstraction anyway. 
+
 ## Stage 3
 
 Develop visualization software for the game state. 
@@ -158,3 +168,4 @@ game.  A player that fails or cheats gets eliminated and all of its past
 results are counter in favor of its opponents.
 
 The End. 
+
