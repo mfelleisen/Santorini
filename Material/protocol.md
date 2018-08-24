@@ -79,16 +79,16 @@ tournament:  .   .  .         ||            .   .     .
 ```
 
 
-|  message		  |  format    |	from        |       to         |
-| ----------------------- | -------------------------------------------------- |
-| registration of a player| a string   | client : tournament manager |  server   |
-| 	       	    	  |   	     	  	 	     	       	       |
+|  message		  |  format    |	from        |       to                    |
+| ----------------------- | ---------- | ------------------ | --------------------------- |
+| registration of a player| a string   | client : tournament manager |  server            |
+| 	       	    	  |   	       | 	  	     |	     |			  |
 | other        	   	  | a string   | server : referee | client : remote manager |
-| 	       	    	  |   	     	  	 	     	       	       |
+| 	       	    	  |   	       | 	  	     |	     |			  |
 | placements		  | a placement list | server : referee | client : remote manager |
 | place			  | a place spec     | client : remote manager | server : referee |
-| 	       	    	  |   	     	  	 	     	       	       |
+| 	       	    	  |   	       | 	  	     |	     |			  |
 | board			  | a board          | server : referee | client : remote manager |
 | action 		  | an action        | client : remote manager | server : referee |
-| 	       	    	  |   	     	  	 	     	       	       |
+| 	       	    	  |   	       | 	  	     |	     |			  |
 | results		  | a results list   | server : tournament manager | client : | remote manager |
