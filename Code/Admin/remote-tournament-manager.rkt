@@ -41,23 +41,27 @@
 ;; ---------------------------------------------------------------------------------------------------
 (define ((tournament-manager in out) player)
   (define name (get-field name player))
-
-  (parameterize ([current-input-port in]
-                 [current-output-port out])
+  (parameterize ([current-input-port in] [current-output-port out])
     ;; register the player with the server-side tournament manager 
     (send-message name out)
 
     ;; deal with all game interactions from, and back to, the server-side referee 
     (let loop ()
+      
+      (define-syntax-rule (ssend method ->)
+        (lambda (x)
+          (define result-of-call (xsend player method x))
+          ;; --- this is where I need to check for 3 results so we can log errors in protocol/contract
+          (when -> (send-message (-> result-of-call)))
+          (loop)))
+
       (define message (read-message in))
       (cond
         [(eof-object? message) (error 'manager "the server unexpectedly closed the connection")]
-        [(string? message) (send player other message) (loop)]
-        [(jsexpr->placements message)
-         => (lambda (p) (send-message (place->jsexpr (send player placement p))) (loop))]
-        [(jsexpr->board message)
-         => (lambda (b) (send-message (action->jsexpr (send player take-turn b))) (loop))]
-        [(jsexpr->results message) message]
+        [(and (string? message) message) => (ssend other #false)]
+        [(jsexpr->placements message)    => (ssend placement place->jsexpr)]
+        [(jsexpr->board message)         => (ssend take-turn action->jsexpr)]
+        [(jsexpr->results message)          message]
         [else (error 'manager "the server sent an unexpected message: ~e" message)]))))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -73,30 +77,16 @@
     (let ()
       (define received-messages (list (jsexpr->string received-message0 ...) ...))
       (define sent-messages (list (string->bytes/locale (jsexpr->string sent-message0 ...)) ...))
-      (check-equal? (with-output-to-dev-null #:hide #false
-                      (lambda ()
-                        (define matthias (new player% [name "matthias"]))
-                        (define in (open-input-string (apply string-append received-messages)))
-                        ((tournament-manager in (current-output-port)) matthias)))
+      (check-equal? (with-output-to-dev-null
+                     #:hide #false
+                     (lambda ()
+                       (define matthias (new player% [name "matthias"])) 
+                       (define in (open-input-string (apply string-append received-messages)))
+                       ((tournament-manager in (current-output-port)) matthias)))
                     `((("matthias" "christos")) ,(apply bytes-append sent-messages)))))
 
   (trailing-newline? #f)
-
-  (define received-messages
-    (list
-     (jsexpr->string values "christos")
-     (jsexpr->string placements->jsexpr '())
-     (jsexpr->string placements->jsexpr '(("christos" 0 0) ("matthias" 1 1)))
-     (jsexpr->string board->jsexpr (cboard [[0christos1 2matthias1 3] [0christos2 1matthias2 2]]))
-     (jsexpr->string values '(("matthias" "christos")))))
-
-  (define sent-messages
-    (list
-     (string->bytes/locale (jsexpr->string values "matthias"))
-     (string->bytes/locale (jsexpr->string place->jsexpr '(0 0)))
-     (string->bytes/locale (jsexpr->string place->jsexpr '(5 5)))
-     (string->bytes/locale (jsexpr->string action->jsexpr (winning-move (worker "matthias1") EAST PUT)))))
-
+  
   (chk-manager
    ;; --- received messages 
    ((values "christos")
