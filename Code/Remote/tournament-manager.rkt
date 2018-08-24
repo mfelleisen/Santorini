@@ -25,7 +25,7 @@
    (-> input-port? output-port? (-> player/c (listof result/c))))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(require (submod "tournament-manager.rkt" json))
+(require (submod "../Admin/tournament-manager.rkt" json))
 (require (submod "../Common/actions.rkt" json))
 (require (submod "../Common/board.rkt" json))
 (require (submod "../Common/placements.rkt" json))
