@@ -1,4 +1,4 @@
-
+```
 	    server                
 			      ||                                  
 	     |                ||          client a                     
@@ -76,14 +76,19 @@ tournament:  .   .  .         ||            .   .     .
     .        .                ||            |   |     
     +        .                ||            |   . 
 	     =                ||            =   = 
+```
 
 
-
-message formats: 
- registration of a player | a string from client (tournament admin) to server 
- other        	   	  | a string from server (referee) to client (admin)
- placements		  | a placement list from server to client 
- place 			  | a place spec from client to server 
- board			  | a board from server to client 
- action 		  | an action from server to client 
- results		  | a results list from server to client, done 
+|  message		  |  format    |	from        |       to         |
+| ----------------------- | -------------------------------------------------- |
+| registration of a player| a string   | client : tournament manager |  server   |
+| 	       	    	  |   	     	  	 	     	       	       |
+| other        	   	  | a string   | server : referee | client : remote manager |
+| 	       	    	  |   	     	  	 	     	       	       |
+| placements		  | a placement list | server : referee | client : remote manager |
+| place			  | a place spec     | client : remote manager | server : referee |
+| 	       	    	  |   	     	  	 	     	       	       |
+| board			  | a board          | server : referee | client : remote manager |
+| action 		  | an action        | client : remote manager | server : referee |
+| 	       	    	  |   	     	  	 	     	       	       |
+| results		  | a results list   | server : tournament manager | client : | remote manager |
