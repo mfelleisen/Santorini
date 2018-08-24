@@ -4,15 +4,6 @@
 ;; It receives messages on behalf of this player, turns them into method arguments, calls
 ;; the appropriate methods, and then sends the responses (if any) 
 
-
-;; A player is specified with two pieces of information per line
-;; -- an identifying name; and
-;; -- a path to a file that implements the player mechanics.
-
-;; Each confrontation between two players is run as a "best of 3" game. 
-;; A player that fails or cheats gets eliminated and all of its past results are counted in favor of
-;; its opponents.
-
 (require "../Common/player-interface.rkt")
 
 (define result/c (list/c string? #;=winner string? #;=loser))
@@ -51,10 +42,11 @@
       
       (define-syntax-rule (ssend method ->)
         (lambda (x)
-          (define result-of-call (xsend player method #:thrown values #:timed-out values x))
+          (define r (xsend player method #:thrown vector #:timed-out vector x))
           ;; --- this is where I need to check for 3 results so we can log errors in protocol/contract
-          (when -> (send-message (-> result-of-call)))
-          (loop)))
+          (cond
+            [(vector? r) (error 'manager "the server violated the game protocol ~e" (vector-ref r 0))]
+            [else (begin (when -> (send-message (-> r))) (loop))])))
 
       (define message (read-message in))
       (cond
@@ -73,22 +65,33 @@
   
   (define (jsexpr->string ->jsexpr x)
     (with-output-to-string (lambda () (define y (->jsexpr x)) (if (jsexpr? y) (send-message y) y))))
-  (define-syntax-rule
-    (chk-manager ((received-message0 ...) ...) ((sent-message0 ...) ...))
-    (let ()
-      (define received-messages (list (jsexpr->string received-message0 ...) ...))
-      (define sent-messages (list (string->bytes/locale (jsexpr->string sent-message0 ...)) ...))
-      (check-equal? (with-output-to-dev-null
-                     #:hide #false
-                     (lambda ()
-                       (define matthias (new player% [name "matthias"])) 
-                       (define in (open-input-string (apply string-append received-messages)))
-                       ((tournament-manager in (current-output-port)) matthias)))
-                    `((("matthias" "christos")) ,(apply bytes-append sent-messages)))))
+  
+  (define (make-game received-messages (op #false))
+    (lambda ()
+      (define matthias (new player% [name "matthias"])) 
+      (define in (open-input-string received-messages))
+      ((tournament-manager in (or op (current-output-port))) matthias)))
 
+  (define-syntax check-manager
+    (syntax-rules ()
+      [(_ rm0 sm0)
+       (aux-manager ([rm rm0][sm sm0][game (make-game rm)][win '(("matthias" "christos"))])
+                    (check-equal? (with-output-to-dev-null #:hide #false game) `(,win ,sm)))]
+      [(_ pred? rm0 sm0)
+       (aux-manager ([rm rm0][sm sm0][op (open-output-bytes)][game (make-game rm op)])
+                    (check-exn pred? game)
+                    (check-equal? (get-output-bytes op) sm))]))
+
+  (define-syntax-rule
+    (aux-manager ([rm ((received-msg ...) ...)] [sm ((sent-msg ...) ...)] [x rhs] ...) checks ...)
+    (let* ([rm (string-append (jsexpr->string received-msg ...) ...)]
+           [sm (bytes-append (string->bytes/locale (jsexpr->string sent-msg ...)) ...)]
+           [x  rhs] ...)
+      checks ...))
+  
   (trailing-newline? #f)
   
-  (chk-manager
+  (check-manager
    ;; --- received messages 
    ((values "christos")
     (placements->jsexpr '())
@@ -99,4 +102,35 @@
    ((values "matthias")
     (place->jsexpr '(0 0))
     (place->jsexpr '(5 5))
-    (action->jsexpr (winning-move (worker "matthias1") EAST PUT)))))
+    (action->jsexpr (winning-move (worker "matthias1") EAST PUT))))
+
+  (check-manager 
+   #px"closed the connection"
+   ;; --- received messages 
+   ((values "christos")
+    (placements->jsexpr '())
+    (placements->jsexpr '(("christos" 0 0) ("matthias" 1 1))))
+   ;; --- sent messages 
+   ((values "matthias")
+    (place->jsexpr '(0 0))
+    (place->jsexpr '(5 5))))
+
+  (check-manager 
+   #px"unexpected message"
+   ;; --- received messages 
+   ((values "christos")
+    (placements->jsexpr '())
+    (values '("matthias" "christos" "jared")))
+   ;; --- sent messages 
+   ((values "matthias")
+    (place->jsexpr '(0 0))))
+
+  (check-manager 
+   #px"violated the game protocol"
+   ;; --- received messages 
+   ((values "christos")
+    (placements->jsexpr '())
+    (placements->jsexpr '(("christos" 0 0))))
+   ;; --- sent messages 
+   ((values "matthias")
+    (place->jsexpr '(0 0)))))
