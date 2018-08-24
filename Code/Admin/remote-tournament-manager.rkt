@@ -30,6 +30,7 @@
 (require (submod "../Common/board.rkt" json))
 (require (submod "../Common/placements.rkt" json))
 (require "../Lib/io.rkt")
+(require "../Lib/xsend.rkt")
 
 (module+ test
   (require rackunit)
@@ -50,7 +51,7 @@
       
       (define-syntax-rule (ssend method ->)
         (lambda (x)
-          (define result-of-call (xsend player method x))
+          (define result-of-call (xsend player method #:thrown values #:timed-out values x))
           ;; --- this is where I need to check for 3 results so we can log errors in protocol/contract
           (when -> (send-message (-> result-of-call)))
           (loop)))
