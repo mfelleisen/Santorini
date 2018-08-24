@@ -10,7 +10,7 @@
 ;; ---------------------------------------------------------------------------------------------------
 (require "../Common/player-interface.rkt")
 (module+ test
-  (require (submod "../Common/board.rkt" test))
+  (require (submod "../Common/board.rkt" test-support))
   (require rackunit))
 
 

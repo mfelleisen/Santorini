@@ -83,30 +83,6 @@
         #:pre/name (b t e-w n-s) "remains on board" (stay-on-board? b t e-w n-s)
         (r boolean?)))))
 
-(module+ test
-  (provide
-   ;; SYNTAX
-   #; (board [[x-y ...] ...])
-   ;; defines a literal board with cells x-y ...
-   ;; Each cell must be
-   ;; -- an N, which denotes a building of this height or
-   ;; -- an identifier whose name
-   ;;    -- starts with an N, which denotes the height of the building 
-   ;;    -- is followed by [a-z]+ and
-   ;;    -- ends in 1 or 2.
-   ;;    The rest of the identifier denotes a worker.
-   ;; The grid's origin is the top left. Moving down is moving south, moving right means moving east.
-   ;; 
-   ;; EXAMPLE:
-   ;; --------
-   #;[[0 0 1x1]
-      [2y1]
-      [1x2 3 2y2]]
-   ;; is a board with two "x" workers at (2,0) and (0,2), each at height 1,
-   ;; and two "y" workers at (0,1) and (2,2), each at height 2; 
-   ;; there is one other buildig at (1,2) of height 3. 
-   cboard))
-
 ;; there is also a submodule json, which provides board->jsexpr and jsexpr->board 
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -371,7 +347,7 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; TEST FRAMEWORK for Boards (needed here to get bindings from top-level modules)
-(module* test-support #f
+(module* test-pre-support #f
 
   ;; PreBuilding = [List N N N]
   ;; PreWorker   = [List String N N]
@@ -392,13 +368,13 @@
    board-pieces->syntax 
 
    ;; (Symbol -> (U #false [List String Number]))
-   cell->n+h
+   cell->n+h)
 
-   CELL)
-
+  ;; -------------------------------------------------------------------------------------------------
   (require "worker.rkt")
   (require rackunit)
 
+  ;; -------------------------------------------------------------------------------------------------
   (define CELL #px"(\\d)([a-z]*[1,2])")
   
   (define (cell->n+h cell)
@@ -443,7 +419,7 @@
     (and (exactly-2-workers-of-2-kinds pre-workers)
          (list pre-workers pre-buildings)))
   
-  #; ([Listof Worker?] -> Boolean)
+  ;; ([Listof Worker?] -> Boolean)
   (define (exactly-2-workers-of-2-kinds full-name+workers+loc)
     (define names
       (for/list ((w full-name+workers+loc))
@@ -467,7 +443,7 @@
     (when (equal? (first fulls2) (second fulls2)) (error '->board "duplicate ~a worker" snd))
     #t)
   
-  #; (All (Y X) [Listof [Listof Y]] [[Listof X] Y N N -> X] -> [Listof X])
+  ;; (All (Y X) [Listof [Listof Y]] [[Listof X] Y N N -> X] -> [Listof X])
   (define (traverse-literal-board x f)
     (for/fold ([accu '()]) ([row x][n-s (in-naturals)])
       (for/fold ([accu accu]) ([cell row][e-w (in-naturals)])
@@ -487,12 +463,41 @@
                                ("y1" ,(worker "y1") 1 1))))
 
 ;; ---------------------------------------------------------------------------------------------------
-(module+ test ;; define-board for creating scenarios in a concise form 
-  (require (submod ".." test-support))
-  (require (for-syntax (submod ".." test-support)))
-  (require (for-syntax "../Lib/exn-conversion.rkt"))
+(module* test-support #f ;; define-board for creating scenarios in a concise form 
+
+  (provide
+   ;; SYNTAX
+   #; (board [[x-y ...] ...])
+   ;; defines a literal board with cells x-y ...
+   ;; Each cell must be
+   ;; -- an N, which denotes a building of this height or
+   ;; -- an identifier whose name
+   ;;    -- starts with an N, which denotes the height of the building 
+   ;;    -- is followed by [a-z]+ and
+   ;;    -- ends in 1 or 2.
+   ;;    The rest of the identifier denotes a worker.
+   ;; The grid's origin is the top left. Moving down is moving south, moving right means moving east.
+   ;; 
+   ;; EXAMPLE:
+   ;; --------
+   #;[[0 0 1x1]
+      [2y1]
+      [1x2 3 2y2]]
+   ;; is a board with two "x" workers at (2,0) and (0,2), each at height 1,
+   ;; and two "y" workers at (0,1) and (2,2), each at height 2; 
+   ;; there is one other buildig at (1,2) of height 3. 
+   cboard
+
+   (all-from-out (submod ".." test-pre-support)))
+
+  ;; -------------------------------------------------------------------------------------------------
+  (require (submod ".." test-pre-support))
+  (require (for-syntax racket/list))
+  (require (for-syntax (submod ".." test-pre-support)))
+  (require (for-syntax  "../Lib/exn-conversion.rkt"))
+  ;; -------------------------------------------------------------------------------------------------
   
-  (begin-for-syntax    
+  (begin-for-syntax
     (define-syntax-class cell
       (pattern x:integer
                #:attr vrun #'x
@@ -517,14 +522,16 @@
 
     (define-syntax-class quasiliteral-board
       [pattern [[x:cell+ ...] ...] #:attr board #'(list (list x.vrun ...) ...)]))
+  ;; -------------------------------------------------------------------------------------------------
 
   (define-syntax (cboard stx)
     (syntax-parse stx
-      [(_ b:literal-board) #'(board-pieces->board b.board)]
+      [(_ b:literal-board)      #'(board-pieces->board b.board)]
       [(_ b:quasiliteral-board) #'(->board b.board)])))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test ;; checking define-board at run-time and syntax-time
+  (require (submod ".." test-support))
   
   (define expected-board
     (board
@@ -697,7 +704,7 @@
     (match j
       [(? natural-number/c) #t]
       [`(,(? natural-number/c) ,(? symbol?)) #t]
-      [(? cell->n+h) #t]
+      [(? (lambda (x) (and (symbol? x) (cell->n+h x)))) #t]
       [else #f]))
     
   (define (strings->symbols x)
@@ -711,6 +718,10 @@
   (require (submod ".." json))
   (require json)
   
-  (check-pred jsexpr? (board->jsexpr board0) "to json")
-  (check-equal? (jsexpr->board (board->jsexpr board0)) board0 "and back")
-  (check-equal? (jsexpr->board (board->jsexpr print-board2)) print-board "and back 2"))
+  (check-pred jsexpr? (board->jsexpr board0)                             "to json")
+  (check-equal? (jsexpr->board (board->jsexpr board0)) board0            "and back")
+  (check-equal? (jsexpr->board (board->jsexpr print-board2)) print-board "and back 2")
+  (check-false  (jsexpr->board '())                                      "'() is not a board")
+  (check-false  (jsexpr->board "board")                                  "\"board\" is not a board")
+  (check-false  (jsexpr->board '(((0 a1) "0a2")(0b1 0b2)))               "cell spcs is not a board")
+  (check-false  (jsexpr->board '((#1("a") "0a2")("0b1" "0b2")))          "cell spcs is not a board"))

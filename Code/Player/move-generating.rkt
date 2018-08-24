@@ -46,7 +46,7 @@ The game ends
 (require "../Common/rule-checking.rkt")
 (require "../Lib/struct-with.rkt")
 (module+ test
-  (require (submod "../Common/board.rkt" test))
+  (require (submod "../Common/board.rkt" test-support))
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------

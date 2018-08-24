@@ -42,7 +42,7 @@
 (require "../Lib/struct-with.rkt")
 
 (module+ test
-  (require (submod "board.rkt" test))
+  (require (submod "board.rkt" test-support))
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------

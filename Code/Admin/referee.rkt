@@ -23,7 +23,7 @@
 (require "../Lib/xsend.rkt")
 (module+ test
   (require "../Player/player.rkt") ;; ??? 
-  (require (submod "../Common/board.rkt" test))
+  (require (submod "../Common/board.rkt" test-support))
   (require "../Lib/with-output-to-dev-null.rkt")
   (require rackunit))
 

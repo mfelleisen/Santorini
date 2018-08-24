@@ -68,7 +68,7 @@
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
   (require (submod ".."))
-  (require (submod "../Common/board.rkt" test))
+  (require (submod "../Common/board.rkt" test-support))
   (require json)
   
   (define (jsexpr->string ->jsexpr x)

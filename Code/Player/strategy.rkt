@@ -12,7 +12,7 @@
 (require "move-generating.rkt")
 (require "../Common/player-interface.rkt")
 (module+ test
-  (require (submod "../Common/board.rkt" test))
+  (require (submod "../Common/board.rkt" test-support))
   (require "../Lib/with-output-to-dev-null.rkt")
   (require rackunit))
 
