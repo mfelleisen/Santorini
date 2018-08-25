@@ -55,7 +55,7 @@
   - [X] remote proxy for players 
   - [X] fix up common and use for remote proxy 
   - [X] fix up referee interface (if needed) for next step 
-  - [ ] remote proxy for tournament administrators s 
+  - [X] remote proxy for tournament administrators s 
   - [ ] how to communicate final results ???
 
 - [ ] GUI for watching the game (an observer) 
