@@ -32,6 +32,7 @@
 ;; ---------------------------------------------------------------------------------------------------
 (define (tournament-manager lop0)
   (define lop (map (lambda (p) (list (get-field name p) p)) lop0))
+  (assign-unique-names lop)
   (define schedule (all-pairings lop))
   ;; [Listof [List String[winner] String[loser]]] __
   (define-values (results _cheaters)
@@ -50,6 +51,17 @@
          (define loser (other-one winner name1 name2))
          (values (cons (list winner loser) (purge loser results cheaters)) (cons loser cheaters))])))
   results)
+
+
+;; [Listof Player] -> Void
+;; EFFECT send those player a "playing as" message whose name coincides with another player 
+(define (assign-unique-names players)
+  (for ((pl players) (i (in-naturals)))
+    (define nm (first pl))
+    (define ?? (assoc nm players))
+    (when ??
+      (define as (string-append nm (number->string i)))
+      (send (second pl) playing-as as))))
 
 ;; String String String -> String 
 (define (other-one winner name1 name2)

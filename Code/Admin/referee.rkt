@@ -11,12 +11,19 @@
  (contract-out
   (referee%
    (class/c
-    (init-field
-     (one player/c)
-     (two player/c))
+    (init-field (one player/c) (two player/c))
     
-    (best-of (->m (and/c natural-number/c odd?) (or/c string? terminated?)))
-    (play    (->m (or/c string? terminated?)))))))
+    (best-of (->i ((this any/c) (n (and/c natural-number/c odd?)))
+                  #:pre/name (this) "distinct names" (distinct? this)
+                  (r (or/c string? terminated?))))
+    (play    (->i ((this any/c))
+                  #:pre/name (this) "distinct names" (distinct? this)
+                  (r (or/c string? terminated?))))))))
+
+(define (distinct? this)
+  (define player1 (get-field one this))
+  (define player2 (get-field two this))
+  (not (string=? (get-field name player1) (get-field name player2))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "../Common/player-interface.rkt")

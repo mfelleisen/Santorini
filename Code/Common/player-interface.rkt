@@ -20,6 +20,9 @@
   (class/c
    #:opaque
    (init-field (name string?))
+   (playing-as
+    ;; IF name is already taken by some other player, this method is called with a replacement name 
+    (->m string? any))
    (other
     ;; name of opponent of this player 
     (->m string? any))

@@ -5,13 +5,15 @@
 (provide
  (contract-out
   (make-remote-player%
-   (-> input-port? output-port? player%/c))))
+   (-> input-port? output-port? player%/c)))
+ as->jsexpr
+ jsexpr->as)
 
 ;; ---------------------------------------------------------------------------------------------------
 (require (submod "../Common/actions.rkt" json))
 (require (submod "../Common/board.rkt" json))
 (require (submod "../Common/placements.rkt" json))
-(require "../Lib/io.rkt") ;; see below 
+(require "../Lib/io.rkt") ;; see below
 
 (module+ test
   (require "../Lib/with-output-to-dev-null.rkt")
@@ -22,6 +24,9 @@
   (class object% (init-field name)
 
     (super-new)
+
+    (define/public (playing-as my-new-name)
+      (send-message (as->jsexpr my-new-name) out))
 
     (define/public (other name)
       (send-message name out))
@@ -34,6 +39,14 @@
       (send-message (board->jsexpr b) out)
       (jsexpr->action (read-message in)))))
 
+(define (as->jsexpr my-new-name)
+  `("playing-as" ,my-new-name))
+
+(define (jsexpr->as message)
+  (match message
+    [`("playing-as" ,new-name) new-name]
+    [else #false]))
+
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
   (require (submod ".."))
@@ -44,11 +57,12 @@
     (with-output-to-string (lambda () (define y (->jsexpr x)) (if (jsexpr? y) (send-message y) y))))
   (define-syntax-rule
     (chk-mtd (method arg) expected expected->jsexpr arg->json)
-    (check-equal? (with-output-to-dev-null #:hide #false
-                    (lambda ()
-                      (define in (open-input-string (jsexpr->string expected->jsexpr expected)))
-                      (define rp (new (make-remote-player% in (current-output-port)) [name "m"]))
-                      (send rp method arg)))
+    (check-equal? (with-output-to-dev-null
+                   #:hide #false
+                   (lambda ()
+                     (define in (open-input-string (jsexpr->string expected->jsexpr expected)))
+                     (define rp (new (make-remote-player% in (current-output-port)) [name "m"]))
+                     (send rp method arg)))
                   (list expected (string->bytes/locale (jsexpr->string arg->json arg)))))
 
   (trailing-newline? #f)

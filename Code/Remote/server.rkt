@@ -83,9 +83,7 @@
     (parameterize ((current-input-port in) (current-output-port out))
       (define nm (read-message))
       (log-info "~a signed ip" nm)
-      (define ?? (assoc nm players))
-      (define as (if (boolean? ??) nm (string-append nm (number->string (length players)))))
-      (define pl (list nm as (new (make-remote-player% in out) [name as])))
+      (define pl (new (make-remote-player% in out) [name nm]))
       (cons pl players)))
   ;; -- IN -- 
   (collect-up-to-min-players '() 0))

@@ -14,6 +14,7 @@
    (-> input-port? output-port? (-> player/c (listof result/c))))))
 
 ;; ---------------------------------------------------------------------------------------------------
+(require "player.rkt")
 (require (submod "../Admin/tournament-manager.rkt" json))
 (require (submod "../Common/actions.rkt" json))
 (require (submod "../Common/board.rkt" json))
@@ -42,7 +43,8 @@
       (define message (read-message in))
       (cond
         [(eof-object? message) (error 'manager "the server unexpectedly closed the connection")]
-        [(and (string? message) message) => (ssend other #false)]
+        [(jsexpr->as message)            => (ssend playing-as #false)]
+        [(and (string? message) message) => (ssend other      #false)]
         [(jsexpr->placements message)    => (ssend placement place->jsexpr)]
         [(jsexpr->board message)         => (ssend take-turn action->jsexpr)]
         [(jsexpr->results message)          message]

@@ -16,7 +16,10 @@
 
     (define other-name "")
     (define strategy #f)
-    
+
+    (define/public (playing-as my-new-name)
+      (set! name my-new-name))
+
     (define/public (other other-name)
       (set! other-name other-name)
       (set! strategy (new strategy% [player name][other other-name])))

@@ -26,6 +26,9 @@
 
     (define other-name "")
     (define strategy #f)
+
+    (define/public (playing-as my-new-name)
+      (set! name my-new-name))
     
     (define/public (other other-name)
       (set! n (- n 1))
