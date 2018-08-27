@@ -46,7 +46,7 @@
 (define BAD-MOVE:fmt      "~a broke the rules\n [~e]")
 (define XOTHER:fmt        "~a's 'other' method failed~a")
 (define XSETUP:fmt        "~a failed with the 'placement' method ~a")
-(define XPLAY:fmt         "the 'play' method failed for ~a\n[~a]")
+(define XPLAY:fmt         "the 'take-turn' method failed for ~a\n[~a]")
 
 (define referee%
   (class object% (init-field one two)
@@ -138,7 +138,9 @@
     
     ;; [String -> Empty] FormatString(of 1) String -> Empty 
     (define/private ((report done fmt bad-guy-name extra winner-name) . _)
-      (done (terminated winner-name (format fmt bad-guy-name extra))))))
+      (define msg (format fmt bad-guy-name extra))
+      (displayln `(termination ,winner-name ,bad-guy-name ,msg) (current-error-port))
+      (done (terminated winner-name msg)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
