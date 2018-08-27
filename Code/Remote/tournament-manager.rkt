@@ -69,22 +69,16 @@
     (with-output-to-string (lambda () (define y (->jsexpr x)) (if (jsexpr? y) (send-message y) y))))
 
   (define (test-suite tournament-manager)
-
-    (define (make-game received-messages (op #false))
-      (lambda ()
-        (define matthias (new player% [name "matthias"])) 
-        (define in (open-input-string received-messages))
-        ((tournament-manager in (or op (current-output-port))) matthias)))
-
+    
     (define-syntax check-manager
       (syntax-rules ()
-        [(_ rm0 sm0)
+        [(_ rm0 sm0 msg)
          (aux-manager ([rm rm0][sm sm0][game (make-game rm)][win '(("matthias" "christos"))])
-                      (check-equal? (with-output-to-dev-null #:hide #false game) `(,win ,sm #"")))]
-        [(_ pred? rm0 sm0)
+                      (check-equal? (with-output-to-dev-null #:hide #f game) `(,win ,sm #"") msg))]
+        [(_ pred? rm0 sm0 msg)
          (aux-manager ([rm rm0][sm sm0][op (open-output-bytes)][game (make-game rm op)])
-                      (check-exn pred? game)
-                      (check-equal? (get-output-bytes op) sm))]))
+                      (check-exn pred? game msg)
+                      (check-equal? (get-output-bytes op) sm msg))]))
 
     (define-syntax-rule
       (aux-manager ([rm ((received-msg ...) ...)] [sm ((sent-msg ...) ...)] [x rhs] ...) checks ...)
@@ -92,6 +86,12 @@
              [sm (bytes-append (string->bytes/locale (jsexpr->string sent-msg ...)) ...)]
              [x  rhs] ...)
         checks ...))
+
+    (define (make-game received-messages (op #false))
+      (lambda ()
+        (define matthias (new player% [name "matthias"])) 
+        (define inputs   (open-input-string received-messages))
+        ((tournament-manager inputs (or op (current-output-port))) matthias)))
   
     (trailing-newline? #f)
   
@@ -106,7 +106,8 @@
      ((values "matthias")
       (place->jsexpr '(0 0))
       (place->jsexpr '(5 5))
-      (action->jsexpr (winning-move (worker "matthias1") EAST PUT))))
+      (action->jsexpr (winning-move (worker "matthias1") EAST PUT)))
+     "testing a full run (other, placement, take-turn, and results)")
 
     (check-manager 
      #px"closed the connection"
@@ -117,7 +118,8 @@
      ;; --- sent messages 
      ((values "matthias")
       (place->jsexpr '(0 0))
-      (place->jsexpr '(5 5))))
+      (place->jsexpr '(5 5)))
+     "testing an premature end of the conversation")
 
     (check-manager 
      #px"unexpected message"
@@ -127,7 +129,8 @@
       (values '("matthias" "christos" "jared")))
      ;; --- sent messages 
      ((values "matthias")
-      (place->jsexpr '(0 0))))
+      (place->jsexpr '(0 0)))
+     "testing an unexpected JSON message")
 
     (check-manager 
      #px"violated the game protocol"
@@ -137,7 +140,9 @@
       (placements->jsexpr '(("christos" 0 0))))
      ;; --- sent messages 
      ((values "matthias")
-      (place->jsexpr '(0 0))))))
+      (place->jsexpr '(0 0)))
+     "testing a violation of the game protocol (wrt the placement protocol)")))
+  
 
 (module+ test
   (require (submod ".."))

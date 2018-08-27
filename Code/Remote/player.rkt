@@ -63,11 +63,12 @@
   (define-syntax-rule
     (chk-mtd (method arg) expected expected->jsexpr arg->jsexpr)
     (check-equal? (with-output-to-dev-null
-                   #:hide #false
-                   (lambda ()
-                     (define in (open-input-string (jsexpr->string expected->jsexpr expected)))
-                     (define rp (new (make-remote-player% in (current-output-port)) [name "m"]))
-                     (send rp method arg)))
+                      #:hide #false
+                    #:error-port (open-output-string)
+                    (lambda ()
+                      (define in (open-input-string (jsexpr->string expected->jsexpr expected)))
+                      (define rp (new (make-remote-player% in (current-output-port)) [name "m"]))
+                      (send rp method arg)))
                   (list expected (string->bytes/locale (jsexpr->string arg->jsexpr arg)))))
 
   (trailing-newline? #f)

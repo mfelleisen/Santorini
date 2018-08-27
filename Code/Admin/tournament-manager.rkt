@@ -195,4 +195,5 @@
 (module+ test
   (require (submod ".." json))
 
-  (check-equal? (jsexpr->results '(("matthias" "christos"))) '(("matthias" "christos"))))
+  (check-equal? (jsexpr->results '(("matthias" "christos"))) '(("matthias" "christos")))
+  (check-false (jsexpr->results "matthias")))
