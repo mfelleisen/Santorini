@@ -56,6 +56,7 @@
     (define bad-player% (keyword-apply make-failing-player% keywords kw-args 1 '()))
     (define bad-player  (new bad-player% [name "matthias"]))
     (send bad-player other "christos")
+    (send bad-player playing-as "matthias2")
     bad-player)
 
   (define baddy-p (mk-baddy '(#:p-failure) `(,(λ (l) (if (empty? l) '(-1 0) (rest (first l)))))))  

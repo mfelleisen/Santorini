@@ -72,3 +72,8 @@
 - [X] strategy: take-turn produces #f if the player gets stuck 2 turns down
 
 - [X] OUCH: a bad contract and default values introduced a bug into the program 
+
+
+## Racket Issues 
+
+- in class contracts, field sub-contracts can't refer to other fields 

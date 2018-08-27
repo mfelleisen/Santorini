@@ -80,7 +80,7 @@
       (syntax-rules ()
         [(_ rm0 sm0)
          (aux-manager ([rm rm0][sm sm0][game (make-game rm)][win '(("matthias" "christos"))])
-                      (check-equal? (with-output-to-dev-null #:hide #false game) `(,win ,sm)))]
+                      (check-equal? (with-output-to-dev-null #:hide #false game) `(,win ,sm #"")))]
         [(_ pred? rm0 sm0)
          (aux-manager ([rm rm0][sm sm0][op (open-output-bytes)][game (make-game rm op)])
                       (check-exn pred? game)

@@ -43,16 +43,16 @@
      (set-field! player this old-me)
      (define you (get-field other this))
      (unless (placed-at-least-one placements old-me)
-       (displayln `(during the second call *I* must have placed one worker) (current-error-port)))
+       (displayln `(during the second call ,old-me must have placed one worker) (current-error-port)))
      (unless (placed-at-least-one placements you)
-       (displayln `(during the second call *you* must have placed one worker) (current-error-port)))
+       (displayln `(during the second call ,you must have placed one worker) (current-error-port)))
      (and (placed-at-least-one placements old-me)
           (placed-at-least-one placements you))]
     ;; first call: 
     [else
      (set-field! player this (string-append "1-" me))
      (when (placed-at-least-one placements me)
-       (displayln `(during the first call *I* must not have placed a worker) (current-error-port)))
+       (displayln `(during the first call ,me must not have placed a worker) (current-error-port)))
      (not (placed-at-least-one placements me))]))
 
 (define (placed-at-least-one placements you)

@@ -144,6 +144,34 @@
 (module+ test
   (require (submod ".."))
 
+  (check-exn #px"distinct names"
+             (lambda ()
+               (define one (new player% [name "christos"]))
+               (define two (new player% [name "christos"]))
+               (define ref (new referee% [one one] [two two]))
+               (send ref play)))
+  
+  ;; -------------------------------------------------------------------------------------------------
+  ;; testing support
+  
+  (define-syntax-rule
+    (checker* (m a ...) (stuff ... msg) ...)
+    (begin (checker msg (send) (m a ...) stuff ...) ... ))
+  
+  (define-syntax checker
+    (syntax-rules ()
+      [(checker expected (pre-action ...) (args ...) lot tt ...)
+       (check-equal?
+        (let ([player% (make-mock-player% lot tt ...)])
+          (set-up-ref-and-play player% player% (lambda (ref) (pre-action ... ref args ...))))
+        expected)]))
+
+  (define (set-up-ref-and-play pl-1-% pl-2-% action)
+    [define player1 (new pl-1-% [name "one"])]
+    [define player2 (new pl-2-% [name "one"])]
+    (send player2 playing-as "two")
+    (with-output-to-dev-null (lambda () (action (new referee% [one player1] [two player2])))))
+    
   (define (make-mock-player%
            lot
            (tt void)
@@ -151,27 +179,24 @@
            #:setup (ss (lambda (_) (begin0 (first lot) (set! lot (rest lot))))))
     (class object% (init-field name) 
       (super-new)
+      (define/public (playing-as new-name) (set! name new-name))
       (define/public (other s) (oo s))
       (define/public (placement _lot) (ss _lot))
       (define/public (take-turn board) (tt board))))
 
-  (define-syntax checker
-    (syntax-rules ()
-      [(checker r action (args ...) lot tt ...)
-       (check-equal?
-        (let ()
-          [define player% (make-mock-player% lot tt ...)]
-          [define player1 (new player% [name "one"])]
-          [define player2 (new player% [name "two"])]
-          [define referee (new referee% [one player1] [two player2])]
-          (with-output-to-dev-null (lambda () (action referee args ...))))
-        r)]
-      [(checker r action (args ...) lot tt ...)
-       (checker r (action) (args ...) lot tt ...)]))
+  ;; -------------------------------------------------------------------------------------------------
+  
   (define diagonal (build-list 4 (lambda (i) (list i i))))
 
-  (checker #t (lambda (r) (board? (get-field board r))) () diagonal)
+  (define board-diagonal
+    (cboard
+     [[0one1]
+      [0       0two1]
+      [0       0       0one2]
+      [0       0       0       0two2]]))
 
+  (checker board-diagonal (get-field board) () diagonal)
+  
   (define board-2-rounds-play
     (cboard
      [[2one1 2two1 3]
@@ -180,9 +205,8 @@
       [3     4    ]]))
   (define actions
     (list (move-build (worker "one2") PUT SOUTH PUT SOUTH) (winning-move (worker "two1") EAST PUT)))
-  (define ((stepper actions) b) (begin0 (tee (first actions)) (set! actions (rest actions))))
-  (define (tee x) (displayln x) x)
-
+  (define ((stepper actions) b) (begin0 (first actions) (set! actions (rest actions))))
+  
   (define bad-placement (make-list 4 (list 1 1)))
   (define ((givesup n) b) (giving-up n))
   (define (bad-action b) (move-build (worker "one1") EAST SOUTH PUT NORTH))
@@ -190,16 +214,12 @@
 
   (define div0  "/: division by zero")
   (define timed "timed out")
-
-  (define-syntax-rule
-    (check-run (m a ...) (stuff ... msg) ...)
-    (begin (checker msg send (m a ...) stuff ...) ... ))
-
-  (check-run
+  
+  (checker*
    (play-rounds raise board-2-rounds-play)
    (diagonal (stepper actions)         (format WINNING:fmt "two")))
    
-  (check-run
+  (checker*
    (play)
    (bad-placement                      (terminated "one" (format BAD-PLACEMENT:fmt "two" "")))
    (diagonal (givesup "one")           (format GIVING-UP:fmt "two" "one"))
@@ -209,7 +229,7 @@
    (diagonal (lambda _ (let L () (L))) (terminated "two" (format XPLAY:fmt "one" timed)))
    (diagonal div-by-zero               (terminated "two" (format XPLAY:fmt "one" div0))))
 
-  (check-run
+  (checker*
    (best-of 1)
    (bad-placement                      (terminated "one" (format BAD-PLACEMENT:fmt "two" "")))
    (diagonal (givesup "one")           "two")
@@ -229,12 +249,10 @@
   (define stepper2
     (let ((two "two"))
       (stepper (append (actions1 two) (actions2 two) (actions1 two) (actions2 two) (actions2 two)))))
+  
   (check-equal? (let ()
                   [define player-1% (make-mock-player% '((0 0) (1 1)) stepper1)]
                   [define player-2% (make-mock-player% '((2 2) (3 3)) stepper2)]
-                  [define p1 (new player-1% [name "one"])]
-                  [define p2 (new player-2% [name "two"])]
-                  [define re (new referee% [one p1][two p2])]
-                  (with-output-to-dev-null (lambda () (send re best-of 3))))
+                  (set-up-ref-and-play player-1% player-2% (lambda (ref) (send ref best-of 3))))
                 "one"
                 "complete test coverage for referee"))

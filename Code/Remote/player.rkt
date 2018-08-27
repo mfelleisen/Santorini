@@ -53,21 +53,28 @@
   (require (submod "../Common/board.rkt" test-support))
   (require json)
 
+  (define matthias2 "matthias2")
+  (check-pred jsexpr? (as->jsexpr matthias2))
+  (check-equal? (jsexpr->as (as->jsexpr matthias2)) matthias2)
+  (check-false (jsexpr->as matthias2) matthias2)
+
   (define (jsexpr->string ->jsexpr x)
     (with-output-to-string (lambda () (define y (->jsexpr x)) (if (jsexpr? y) (send-message y) y))))
   (define-syntax-rule
-    (chk-mtd (method arg) expected expected->jsexpr arg->json)
+    (chk-mtd (method arg) expected expected->jsexpr arg->jsexpr)
     (check-equal? (with-output-to-dev-null
                    #:hide #false
                    (lambda ()
                      (define in (open-input-string (jsexpr->string expected->jsexpr expected)))
                      (define rp (new (make-remote-player% in (current-output-port)) [name "m"]))
                      (send rp method arg)))
-                  (list expected (string->bytes/locale (jsexpr->string arg->json arg)))))
+                  (list expected (string->bytes/locale (jsexpr->string arg->jsexpr arg)))))
 
   (trailing-newline? #f)
+
+  (chk-mtd (playing-as "christos2") (void) as->jsexpr as->jsexpr)
   
-  (chk-mtd (other "christos") (void) void values)
+  (chk-mtd (other "christos")       (void) void values)
 
   (chk-mtd (placement '())                 '(0 0) place->jsexpr placements->jsexpr)
   (chk-mtd (placement '(("christos" 0 0))) '(1 1) place->jsexpr placements->jsexpr)

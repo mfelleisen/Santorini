@@ -75,14 +75,14 @@
   (define (collect-additional-players players)
     (if (sync/timeout time-limit listener)
         (collect-additional-players (add-player players))
-        (sign-up->start-up (map third players))))
+        (sign-up->start-up players)))
   ;; Players -> Players
   ;; EFFECT accept a connection on the listener 
   (define (add-player players)
     (define-values (in out) (tcp-accept listener))
     (parameterize ((current-input-port in) (current-output-port out))
       (define nm (read-message))
-      (log-info "~a signed ip" nm)
+      (displayln `(,nm signed up) (current-error-port))
       (define pl (new (make-remote-player% in out) [name nm]))
       (cons pl players)))
   ;; -- IN -- 
@@ -91,7 +91,7 @@
 ;; [Listof ExternalPlayer] -> Void
 ;; EFFECT run a complete game of Evolution 
 (define (sign-up->start-up players)
-  (log-info "playing a game with ~a players" (length players))
+  (displayln `(,players playing) (current-error-port))
   (begin0
     (tournament-manager players)
     (custodian-shutdown-all (current-custodian))))

@@ -56,12 +56,8 @@
 ;; [Listof Player] -> Void
 ;; EFFECT send those player a "playing as" message whose name coincides with another player 
 (define (assign-unique-names players)
-  (for ((pl players) (i (in-naturals)))
-    (define nm (first pl))
-    (define ?? (assoc nm players))
-    (when ??
-      (define as (string-append nm (number->string i)))
-      (send (second pl) playing-as as))))
+  (displayln `(this is not working yet))
+  (void))
 
 ;; String String String -> String 
 (define (other-one winner name1 name2)
