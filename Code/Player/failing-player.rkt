@@ -1,10 +1,14 @@
 #lang racket
 
+;; Create players that use the same strategy as player but fail after a certain number of rounds 
+
 (require "../Common/player-interface.rkt")
 
 (provide
  (contract-out 
   (make-failing-player%
+   ;; the constructed player will fail after n calls to other
+   ;; depending on whether pf or ttf are supplied, the placement or take-turn method will fail 
    (->i ((n (and natural-number/c positive?)))
         (#:p-failure  (pf  (-> placements/c place/c))
          #:tt-failure (tff (-> board? action?)))
@@ -20,16 +24,17 @@
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define (make-failing-player% n #:p-failure (pf #f) #:tt-failure (tff #f))
+(define (make-failing-player% n0 #:p-failure (pf #f) #:tt-failure (tff #f))
   (class object% (init-field name)
     (super-new)
-
+    
     (define other-name "")
     (define strategy #f)
 
     (define/public (playing-as my-new-name)
       (set! name my-new-name))
     
+    (define n n0)
     (define/public (other other-name)
       (set! n (- n 1))
       (set! other-name other-name)
