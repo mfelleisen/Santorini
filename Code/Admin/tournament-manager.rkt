@@ -31,15 +31,24 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (tournament-manager lop0)
-  (define lop (map (lambda (p) (list (get-field name p) p)) lop0))
-  (assign-unique-names lop)
+  ;; [Listof [List String Player]]
+  ;; ASSERT the strings form a set 
+  (define lop (assign-unique-names lop0))
+  
+  ;; [Listof [List [List String Player] [List String Player]]]
   (define schedule (all-pairings lop))
-  ;; [Listof [List String[winner] String[loser]]] __
+
+  (pretty-print (map (lambda (p) (list (caar p) (caadr p))) schedule)
+                (current-error-port))
+  
+  ;; [Listof [List String[winner] String[loser]]] 
   (define-values (results _cheaters)
-    (for/fold ([results '()][cheaters '()])
+    (for/fold ([results '()] [cheaters '()])
               ((pairing schedule)
                #:unless (or (member (first (first pairing)) cheaters)
                             (member (first (second pairing)) cheaters)))
+      (displayln `(tournament cheaters ,cheaters) (current-error-port))
+      (displayln `(tournament playin ,(caar pairing) vs ,(caadr pairing)) (current-error-port))
       (match-define (list (list name1 player1) (list name2 player2)) pairing)
       (define referee (new referee% [one player1][two player2]))
       (define result  (send referee best-of 3))
@@ -53,11 +62,39 @@
   results)
 
 
-;; [Listof Player] -> Void
+;; [Listof Player] -> [Listof [List String Player]]
 ;; EFFECT send those player a "playing as" message whose name coincides with another player 
-(define (assign-unique-names players)
-  (displayln `(this is not working yet))
-  (void))
+(define (assign-unique-names players0)
+  (let assign-unique-names ([players players0] [names '()] [longest ""])
+    (cond
+      [(empty? players) '()]
+      [else (define player   (first players))
+            (define as       (pick-unique-name player names longest))
+            (define names+   (cons as names))
+            (define longest+ (longer> longest as))
+            (cons (list as player) (assign-unique-names (rest players) names+ longest+))])))
+
+;; Player [Listof String] String -> String
+;; EFFECT send player a playing-as message if name must be changed 
+(define (pick-unique-name fst names longest)
+  (define nm (get-field name fst))
+  (cond
+    [(member nm names)
+     (define as (make-longer-name nm longest))
+     (send fst playing-as as)
+     as]
+    [else nm]))
+
+;; String String -> String
+;; add a-s to the end of name so that it is one longer than longest
+(define (make-longer-name name longest)
+  (define n (string-length longest))
+  (define l (string-length name))
+  (string-append name (make-string (- n l -1) #\a)))
+
+;; String *-> String
+(define (longer> . s)
+  (argmax string-length s))
 
 ;; String String String -> String 
 (define (other-one winner name1 name2)
@@ -90,29 +127,50 @@
 
   (check-equal? (all-pairings '(a b)) '((a b)))
 
+  (check-equal? (longer> "matthias" "") "matthias")
+  (check-equal? (make-longer-name "matthias" "matthias") "matthiasa")
+
+  (define (check-assign-unique-names-result-and-effect)
+    (define pl1 (new player% [name "matthias"]))
+    (define pl2 (new player% [name "matthias"]))
+    (check-equal? (let* ([result (assign-unique-names (list pl1 pl2))]
+                         [effect (get-field name pl2)])
+                    (list result effect))
+                  (list (list (list "matthias" pl1) (list "matthiasa" pl2)) "matthiasa")))
+  (check-assign-unique-names-result-and-effect)
+  
   (define-syntax-rule
     (check-tm players expected msg)
-    (check-equal? (with-output-to-dev-null (lambda () (tournament-manager players))) expected msg))
+    (check-equal? (with-output-to-dev-null #:error-port #true (lambda () (tournament-manager players))) expected msg))
   
-  (define (make-player name player%)
-    (new player% [name name]))
+  (define plain (list (new player% [name "matthias"]) (new player% [name "christos"])))
+  (define failing-after-1-for-placement%
+    (make-failing-player% 1 #:p-failure (lambda (l) (if (empty? l) '(0 -1) (caar l)))))
+  (define plain+fail-1 (cons (new failing-after-1-for-placement% [name "baddy"]) plain))
+  (define failing-after-3-for-take-turn%
+    (make-failing-player% 2 #:tt-failure (lambda (board) (/ 1 0))))
+  (define plain+fail-1+3 (cons (new failing-after-3-for-take-turn% [name "baddytt"]) plain+fail-1))
 
-  (define tournament (list (make-player "matthias" player%) (make-player "christos" player%)))
-  (define (baddy%) (make-failing-player% 1 #:p-failure (lambda (l) (if (empty? l) '(0 -1) (caar l)))))
-  (define (tournament+bad-pl) (cons (make-player "baddy" (baddy%)) tournament))
-  (define (baddy-tt%) (make-failing-player% 2 #:tt-failure (lambda (board) (/ 1 0))))
-  (define (tournament+bad-pl+bad-tt) (cons (make-player "baddytt" (baddy-tt%)) (tournament+bad-pl)))
+  (check-tm plain           '(("matthias" "christos")) "plain 1")
+  (check-tm (reverse plain) '(("christos" "matthias")) "plain 2")
+  (check-tm plain+fail-1    '(("matthias" "christos") ("matthias" "baddy")) "bad pl")
+  (check-tm plain+fail-1+3  '(("matthias" "christos") ("matthias" "baddytt")) "bad tt"))
 
-  (check-tm tournament           '(("matthias" "christos")) "plain 1")
-  (check-tm (reverse tournament) '(("christos" "matthias")) "plain 2")
-  (check-tm (tournament+bad-pl)  '(("matthias" "christos") ("matthias" "baddy")) "bad pl")
-  (check-tm (tournament+bad-pl+bad-tt) '(("matthias" "christos") ("matthias" "baddytt")) "bad tt"))
-
+;; ---------------------------------------------------------------------------------------------------
 (module json racket
   (provide
+   results->jsexpr
    jsexpr->results)
+
+  (define results->jsexpr values)
+    
 
   (define (jsexpr->results j)
     (match j
       [`((,(? string?) ,(? string?)) ...) j]
       [else #false])))
+
+(module+ test
+  (require (submod ".." json))
+
+  (check-equal? (jsexpr->results '(("matthias" "christos"))) '(("matthias" "christos"))))
