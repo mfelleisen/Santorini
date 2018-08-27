@@ -149,7 +149,10 @@
   (define plain+fail-1 (cons (new failing-after-1-for-placement% [name "baddy"]) plain))
   (define failing-after-3-for-take-turn%
     (make-failing-player% 2 #:tt-failure (lambda (board) (/ 1 0))))
-  (define plain+fail-1+3 (cons (new failing-after-3-for-take-turn% [name "baddytt"]) plain+fail-1))
+  (define plain+fail-1+3
+    (list* (new failing-after-3-for-take-turn% [name "baddy-tt"])
+           (new failing-after-1-for-placement% [name "baddy"])
+           plain+fail-1))
 
   (check-tm plain           '(("matthias" "christos")) "plain 1")
   (check-tm (reverse plain) '(("christos" "matthias")) "plain 2")
