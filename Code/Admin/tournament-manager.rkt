@@ -141,23 +141,42 @@
   
   (define-syntax-rule
     (check-tm players expected msg)
-    (check-equal? (with-output-to-dev-null #:error-port #true (lambda () (tournament-manager players))) expected msg))
+    (check-equal? (with-output-to-dev-null #:error-port (open-output-string)
+                    (lambda () (tournament-manager players)))
+                  expected
+                  msg))
   
   (define plain (list (new player% [name "matthias"]) (new player% [name "christos"])))
   (define failing-after-1-for-placement%
     (make-failing-player% 1 #:p-failure (lambda (l) (if (empty? l) '(0 -1) (caar l)))))
-  (define plain+fail-1 (cons (new failing-after-1-for-placement% [name "baddy"]) plain))
+  (define plain+fail-1 (cons (new failing-after-1-for-placement% [name "baddypl"]) plain))
   (define failing-after-3-for-take-turn%
     (make-failing-player% 2 #:tt-failure (lambda (board) (/ 1 0))))
   (define plain+fail-1+3
-    (list* (new failing-after-3-for-take-turn% [name "baddy-tt"])
-           (new failing-after-1-for-placement% [name "baddy"])
+    (list* (new failing-after-3-for-take-turn% [name "baddytt"])
+           (new failing-after-1-for-placement% [name "baddypl"])
            plain+fail-1))
 
   (check-tm plain           '(("matthias" "christos")) "plain 1")
   (check-tm (reverse plain) '(("christos" "matthias")) "plain 2")
-  (check-tm plain+fail-1    '(("matthias" "christos") ("matthias" "baddy")) "bad pl")
-  (check-tm plain+fail-1+3  '(("matthias" "christos") ("matthias" "baddytt")) "bad tt"))
+  (check-tm plain+fail-1    '(("matthias" "christos") ("matthias" "baddypl")) "bad pl")
+
+  (check-tm plain+fail-1+3  '(("matthias" "christos")
+                              ("baddypla" "christos")
+                              ("baddypla" "matthias")
+                              ("baddypla" "baddytt"))
+            "bad tt")
+
+#| rationale
+   | ------------------------ | ------------------------------- |
+   | scheduled pairing        | failure or not?  | winner       |
+   | ------------------------ | ------------------------------- |
+   | ("baddytt" "baddypl")    | bodypl must fail | bodytt wins  |
+   | ("baddytt" "baddypla")   | bodytt must fail | bodypla wins |
+   | ("baddypla" "matthias")  | bodypla below 0  | bodypla wins |
+   | ("baddypla" "christos")  | bodypla below 0  | bodypla wins |
+   | ("matthias" "christos")  | n/a              | matthias wins|
+   | ------------------------ | ------------------------------- |#)
 
 ;; ---------------------------------------------------------------------------------------------------
 (module json racket
