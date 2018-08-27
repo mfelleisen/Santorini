@@ -16,10 +16,15 @@
 (require "placements.rkt")
 
 ;; ---------------------------------------------------------------------------------------------------
+
+(define PLAYER-NAME #px"[a-z]+")
+(define (good-player-name? name)
+  (regexp-match PLAYER-NAME name))
+
 (define player%/c
   (class/c
    #:opaque
-   (init-field (name string?))
+   (init-field (name (and/c string? good-player-name?)))
    (playing-as
     ;; IF name is already taken by some other player, this method is called with a replacement name 
     (->m string? any))
@@ -35,3 +40,4 @@
     (->m board? action?))))
 
 (define player/c (instanceof/c player%/c))
+
