@@ -1,7 +1,7 @@
 #lang racket
 
 ;; The Referee plays a single game for two players.
-;; The class is instanitated with two players. 
+;; The class is instanitated with two players.
 
 (provide
  ;; type Terminated = (terminated String String)
@@ -146,12 +146,23 @@
 (module+ test
   (require (submod ".."))
 
+  (check-exn exn:fail:contract?
+             (lambda ()
+               (with-output-to-dev-null #:error-port (open-output-string)
+                   (lambda ()
+                     (define one (new player% [name "christos-1"]))
+                     (define two (new player% [name "christos"]))
+                     (new referee% [one one] [two two]))))
+             "this belongs into player-interface, but good enough")
+
   (check-exn #px"distinct names"
              (lambda ()
-               (define one (new player% [name "christos"]))
-               (define two (new player% [name "christos"]))
-               (define ref (new referee% [one one] [two two]))
-               (send ref play)))
+               (with-output-to-dev-null #:error-port (open-output-string)
+                   (lambda ()
+                     (define one (new player% [name "christos"]))
+                     (define two (new player% [name "christos"]))
+                     (define ref (new referee% [one one] [two two]))
+                     (send ref play)))))
   
   ;; -------------------------------------------------------------------------------------------------
   ;; testing support
@@ -172,8 +183,9 @@
     [define player1 (new pl-1-% [name "one"])]
     [define player2 (new pl-2-% [name "one"])]
     (send player2 playing-as "two")
-    (with-output-to-dev-null (lambda () (action (new referee% [one player1] [two player2])))))
-    
+    (with-output-to-dev-null #:error-port (open-output-string)
+      (lambda () (action (new referee% [one player1] [two player2])))))
+
   (define (make-mock-player%
            lot
            (tt void)
