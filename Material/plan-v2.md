@@ -73,7 +73,7 @@ the players.
 
 Once we have a referee working with two players, we can move on to a
 tournament. To keep things simple, we still assume that all components are
-in written in the same language and that we configure them at start-up
+written in the same language and that we configure them at start-up
 time. But we also wish to bring this closer to the world-wide santorini.com
 setting and thus act as if the components need to receive meta-information
 from the tournament manager . 
@@ -87,7 +87,8 @@ from the tournament manager .
 Thanks to software design patterns, it is a short step from a tournament
 running on a single machine with all components written in the same
 language, to a tournament software system that connects distributed agents
-via TCP in a server-client system. What we need are: 
+written in a variety of languages via TCP in a server-client system. What
+we need are:  
 
 - a server script 
 - a client script 
