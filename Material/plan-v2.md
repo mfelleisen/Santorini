@@ -124,4 +124,4 @@ observers can watch games or tournaments.
 Use software design patterns that come with the correct words, and
 everything will be cool. 
 
-The End.
+## The End.
