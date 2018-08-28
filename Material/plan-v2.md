@@ -10,7 +10,7 @@ _Plan top down, build bottom up, and fix as you go._
 
 ## Goal 
 
-Your friends love Santorini software dev. But just so you know, they hate
+All your hacker friends love Santorini. But just so you know, they hate
 *your* programming language. So you think there is a dot.com in there.
 
 You want to create a set-up where you and your games can build this game
