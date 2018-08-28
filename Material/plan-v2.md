@@ -58,8 +58,8 @@ same language and that some configuration script dynamically links two
 players (specified in a configuration file or even on the command line) 
 via a referee and runs a round of games. 
 
-We are also happy with just seeing the referee deliver the result of a game
-to the command line.
+We are also happy with the referee delivering the result of a game to the
+command line.
 
 Because this step is relatively large, we break it up into several steps.
 
