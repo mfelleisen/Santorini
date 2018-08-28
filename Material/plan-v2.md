@@ -111,7 +111,7 @@ We will use one of the following three:
 - XML 
 - S-expressions. 
 
-Please vote for your favorite poison. 
+Please vote for your favorite poison. It's all the same in Racket.
 
 ## Watching the Game. 
 
