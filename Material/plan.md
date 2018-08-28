@@ -167,5 +167,4 @@ Each confrontation between two players is run as a "best of (3 for now)"
 game.  A player that fails or cheats gets eliminated and all of its past
 results are counter in favor of its opponents.
 
-The End. 
-
+The End.

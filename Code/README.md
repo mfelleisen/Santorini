@@ -56,9 +56,13 @@
   - [X] fix up common and use for remote proxy 
   - [X] fix up referee interface (if needed) for next step 
   - [X] remote proxy for tournament administrators s 
-  - [ } communicate change of name
-    - [ ] testing: communicate change of name
-  - [ ] how to communicate final results ???
+  - [x} communicate change of name
+    - [x ] testing: communicate change of name
+  - [x] how to communicate final results 
+    - [X] test communication of final result (does it go out;
+      does it arrive; don't tell cheaters; what if a player fails during
+      this step?)
+  - [ ] test server with players that fail protocol 
 
 - [ ] GUI for watching the game (an observer) 
 - [ ] ?? GUI for playing? 

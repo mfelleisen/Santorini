@@ -11,7 +11,7 @@
 (provide
  (contract-out
   (tournament-manager
-   (-> input-port? output-port? (-> player/c (listof result/c))))))
+   (-> input-port? output-port? (-> player/c result*/c)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "player.rkt")
@@ -77,9 +77,12 @@
       (syntax-rules ()
         [(_ rm0 sm0 msg)
          (aux-manager ([rm rm0][sm sm0][game (make-game rm)][win '(("matthias" "christos"))])
-                      (check-equal? (with-output-to-dev-null #:hide #f game) `(,win ,sm #"") msg))]
+                      (check-equal? (game) `(,win ,sm) msg))]
         [(_ pred? rm0 sm0 msg)
-         (aux-manager ([rm rm0][sm sm0][op (open-output-bytes)][game (make-game rm op)])
+         (aux-manager ([rm rm0]
+                       [sm sm0]
+                       [op (open-output-bytes)]
+                       [game (if (regexp? pred?) (make-game rm op #:px pred?) (make-game rm op))])
                       (check-exn pred? game msg)
                       (check-equal? (get-output-bytes op) sm msg))]))
 
@@ -90,13 +93,21 @@
              [x  rhs] ...)
         checks ...))
 
-    (define (make-game received-messages (op #false))
+    (define (make-game received-messages (op #false) #:px (unexpected #t))
       (lambda ()
         (define matthias (new player% [name "matthias"])) 
         (define inputs   (open-input-string received-messages))
-        ((tournament-manager inputs (or op (current-output-port))) matthias)))
+        (with-output-to-dev-null #:hide #f #:error-port (open-output-string)
+          (lambda ()
+            (with-handlers ([(lambda (xn)
+                               (and (exn:fail? xn)
+                                    (not (equal? unexpected CLOSED))
+                                    (regexp-match CLOSED (exn-message xn))))
+                             (lambda (xn) (displayln xn (current-error-port)))])
+              ((tournament-manager inputs (or op (current-output-port))) matthias))))))
   
     (trailing-newline? #f)
+    (define CLOSED #px"closed the connection")
   
     (check-manager
      ;; --- received messages 
@@ -114,7 +125,7 @@
      "testing a full run (other, placement, take-turn, and results)")
 
     (check-manager 
-     #px"closed the connection"
+     CLOSED
      ;; --- received messages 
      ((values "christos")
       (placements->jsexpr '())

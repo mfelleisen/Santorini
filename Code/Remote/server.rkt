@@ -98,14 +98,24 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
-  (define (tester name1 name2)
+  (define ((run-client ch name))
+    (channel-put ch (client LOCALHOST PORT name)))
+
+  ; define (tester name1 name2)
+  (define name1 "matthias")
+  (define name2 "christos")
     (define ch (make-channel))
-    (thread (lambda () (channel-put ch (with-output-to-dev-null server))))
+    (thread
+     (lambda ()
+       (define result (with-output-to-dev-null #:error-port (open-output-string) server))
+       (channel-put ch result)))
     (sleep 1)
-    (thread (lambda () (client LOCALHOST PORT name1)))
-    (sleep 1) ;; this way matthias signs up first 
-    (thread (lambda () (client LOCALHOST PORT name2)))
+    (define ch1 (make-channel))
+    (thread (run-client ch1 name1))
+    (sleep 1) ;; this way matthias signs up first
+    (define ch2 (make-channel))
+    (thread (run-client ch2 name2))
     ;; --- running ... then test:
-    (check-equal? (channel-get ch) (list (list name1 name2))))
-  
-  (tester "matthias" "chrirstos"))
+    (check-equal? (channel-get ch1) (list (list name1 name2)))
+    (check-equal? (channel-get ch2) (list (list name1 name2)))
+    (check-equal? (channel-get ch) (list '() (list (list name1 name2)))))

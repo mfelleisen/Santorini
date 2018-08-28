@@ -54,4 +54,4 @@ christos ../Player/player.rkt
 
   (check-equal? (with-output-to-dev-null #:error-port (open-output-string)
                   (lambda () (with-input-from-string player-info:string main)))
-                '(("matthias" "christos"))))
+                '(() (("matthias" "christos")))))

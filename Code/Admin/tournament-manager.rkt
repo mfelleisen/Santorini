@@ -15,18 +15,18 @@
  (contract-out
   (tournament-manager
    ;; determine the winners of a round-robin tourhament 
-   (-> (listof player/c) result*/c))))
+   (-> (listof player/c) (list/c (listof string?) result*/c)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "referee.rkt")
 (require (submod "../Common/results.rkt" json))
+(require "../Lib/xsend.rkt")
 
 (module+ test
   (require rackunit)
   (require "../Player/player.rkt")
   (require "../Player/failing-player.rkt")
-  (require "../Lib/with-output-to-dev-null.rkt")
-  (require "../Lib/xsend.rkt"))
+  (require "../Lib/with-output-to-dev-null.rkt"))
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (tournament-manager lop0)
@@ -36,19 +36,16 @@
   
   ;; [Listof [List [List String Player] [List String Player]]]
   (define schedule (all-pairings lop))
-
-  (pretty-print (map (lambda (p) (list (caar p) (caadr p))) schedule)
-                (current-error-port))
   
   ;; [Listof [List String[winner] String[loser]]] 
-  (define-values (results _cheaters)
-    (for/fold ([results '()] [cheaters '()])
-              ((pairing schedule)
-               #:unless (or (member (first (first pairing)) cheaters)
-                            (member (first (second pairing)) cheaters)))
-      (displayln `(tournament cheaters ,cheaters) (current-error-port))
-      (displayln `(tournament playin ,(caar pairing) vs ,(caadr pairing)) (current-error-port))
-      (match-define (list (list name1 player1) (list name2 player2)) pairing)
+  (define-values (results cheaters)
+    (for*/fold ([results '()] [cheaters '()])
+               ((pairing schedule)
+                (name1   (in-value (first (first pairing))))
+                [name2   (in-value (first (second pairing)))]
+                #:unless (or (member name1 cheaters) (member name2 cheaters)))
+      (define player1 (second (first pairing)))
+      (define player2 (second (second pairing)))
       (define referee (new referee% [one player1][two player2]))
       (define result  (send referee best-of 3))
       (match result
@@ -58,7 +55,10 @@
         [(terminated winner reason)
          (define loser (other-one winner name1 name2))
          (values (cons (list winner loser) (purge loser results cheaters)) (cons loser cheaters))])))
-  results)
+
+  ;; use _lop_ not _lop0_ because we don't want to rely on 'playing-as' actually changing the name
+  ;; (even though this player is 'ours' and not 'theirs') 
+  (list (inform-all-non-cheaters lop cheaters results) results))
 
 
 ;; [Listof Player] -> [Listof [List String Player]]
@@ -69,20 +69,37 @@
       [(empty? players) '()]
       [else (define player   (first players))
             (define as       (pick-unique-name player names longest))
-            (define names+   (cons as names))
-            (define longest+ (longer> longest as))
-            (cons (list as player) (assign-unique-names (rest players) names+ longest+))])))
+            (cond
+              ;; not a cheater, just a failure
+              [(boolean? as) (assign-unique-names (rest players) names longest)] 
+              [else (define names+   (cons as names))
+                    (define longest+ (argmax string-length (list longest as)))
+                    (cons (list as player) (assign-unique-names (rest players) names+ longest+))])])))
 
-;; Player [Listof String] String -> String
+;; Player [Listof String] String -> (U #false String)
 ;; EFFECT send player a playing-as message if name must be changed 
 (define (pick-unique-name fst names longest)
   (define nm (get-field name fst))
   (cond
     [(member nm names)
      (define as (make-longer-name nm longest))
-     (send fst playing-as as)
-     as]
+     (match (xsend fst playing-as #:thrown vector #:timed-out vector as)
+       [(vector)     (displayln `(manager ,nm : "playing-as" method timed out))
+                     #false]
+       [(vector msg) (displayln `(manager ,nm : "playing-as" method failed ,msg))
+                     #false]
+       [r            as])]
     [else nm]))
+
+;; [Listof [List String Player]] -> [Listof [List String String Referees]]
+(define (all-pairings lop)
+  (let loop ([lop lop][others lop])
+    (cond
+      [(empty? lop) '()]
+      [else (define player1   (first lop))
+            (define nuothers  (remove player1 others))
+            (append (for/list ((opponent nuothers)) (list player1 opponent))
+                    (loop (rest lop) nuothers))])))
 
 ;; String String -> String
 ;; add a-s to the end of name so that it is one longer than longest
@@ -90,10 +107,6 @@
   (define n (string-length longest))
   (define l (string-length name))
   (string-append name (make-string (- n l -1) #\a)))
-
-;; String *-> String
-(define (longer> . s)
-  (argmax string-length s))
 
 ;; String String String -> String 
 (define (other-one winner name1 name2)
@@ -110,23 +123,21 @@
             (cons (list loser winner) purged))
         (cons r purged))))
 
-;; [Listof [List String Player]] -> [Listof [List String String Referees]]
-(define (all-pairings lop)
-  (let loop ([lop lop][others lop])
-    (cond
-      [(empty? lop) '()]
-      [else (define player1   (first lop))
-            (define nuothers  (remove player1 others))
-            (append (for/list ((opponent nuothers)) (list player1 opponent))
-                    (loop (rest lop) nuothers))])))
-
+;; [Listof Player] [Listof String] Results -> [Listof String]
+;; EFFECT inform all players on lop, except for those whose name is on the cheater's list 
+(define (inform-all-non-cheaters lop cheaters0 results)
+  (for*/fold ([cheaters cheaters0])
+             ((p lop) (name (in-value (first p))) #:unless (member name cheaters))
+    (if (vector? (xsend (second p) end-of-game #:thrown vector #:timed-out vector results))
+        (cons name cheaters)
+        cheaters)))
+        
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
   (time-out-limit 1.2)
 
   (check-equal? (all-pairings '(a b)) '((a b)))
-
-  (check-equal? (longer> "matthias" "") "matthias")
+  
   (check-equal? (make-longer-name "matthias" "matthias") "matthiasa")
 
   (define (check-assign-unique-names-result-and-effect)
@@ -156,14 +167,15 @@
            (new failing-after-1-for-placement% [name "baddypl"])
            plain+fail-1))
 
-  (check-tm plain           '(("matthias" "christos")) "plain 1")
-  (check-tm (reverse plain) '(("christos" "matthias")) "plain 2")
-  (check-tm plain+fail-1    '(("matthias" "christos") ("matthias" "baddypl")) "bad pl")
+  (check-tm plain           '(() (("matthias" "christos"))) "plain 1")
+  (check-tm (reverse plain) '(() (("christos" "matthias"))) "plain 2")
+  (check-tm plain+fail-1    '(("baddypl") (("matthias" "christos") ("matthias" "baddypl"))) "bad pl")
 
-  (check-tm plain+fail-1+3  '(("matthias" "christos")
-                              ("baddypla" "christos")
-                              ("baddypla" "matthias")
-                              ("baddypla" "baddytt"))
+  (check-tm plain+fail-1+3  '(("baddytt" "baddypl")
+                              (("matthias" "christos")
+                               ("baddypla" "christos")
+                               ("baddypla" "matthias")
+                               ("baddypla" "baddytt")))
             "bad tt")
 
 #| rationale

@@ -142,34 +142,32 @@
       (displayln `(termination ,winner-name ,bad-guy-name ,msg) (current-error-port))
       (done (terminated winner-name msg)))))
 
-;; ---------------------------------------------------------------------------------------------------
-(module+ test
-  (require (submod ".."))
+;; -------------------------------------------------------------------------------------------------
+;; testing support
 
-  (check-exn exn:fail:contract?
-             (lambda ()
-               (with-output-to-dev-null #:error-port (open-output-string)
-                   (lambda ()
-                     (define one (new player% [name "christos-1"]))
-                     (define two (new player% [name "christos"]))
-                     (new referee% [one one] [two two]))))
-             "this belongs into player-interface, but good enough")
+(module* test-support #f
+  (provide
+   ;; SYNTAX (checker* (method method-args ...) (mock-args ... expected) ...)
+   checker*
 
-  (check-exn #px"distinct names"
-             (lambda ()
-               (with-output-to-dev-null #:error-port (open-output-string)
-                   (lambda ()
-                     (define one (new player% [name "christos"]))
-                     (define two (new player% [name "christos"]))
-                     (define ref (new referee% [one one] [two two]))
-                     (send ref play)))))
-  
+   ;; SYNTAX
+   #;(checker expected (pre-action ...) (args ...) lo-placements
+              ;; optional args: 
+              [take-turn-f] [#:other other-f] [#:setup placement-f])
+   checker
+
+   set-up-ref-and-play
+   make-mock-player%)
+
   ;; -------------------------------------------------------------------------------------------------
-  ;; testing support
+  (require (submod ".."))
+  (require "../Lib/with-output-to-dev-null.rkt")
+  (require rackunit)
+  ;; -------------------------------------------------------------------------------------------------
   
   (define-syntax-rule
-    (checker* (m a ...) (stuff ... msg) ...)
-    (begin (checker msg (send) (m a ...) stuff ...) ... ))
+    (checker* (method method-args ...) (mock-args ... expected) ...)
+    (begin (checker expected (send) (method method-args ...) mock-args ...) ... ))
   
   (define-syntax checker
     (syntax-rules ()
@@ -196,12 +194,35 @@
       (define/public (playing-as new-name) (set! name new-name))
       (define/public (other s) (oo s))
       (define/public (placement _lot) (ss _lot))
-      (define/public (take-turn board) (tt board))))
+      (define/public (take-turn board) (tt board))
+      (define/public (end-of-game results) "the referee does not call this method"))))
+
+;; ---------------------------------------------------------------------------------------------------
+(module+ test
+  (require (submod ".."))
+  (require (submod ".." test-support))
+
+  (check-exn exn:fail:contract?
+             (lambda ()
+               (with-output-to-dev-null #:error-port (open-output-string)
+                 (lambda ()
+                   (define one (new player% [name "christos-1"]))
+                   (define two (new player% [name "christos"]))
+                   (new referee% [one one] [two two]))))
+             "this test belongs into player-interface, but good enough")
+
+  (check-exn #px"distinct names"
+             (lambda ()
+               (with-output-to-dev-null #:error-port (open-output-string)
+                 (lambda ()
+                   (define one (new player% [name "christos"]))
+                   (define two (new player% [name "christos"]))
+                   (define ref (new referee% [one one] [two two]))
+                   (send ref play)))))
 
   ;; -------------------------------------------------------------------------------------------------
-  
   (define diagonal (build-list 4 (lambda (i) (list i i))))
-
+  
   (define board-diagonal
     (cboard
      [[0one1]
@@ -210,7 +231,8 @@
       [0       0       0       0two2]]))
 
   (checker board-diagonal (get-field board) () diagonal)
-  
+
+  ;; -------------------------------------------------------------------------------------------------
   (define board-2-rounds-play
     (cboard
      [[2one1 2two1 3]
@@ -253,6 +275,7 @@
    (diagonal (lambda _ (let L () (L))) (terminated "two" (format XPLAY:fmt "one" timed)))
    (diagonal div-by-zero               (terminated "two" (format XPLAY:fmt "one" div0))))
 
+  ;; -------------------------------------------------------------------------------------------------
   (define (actions1 one)
     `(,(move-build (worker (string-append one "1")) PUT SOUTH PUT SOUTH) ,(giving-up one)))
   (define (actions2 two)
