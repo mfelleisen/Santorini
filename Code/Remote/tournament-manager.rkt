@@ -103,13 +103,13 @@
       (placements->jsexpr '())
       (placements->jsexpr '(("christos" 0 0) ("matthias" 1 1)))
       (board->jsexpr (cboard [[0christos1 2matthias1 3] [0christos2 1matthias2 2]]))
-      (values '(("matthias" "christos"))))
+      (results->jsexpr '(("matthias" "christos"))))
      ;; --- sent messages 
      ((values "matthias")
       (place->jsexpr '(0 0))
       (place->jsexpr '(5 5))
       (action->jsexpr (winning-move (worker "matthias1") EAST PUT))
-      (results->jsexpr '(("matthias" "christos"))))
+      (pretty-print '(("matthias" "christos"))))
      "testing a full run (other, placement, take-turn, and results)")
 
     (check-manager 
