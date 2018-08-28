@@ -15,10 +15,10 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "player.rkt")
-(require (submod "../Admin/tournament-manager.rkt" json))
 (require (submod "../Common/actions.rkt" json))
 (require (submod "../Common/board.rkt" json))
 (require (submod "../Common/placements.rkt" json))
+(require (submod "../Common/results.rkt" json))
 (require "../Lib/io.rkt")
 (require "../Lib/xsend.rkt")
 
@@ -29,25 +29,27 @@
     ;; register the player with the server-side tournament manager 
     (send-message name out)
     
-    ;; deal with all game interactions from, and back to, the server-side referee 
+    ;; deal with all game interactions from, and back to, the server-side referee
+    (define loop-on #false)
     (let loop ()
       
-      (define-syntax-rule (ssend method ->)
+      (define-syntax-rule (ssend method ->return loop?)
         (lambda (x)
           ;; --- this is where I need to check for 3 results so we can log errors in protocol/contract
           (match (xsend player method #:thrown vector #:timed-out vector x)
             [(vector)     (error 'manager "the ~a method timed out\n ~a" 'method)]
             [(vector msg) (error 'manager "the server violated the game protocol\n ~a" msg)]
-            [r            (when -> (send-message (-> r))) #;===> (loop)])))
+            [r            (when ->return (send-message (->return r)))
+                          (or loop? (loop))])))
 
       (define message (read-message in))
       (cond
         [(eof-object? message) (error 'manager "the server unexpectedly closed the connection")]
-        [(jsexpr->as message)            => (ssend playing-as #false)]
-        [(and (string? message) message) => (ssend other      #false)]
-        [(jsexpr->placements message)    => (ssend placement place->jsexpr)]
-        [(jsexpr->board message)         => (ssend take-turn action->jsexpr)]
-        [(jsexpr->results message)          message]
+        [(jsexpr->as message)            => (ssend playing-as  #false         loop-on)]
+        [(and (string? message) message) => (ssend other       #false         loop-on)]
+        [(jsexpr->placements message)    => (ssend placement   place->jsexpr  loop-on)]
+        [(jsexpr->board message)         => (ssend take-turn   action->jsexpr loop-on)]
+        [(jsexpr->results message)       => (ssend end-of-game #false         message)]
         [else (error 'manager "the server sent an unexpected message: ~e" message)]))))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -106,7 +108,8 @@
      ((values "matthias")
       (place->jsexpr '(0 0))
       (place->jsexpr '(5 5))
-      (action->jsexpr (winning-move (worker "matthias1") EAST PUT)))
+      (action->jsexpr (winning-move (worker "matthias1") EAST PUT))
+      (results->jsexpr '(("matthias" "christos"))))
      "testing a full run (other, placement, take-turn, and results)")
 
     (check-manager 

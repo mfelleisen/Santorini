@@ -28,4 +28,7 @@
       (send strategy initialization list-of-places))
     
     (define/public (take-turn board)
-      (send strategy take-turn board))))
+      (send strategy take-turn board))
+    
+   (define/public (end-of-game results)
+     (pretty-print results))))

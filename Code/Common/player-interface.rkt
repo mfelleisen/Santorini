@@ -7,13 +7,15 @@
  ;; a contract that describes the player object's interface to the administrator 
  player/c
 
- ;; the rest of the interface 
+ ;; the rest of the interface
+ (all-from-out "results.rkt")
  (all-from-out "actions.rkt")
  (all-from-out "placements.rkt"))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "actions.rkt")
 (require "placements.rkt")
+(require "results.rkt")
 
 ;; ---------------------------------------------------------------------------------------------------
 
@@ -37,7 +39,10 @@
     (->m placements/c place/c))
    (take-turn
     ;; compute the next action that this player can take for the given board 
-    (->m board? action?))))
+    (->m board? action?))
+   (end-of-game
+    ;; inform this player of the outcome of all games in a tournament 
+    (->m result*/c any/c))))
 
 (define player/c (instanceof/c player%/c))
 

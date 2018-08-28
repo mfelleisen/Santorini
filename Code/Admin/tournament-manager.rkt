@@ -11,16 +11,15 @@
 
 (require "../Common/player-interface.rkt")
 
-(define result/c (list/c string? #;=winner string? #;=loser))
-
 (provide
  (contract-out
   (tournament-manager
    ;; determine the winners of a round-robin tourhament 
-   (-> (listof player/c) (listof result/c)))))
+   (-> (listof player/c) result*/c))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "referee.rkt")
+(require (submod "../Common/results.rkt" json))
 
 (module+ test
   (require rackunit)
@@ -178,22 +177,3 @@
    | ("matthias" "christos")  | n/a              | matthias wins|
    | ------------------------ | ------------------------------- |#)
 
-;; ---------------------------------------------------------------------------------------------------
-(module json racket
-  (provide
-   results->jsexpr
-   jsexpr->results)
-
-  (define results->jsexpr values)
-    
-
-  (define (jsexpr->results j)
-    (match j
-      [`((,(? string?) ,(? string?)) ...) j]
-      [else #false])))
-
-(module+ test
-  (require (submod ".." json))
-
-  (check-equal? (jsexpr->results '(("matthias" "christos"))) '(("matthias" "christos")))
-  (check-false (jsexpr->results "matthias")))

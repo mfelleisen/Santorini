@@ -13,6 +13,7 @@
 (require (submod "../Common/actions.rkt" json))
 (require (submod "../Common/board.rkt" json))
 (require (submod "../Common/placements.rkt" json))
+(require (submod "../Common/results.rkt" json))
 (require "../Lib/io.rkt") ;; see below
 
 (module+ test
@@ -37,7 +38,10 @@
     
     (define/public (take-turn b)
       (send-message (board->jsexpr b) out)
-      (jsexpr->action (read-message in)))))
+      (jsexpr->action (read-message in)))
+
+    (define/public (end-of-game results)
+      (send-message (results->jsexpr results) out))))
 
 (define (as->jsexpr my-new-name)
   `("playing-as" ,my-new-name))

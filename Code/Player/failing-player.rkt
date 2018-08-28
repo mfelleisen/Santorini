@@ -48,7 +48,10 @@
     (define/public (take-turn board)
       (if (and (= n 0) tff)
           (tff board)
-          (send strategy take-turn board)))))
+          (send strategy take-turn board)))
+
+    (define/public (end-of-game results)
+     (pretty-print results))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
