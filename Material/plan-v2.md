@@ -98,9 +98,9 @@ And voila, everything will work just fine.
 
 ## Testing 
 
-Since y'all have chosen different languages but want to make sure the
-development efforts are in sync, we need a way of specifying tests, that
-is, 
+Since you and your friends have chosen different languages but want to make
+sure your development efforts are in sync, we need a way of specifying
+tests, that is,
 
 - a common data format for specifying inputs and expected outputs for each major component
 - scripts that test (say from the command line) that your components work 
