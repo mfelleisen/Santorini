@@ -36,8 +36,9 @@
       (define-syntax-rule (ssend method ->return loop?)
         (lambda (x)
           ;; --- this is where I need to check for 3 results so we can log errors in protocol/contract
+          ;; --- NOTE this is a protection against the srver; all Remotes are on the "same side"
           (match (xsend player method #:thrown vector #:timed-out vector x)
-            [(vector)     (error 'manager "the ~a method timed out\n ~a" 'method)]
+            [(vector)     (error 'manager "the ~a method timed out\n" 'method)]
             [(vector msg) (error 'manager "the server violated the game protocol\n ~a" msg)]
             [r            (when ->return (send-message (->return r)))
                           (or loop? (loop))])))
