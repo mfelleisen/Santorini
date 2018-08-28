@@ -8,15 +8,25 @@ _Plan top down, build bottom up, and fix as you go._
   - Pick goal points that deliver complete demos. 
   - Build partial demos in between. 
 
+## Warning 
+
+You might find full implementations of Santorini out on the wild west
+web. If you steal code, beware that you will need to *code walk* it. 
+Also know that the rules posted here are subtly different from the official
+ones and that, at some point, these rules may change dramatically---just
+like the requirements for real-world software on your future co-ops or
+jobs. 
+
+
 ## Goal 
 
 All your hacker friends love Santorini. But just so you know, they hate
 *your* programming language. So you think there is a dot.com in there.
 
-You want to create a set-up where you and your games can build this game
-on-line via automated agents. You will run the santorini.com server, and
-they will connect with players to this server to play Santorini
-tournaments. 
+You want to create a set-up where you and your friends and others can run
+this game on-line via automated agents. You will run the santorini.com
+server, and they will connect with players to this server to play Santorini
+tournaments.
 
 A tournament pitches every player against every other player. Since a
 single game of Santorini isn't an indicator of the software agent's
