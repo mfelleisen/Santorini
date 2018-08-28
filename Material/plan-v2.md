@@ -51,7 +51,7 @@ demo:
 
 - a referee software component that can set up and run a game for two players
 - player software 
-- the common pieces so that the two can communicate 
+- the common pieces so that the two can communicate in a meaningful manner 
 
 For simplicity, we assume that these pieces of software are written in the
 same language and that some configuration script dynamically links two 
