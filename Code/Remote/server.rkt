@@ -101,21 +101,25 @@
   (define ((run-client ch name))
     (channel-put ch (client LOCALHOST PORT name)))
 
-  ; define (tester name1 name2)
+  (define-syntax-rule
+    (tester ch [(ch1 name1) (ch2 name2) (ch3 name3) ...] checks ...)
+    (let ([ch  (make-channel)]
+          [ch1 (make-channel)]
+          [ch2 (make-channel)]
+          [ch3 (make-channel)] ...)
+      (thread
+       (lambda ()
+         (define result (with-output-to-dev-null #:error-port (open-output-string) server))
+         (channel-put ch result)))
+      (for ([name (list name1 name2 name3 ...)][ch (list ch1 ch2 ch3 ...)])
+        (sleep 1) ;; this way matthias signs up first
+        (thread (run-client ch name)))))
+
   (define name1 "matthias")
   (define name2 "christos")
-    (define ch (make-channel))
-    (thread
-     (lambda ()
-       (define result (with-output-to-dev-null #:error-port (open-output-string) server))
-       (channel-put ch result)))
-    (sleep 1)
-    (define ch1 (make-channel))
-    (thread (run-client ch1 name1))
-    (sleep 1) ;; this way matthias signs up first
-    (define ch2 (make-channel))
-    (thread (run-client ch2 name2))
-    ;; --- running ... then test:
-    (check-equal? (channel-get ch1) (list (list name1 name2)))
-    (check-equal? (channel-get ch2) (list (list name1 name2)))
-    (check-equal? (channel-get ch) (list '() (list (list name1 name2)))))
+  (tester ch ([ch1 name1][ch2 name2])
+          ;; --- running ... then test:
+          (check-equal? (channel-get ch1) (list (list name1 name2)))
+          (check-equal? (channel-get ch2) (list (list name1 name2)))
+          (check-equal? (channel-get ch) (list '() (list (list name1 name2))))))
+          
