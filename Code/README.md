@@ -64,8 +64,14 @@
       this step?)
   - [ ] test server with players that fail protocol 
 
-- [ ] GUI for watching the game (an observer) 
+- [ ] GUI for watching a game, a round, or a tournament (observer pattern) 
 - [ ] ?? GUI for playing? 
+
+## Refactorings 
+
+- [ ] move protocol from strategy to player
+- [ ] create player superclass and create subclasses for failing and plain strategy 
+- [ ] display to log-error 
 
 ## Bugs 
 
@@ -76,7 +82,6 @@
 - [X] strategy: take-turn produces #f if the player gets stuck 2 turns down
 
 - [X] OUCH: a bad contract and default values introduced a bug into the program 
-
 
 ## Racket Issues 
 
