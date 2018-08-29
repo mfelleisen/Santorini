@@ -26,6 +26,12 @@
 
     (super-new)
 
+    (field
+      [playing-as-has-been-called-once #false]
+      [other-name-has-been-called      #false]
+      [placement-has-been-called-once  #false]
+      [placement-has-been-called-twice #false])
+
     (define/public (playing-as my-new-name)
       (send-message (as->jsexpr my-new-name) out))
 

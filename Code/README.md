@@ -69,7 +69,8 @@
 
 ## Refactorings 
 
-- [ ] move protocol from strategy to player
+- [x] move protocol from strategy to player
+- [ ] separate protocol from contract 
 - [ ] create player superclass and create subclasses for failing and plain strategy 
 - [ ] display to log-error 
 

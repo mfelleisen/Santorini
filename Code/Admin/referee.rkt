@@ -193,6 +193,11 @@
            #:setup (ss (lambda (_) (begin0 (first lot) (set! lot (rest lot))))))
     (class object% (init-field name (other "aaaxxx")) 
       (super-new)
+      (field
+       [playing-as-has-been-called-once #false]
+       [other-name-has-been-called      #false]
+       [placement-has-been-called-once  #false]
+       [placement-has-been-called-twice #false])
       (define/public (playing-as new-name) (set! name new-name))
       (define/public (other-name s) (oo s))
       (define/public (placement _lot) (ss _lot))

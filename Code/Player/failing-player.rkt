@@ -28,6 +28,12 @@
   (class object% (init-field name (other "aaaaaxxxx"))
     (super-new)
 
+    (field
+      [playing-as-has-been-called-once #false]
+      [other-name-has-been-called      #false]
+      [placement-has-been-called-once  #false]
+      [placement-has-been-called-twice #false])
+
     (define strategy #f)
 
     (define/public (playing-as my-new-name)
@@ -38,19 +44,16 @@
       (set! n (- n 1))
       (set! other oname)
       (set! strategy (new strategy% [player oname][other other])))
-    
-    (define/public (placement list-of-places)
-      (if (and (= n 0) pf)
-          (pf list-of-places)
-          (send strategy initialization list-of-places)))
-    
-    (define/public (take-turn board)
-      (if (and (= n 0) tff)
-          (tff board)
-          (send strategy take-turn board)))
 
-    (define/public (end-of-game results)
-     (pretty-print results))))
+    (define-syntax-rule
+      (define/failure (method arg) fail smethod)
+      (define/public (method arg) (if (and (<= n 0) fail) (fail arg) (send strategy smethod arg))))
+
+    (define/failure (placement list-of-places) pf initialization)
+
+    (define/failure (take-turn board) tff take-turn)
+
+    (define/public (end-of-game results) (pretty-print results))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test

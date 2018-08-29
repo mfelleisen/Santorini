@@ -18,6 +18,12 @@
   (class object% (init-field name (other "aaaaxxxx"))
     (super-new)
 
+    (field
+      [playing-as-has-been-called-once #false]
+      [other-name-has-been-called      #false]
+      [placement-has-been-called-once  #false]
+      [placement-has-been-called-twice #false])
+
     (define strategy #f)
 
     (define/public (playing-as my-new-name)
