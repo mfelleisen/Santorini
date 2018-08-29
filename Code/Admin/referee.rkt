@@ -11,7 +11,7 @@
  (contract-out
   (referee%
    (class/c
-    (init-field (one player/c) (two player/c))
+    (init-field (one any/c #; player/c) (two any/c #; player/c))
     
     (best-of (->i ((this any/c) (n (and/c natural-number/c odd?)))
                   #:pre/name (this) "distinct names" (distinct? this)
@@ -67,7 +67,7 @@
           [(report done BAD-PLACEMENT:fmt target-name "" winner-name)])
         (define full-name (string-append target-name (number->string worker#)))
         (values (cons (worker full-name) new-place) (cons (cons target-name new-place) lot)))
-      ;; -- IN -- 
+      ;; -- IN --
       (let*-values ([(                lot) '()]
                     [(player1-worker1 lot) (placement one one-name 1 two-name lot)]
                     [(player2-worker1 lot) (placement two two-name 1 one-name lot)]
@@ -82,8 +82,8 @@
       (let/ec done
         (define ex-one (report done XOTHER:fmt one-name "" two-name))
         (define ex-two (report done XOTHER:fmt two-name "" one-name))
-        (xsend one other #:thrown ex-one #:timed-out ex-one two-name)
-        (xsend two other #:thrown ex-two #:timed-out ex-two one-name)
+        (xsend one other-name #:thrown ex-one #:timed-out ex-one two-name)
+        (xsend two other-name #:thrown ex-two #:timed-out ex-two one-name)
         (setup done))])
 
     ;; -----------------------------------------------------------------------------------------------
@@ -139,13 +139,15 @@
     ;; [String -> Empty] FormatString(of 1) String -> Empty 
     (define/private ((report done fmt bad-guy-name extra winner-name) . _)
       (define msg (format fmt bad-guy-name extra))
-      (displayln `(termination ,winner-name ,bad-guy-name ,msg) (current-error-port))
       (done (terminated winner-name msg)))))
 
 ;; -------------------------------------------------------------------------------------------------
 ;; testing support
 
 (module* test-support #f
+
+  ;; player 'one' plays against player 'two'
+
   (provide
    ;; SYNTAX (checker* (method method-args ...) (mock-args ... expected) ...)
    checker*
@@ -178,10 +180,10 @@
         expected)]))
 
   (define (set-up-ref-and-play pl-1-% pl-2-% action)
-    [define player1 (new pl-1-% [name "one"])]
-    [define player2 (new pl-2-% [name "one"])]
+    [define player1 (new pl-1-% [name "one"][other "two"])]
+    [define player2 (new pl-2-% [name "one"][other "one"])]
     (send player2 playing-as "two")
-    (with-output-to-dev-null #:error-port (open-output-string)
+    (with-output-to-dev-null #:error-port (open-output-string) 
       (lambda () (action (new referee% [one player1] [two player2])))))
 
   (define (make-mock-player%
@@ -189,10 +191,10 @@
            (tt void)
            #:other (oo void)
            #:setup (ss (lambda (_) (begin0 (first lot) (set! lot (rest lot))))))
-    (class object% (init-field name) 
+    (class object% (init-field name (other "aaaxxx")) 
       (super-new)
       (define/public (playing-as new-name) (set! name new-name))
-      (define/public (other s) (oo s))
+      (define/public (other-name s) (oo s))
       (define/public (placement _lot) (ss _lot))
       (define/public (take-turn board) (tt board))
       (define/public (end-of-game results) "the referee does not call this method"))))

@@ -25,20 +25,19 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (make-failing-player% n0 #:p-failure (pf #f) #:tt-failure (tff #f))
-  (class object% (init-field name)
+  (class object% (init-field name (other "aaaaaxxxx"))
     (super-new)
-    
-    (define other-name "")
+
     (define strategy #f)
 
     (define/public (playing-as my-new-name)
       (set! name my-new-name))
     
     (define n n0)
-    (define/public (other other-name)
+    (define/public (other-name oname)
       (set! n (- n 1))
-      (set! other-name other-name)
-      (set! strategy (new strategy% [player name][other other-name])))
+      (set! other oname)
+      (set! strategy (new strategy% [player oname][other other])))
     
     (define/public (placement list-of-places)
       (if (and (= n 0) pf)
@@ -63,7 +62,7 @@
   (define (mk-baddy keywords kw-args)
     (define bad-player% (keyword-apply make-failing-player% keywords kw-args 1 '()))
     (define bad-player  (new bad-player% [name "matthias"]))
-    (send bad-player other "christos")
+    (send bad-player other-name "christos")
     (send bad-player playing-as "matthias2")
     bad-player)
 

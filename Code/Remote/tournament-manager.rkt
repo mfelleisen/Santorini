@@ -11,7 +11,7 @@
 (provide
  (contract-out
   (tournament-manager
-   (-> input-port? output-port? (-> player/c result*/c)))))
+   (-> input-port? output-port? (-> any/c #;player/c result*/c)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "player.rkt")
@@ -20,7 +20,7 @@
 (require (submod "../Common/placements.rkt" json))
 (require (submod "../Common/results.rkt" json))
 (require "../Lib/io.rkt")
-(require "../Lib/xsend.rkt")
+(require "../Lib/xsend.rkt") (time-out-limit 1.2)
 
 ;; ---------------------------------------------------------------------------------------------------
 (define ((tournament-manager in out) player)
@@ -37,6 +37,7 @@
         (lambda (x)
           ;; --- this is where I need to check for 3 results so we can log errors in protocol/contract
           ;; --- NOTE this is a protection against the srver; all Remotes are on the "same side"
+          
           (match (xsend player method #:thrown vector #:timed-out vector x)
             [(vector)     (error 'manager "the ~a method timed out\n" 'method)]
             [(vector msg) (error 'manager "the server violated the game protocol\n ~a" msg)]
@@ -47,7 +48,7 @@
       (cond
         [(eof-object? message) (error 'manager "the server unexpectedly closed the connection")]
         [(jsexpr->as message)            => (ssend playing-as  #false         loop-on)]
-        [(and (string? message) message) => (ssend other       #false         loop-on)]
+        [(and (string? message) message) => (ssend other-name  #false         loop-on)]
         [(jsexpr->placements message)    => (ssend placement   place->jsexpr  loop-on)]
         [(jsexpr->board message)         => (ssend take-turn   action->jsexpr loop-on)]
         [(jsexpr->results message)       => (ssend end-of-game #false         message)]
@@ -92,12 +93,12 @@
              [sm (bytes-append (string->bytes/locale (jsexpr->string sent-msg ...)) ...)]
              [x  rhs] ...)
         checks ...))
-
+    
     (define (make-game received-messages (op #false) #:px (unexpected #t))
       (lambda ()
-        (define matthias (new player% [name "matthias"])) 
+        (define matthias (new player% [name "matthias"]))
         (define inputs   (open-input-string received-messages))
-        (with-output-to-dev-null #:hide #f #:error-port (open-output-string)
+        (with-output-to-dev-null #:hide #f  #:error-port (open-output-string)
           (lambda ()
             (with-handlers ([(lambda (xn)
                                (and (exn:fail? xn)

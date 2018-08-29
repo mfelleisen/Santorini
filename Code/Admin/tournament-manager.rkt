@@ -15,7 +15,7 @@
  (contract-out
   (tournament-manager
    ;; determine the winners of a round-robin tourhament 
-   (-> (listof player/c) (list/c (listof string?) result*/c)))))
+   (-> (listof any/c #;player/c) (list/c (listof string?) result*/c)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "referee.rkt")
@@ -151,7 +151,7 @@
   
   (define-syntax-rule
     (check-tm players expected msg)
-    (check-equal? (with-output-to-dev-null #:error-port (open-output-string)
+    (check-equal? (with-output-to-dev-null ; #:error-port (open-output-string)
                     (lambda () (tournament-manager players)))
                   expected
                   msg))

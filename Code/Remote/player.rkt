@@ -22,14 +22,14 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (make-remote-player% in out)
-  (class object% (init-field name)
+  (class object% (init-field name (other "aaxxxx"))
 
     (super-new)
 
     (define/public (playing-as my-new-name)
       (send-message (as->jsexpr my-new-name) out))
 
-    (define/public (other name)
+    (define/public (other-name name)
       (send-message name out))
 
     (define/public (placement lop)
@@ -79,7 +79,7 @@
 
   (chk-mtd (playing-as "christos2") (void) as->jsexpr as->jsexpr)
   
-  (chk-mtd (other "christos")       (void) void values)
+  (chk-mtd (other-name "christos") (void) void values)
 
   (chk-mtd (placement '())                 '(0 0) place->jsexpr placements->jsexpr)
   (chk-mtd (placement '(("christos" 0 0))) '(1 1) place->jsexpr placements->jsexpr)
