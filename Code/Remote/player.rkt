@@ -5,7 +5,7 @@
 (provide
  (contract-out
   (make-remote-player%
-   (-> input-port? output-port? player%/c)))
+   (-> input-port? output-port? player-protocol%/c)))
  as->jsexpr
  jsexpr->as)
 

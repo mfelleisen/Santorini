@@ -11,7 +11,7 @@
 (provide
  (contract-out
   (tournament-manager
-   (-> input-port? output-port? (-> any/c #;player/c result*/c)))))
+   (-> input-port? output-port? (-> player/c result*/c)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "player.rkt")

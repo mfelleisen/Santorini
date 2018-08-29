@@ -15,7 +15,7 @@
  (contract-out
   (tournament-manager
    ;; determine the winners of a round-robin tourhament 
-   (-> (listof any/c #;player/c) (list/c (listof string?) result*/c)))))
+   (-> (listof player/c) (list/c (listof string?) result*/c)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "referee.rkt")
@@ -160,7 +160,6 @@
     (make-failing-player% 1 #:p-failure (lambda (l) (if (empty? l) '(0 -1) (caar l)))))
   (define failing-after-3-for-take-turn%
     (make-failing-player% 2 #:tt-failure (lambda (board) (/ 1 0))))
-
 
   (define matthias (new player% [name "matthias"]))
   (define christos (new player% [name "christos"]))

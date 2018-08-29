@@ -4,7 +4,7 @@
 
 (provide
  (contract-out 
-  (player% player%/c)))
+  (player% player-protocol%/c)))
  
 ;; ---------------------------------------------------------------------------------------------------
 (require "strategy.rkt")

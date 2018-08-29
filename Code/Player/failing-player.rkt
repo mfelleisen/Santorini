@@ -14,7 +14,7 @@
          #:tt-failure (tff (-> board? action?)))
         #:pre/name (pf tff) "exactly one of them is not specified"
         (and (or (unsupplied-arg? pf) (unsupplied-arg? tff)) (not (eq? pf tff)))
-        (result player%/c)))))
+        (result player-protocol%/c)))))
  
 ;; ---------------------------------------------------------------------------------------------------
 (require "strategy.rkt")

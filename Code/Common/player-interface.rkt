@@ -7,6 +7,9 @@
  ;; a contract that describes the player object's interface to the administrator 
  player/c
 
+ ;; a contract that describes the player class's interface to the administrator PLUS its protocol 
+ player-protocol%/c
+
  ;; the rest of the interface
  (all-from-out "results.rkt")
  (all-from-out "actions.rkt")
@@ -30,34 +33,39 @@
 
 (define player%/c
   (class/c
-   #:opaque
-   (init-field (name (and/c string? good-player-name?)) (other (and/c string? good-player-name?)))
+    #:opaque
+    (init-field (name (and/c string? good-player-name?)) (other (and/c string? good-player-name?)))
 
-   ;; protocol: {playing-as | other-name}^1 -> placement-once -> placement-twice -> take-turn* -> end
-   (field
-    [playing-as-has-been-called-once boolean?]
-    [other-name-has-been-called      boolean?]
-    [placement-has-been-called-once  boolean?]
-    [placement-has-been-called-twice boolean?])
+    ;; protocol: {playing-as | other-name}^1 -> placement-once -> placement-twice -> take-turn* -> end
+    (field
+     [playing-as-has-been-called-once boolean?]
+     [other-name-has-been-called      boolean?]
+     [placement-has-been-called-once  boolean?]
+     [placement-has-been-called-twice boolean?])
 
-   (playing-as
-    ;; IF name is already taken by some other player, this method is called with a replacement name 
-    (->i ([this any/c][nu (this) (and/c string? (protocol-as this))]) (r any/c)))
-   (other-name
-    ;; name of opponent of this player 
-    (->i ([this any/c] [n (this) (and/c string? (protocol-other this))]) (r any/c)))
-   (placement
+    ;; IF name is already taken by some other player, this method is called with a replacement name
+    (playing-as (->m string? any/c))
+    ;; name of the opponent of this player
+    (other-name (->m string? any/c))
     ;; compute the placement of this player's next worker, given the placement of other workers
-    ;; ASSUME this player knows where it places its players 
-    (->i ([this any/c][pl (this) (and/c placements/c (placement-protocol/c this))]) (r place/c)))
-   (take-turn
-    ;; compute the next action that this player can take for the given board 
-    (->i ([this any/c][b (this) (and/c board? (protocol-placements-set? this))]) (r action?)))
-   (end-of-game
-    ;; inform this player of the outcome of all games in a tournament 
-    (->i ([this any/c] [r (this) (and/c result*/c #;anything?)]) (x any/c)))))
+    (placement (->m placements/c place/c))
+    ;; compute the next action that this player can take for the given board
+    (take-turn (->m board? action?))
+    ;; inform this player of the outcome of all games in a tournament
+    (end-of-game (->m result*/c any/c))))
 
 (define player/c (instanceof/c player%/c))
+
+(define player-protocol%/c
+   (class/c
+    (playing-as (->i ([this any/c][nu (this) (protocol-as this)]) (r any/c)))
+    (other-name (->i ([this any/c][n  (this) (protocol-other this)]) (r any/c)))
+    (placement  (->i ([this any/c][pl (this) (protocol-placement this)]) (r any/c)))
+    (take-turn  (->i ([this any/c][b  (this) (protocol-placements-set? this)]) (r any/c)))))
+
+(define player+protocl%/c (and/c player%/c player-protocol%/c))
+
+(define player+protocl/c  (instanceof/c player+protocl%/c))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; protocol functions 
@@ -77,7 +85,7 @@
   (and (get-field placement-has-been-called-once this)
        (get-field placement-has-been-called-twice this)))
 
-(define ((placement-protocol/c this) placements)
+(define ((protocol-placement this) placements)
   (define me    (get-field name this))
   (define once  (get-field placement-has-been-called-once this))
   (cond
@@ -106,7 +114,7 @@
   (check-equal? (placed-at-least-one `(("cd" 0 0)) "cd") '("cd" 0 0))
 
   ;; -------------------------------------------------------------------------------------------------
-  (define/contract mock-player% player%/c
+  (define/contract mock-player% player-protocol%/c
     (class object% (init-field name other)
       (super-new)
       (field
@@ -128,7 +136,7 @@
   (check-pred giving-up? (send (new mock-player% [name "x"][other "o"]) take-turn b) "test tt")
 
   (define (protocoled-mocked-player)
-    (placement-protocol/c (new mock-player% [name "x"][other "o"])))
+    (protocol-placement (new mock-player% [name "x"][other "o"])))
   
   (check-true   ((protocoled-mocked-player) '()))
   (check-equal? (let ([s (protocoled-mocked-player)])

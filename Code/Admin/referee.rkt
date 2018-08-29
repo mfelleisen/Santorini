@@ -11,7 +11,7 @@
  (contract-out
   (referee%
    (class/c
-    (init-field (one any/c #; player/c) (two any/c #; player/c))
+    (init-field (one player/c) (two player/c))
     
     (best-of (->i ((this any/c) (n (and/c natural-number/c odd?)))
                   #:pre/name (this) "distinct names" (distinct? this)
