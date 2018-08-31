@@ -13,7 +13,7 @@
    (class/c
     (init-field (one player/c) (two player/c))
 
-    (register (-> observer/c any/c))
+    (register (->m observer/c any/c))
     
     (best-of (->i ((this any/c) (n (and/c natural-number/c odd?)))
                   #:pre/name (this) "distinct names" (distinct? this)

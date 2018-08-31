@@ -72,7 +72,7 @@
 - [x] move protocol from strategy to player
 - [X] separate protocol from contract 
 - [ ] create player superclass and create subclasses for failing and plain strategy 
-- [ ] display to log-error 
+- [X] display to log-error 
 
 ## Bugs 
 
