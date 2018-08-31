@@ -81,7 +81,7 @@
     (check-protocol lop1 lop2 ... msg)
     (check-exn exn:fail:contract?
                (lambda ()
-                 (with-output-to-dev-null #:error-port #true
+                 (with-output-to-dev-null ; #:error-port #true
                      (lambda ()
                        (define x-o (make-safe "x" "o"))
                        (send x-o placement 'lop1)

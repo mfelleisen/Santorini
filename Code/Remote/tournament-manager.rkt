@@ -78,7 +78,7 @@
       (syntax-rules ()
         [(_ rm0 sm0 msg)
          (aux-manager ([rm rm0][sm sm0][game (make-game rm)][win '(("matthias" "christos"))])
-                      (check-equal? (game) `(,win ,sm) msg))]
+                      (check-equal? (game) `(,win ,sm #"") msg))]
         [(_ pred? rm0 sm0 msg)
          (aux-manager ([rm rm0]
                        [sm sm0]
@@ -98,7 +98,7 @@
       (lambda ()
         (define matthias (new player% [name "matthias"]))
         (define inputs   (open-input-string received-messages))
-        (with-output-to-dev-null #:hide #f  #:error-port (open-output-string)
+        (with-output-to-dev-null #:hide #f ; #:error-port  (open-output-string)
           (lambda ()
             (with-handlers ([(lambda (xn)
                                (and (exn:fail? xn)

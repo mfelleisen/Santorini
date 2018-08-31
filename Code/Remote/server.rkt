@@ -109,7 +109,8 @@
           [ch3 (make-channel)] ...)
       (thread
        (lambda ()
-         (define result (with-output-to-dev-null #:error-port (open-output-string) server))
+         (define result (with-output-to-dev-null ; #:error-port (open-output-string)
+			  server))
          (channel-put ch result)))
       (for ([name (list name1 name2 name3 ...)][ch (list ch1 ch2 ch3 ...)])
         (sleep 1) ;; this way matthias signs up first

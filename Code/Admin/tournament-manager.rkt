@@ -151,7 +151,7 @@
   
   (define-syntax-rule
     (check-tm players expected msg)
-    (check-equal? (with-output-to-dev-null #:error-port (open-output-string)
+    (check-equal? (with-output-to-dev-null ; #:error-port (open-output-string)
                     (lambda () (tournament-manager players)))
                   expected
                   msg))
