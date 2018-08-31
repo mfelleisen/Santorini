@@ -4,18 +4,18 @@
 
 (provide
  (contract-out 
-  (observer% observer%/c)))
+  (textual-observer% observer%/c)))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
-  (require (submod ".."))
+  ; (require (submod ".."))
   (require "../Common/actions.rkt")
   (require "../Common/directions.rkt")
   (require (submod "../Common/board.rkt" test-support))
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define observer%
+(define textual-observer%
   (class object%
     (super-new)
     (define/public (action a)
@@ -27,7 +27,7 @@
 
 ;; -----------------------------------------------------------------------------
 (module+ test
-  (define observer (new observer%))
+  (define observer (new textual-observer%))
 
   (define-syntax-rule
     (check-method (method arg) expected msg)

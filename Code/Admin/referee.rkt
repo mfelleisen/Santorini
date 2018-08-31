@@ -32,8 +32,10 @@
 (require "../Common/observer-interface.rkt")
 (require "../Lib/xsend.rkt")
 (module+ test
-  (require "../Player/player.rkt") ;; ??? 
   (require (submod "../Common/board.rkt" test-support))
+  (require "../Player/player.rkt")
+  (require "../Observer/textual.rkt")
+  (require "../Lib/with-output-to-dev-null.rkt")
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -63,7 +65,7 @@
       (inform-observers (method arg))
       (for #;((broken '())) ((o *observers))
         (define good? (xsend o method #:thrown vector #:timed-out vector arg))
-        (unless (vector? good?)
+        (when (vector? good?)
           (log-error "bad observer: ~a" good?)
           (remove o *observers))))
 
@@ -298,16 +300,28 @@
     `(,(move-build (worker (string-append one "1")) PUT SOUTH PUT SOUTH) ,(giving-up one)))
   (define (actions2 two)
     `(,(move-build (worker (string-append two "2")) PUT SOUTH PUT SOUTH)))
-  (define stepper1
+  (define (stepper1)
     (let ((one "one"))
       (stepper (append (actions2 one) (actions1 one) (actions2 one) (actions2 one) (actions1 one)))))
-  (define stepper2
+  (define (stepper2)
     (let ((two "two"))
       (stepper (append (actions1 two) (actions2 two) (actions1 two) (actions2 two) (actions2 two)))))
   
   (check-equal? (let ()
-                  [define player-1% (make-mock-player% '((0 0) (1 1)) stepper1)]
-                  [define player-2% (make-mock-player% '((2 2) (3 3)) stepper2)]
+                  [define player-1% (make-mock-player% '((0 0) (1 1)) (stepper1))]
+                  [define player-2% (make-mock-player% '((2 2) (3 3)) (stepper2))]
                   (set-up-ref-and-play player-1% player-2% (lambda (ref) (send ref best-of 3))))
                 "one"
-                "complete test coverage for referee"))
+                "complete test coverage for referee")
+  
+  (check-equal? (let ()
+                  [define player-1% (make-mock-player% '((0 0) (1 1)) (stepper1))]
+                  [define player-2% (make-mock-player% '((2 2) (3 3)) (stepper2))]
+                  (with-output-to-dev-null
+                      (lambda ()
+                        (set-up-ref-and-play player-1% player-2%
+                                             (lambda (ref)
+                                               (send ref register (new textual-observer%))
+                                               (send ref best-of 3))))))
+                "one"
+                "complete test coverage for referee's observer"))
