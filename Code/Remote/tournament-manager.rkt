@@ -98,7 +98,7 @@
       (lambda ()
         (define matthias (new player% [name "matthias"]))
         (define inputs   (open-input-string received-messages))
-        (with-output-to-dev-null #:hide #f ; #:error-port  (open-output-string)
+        (with-output-to-dev-null #:hide #f
           (lambda ()
             (with-handlers ([(lambda (xn)
                                (and (exn:fail? xn)

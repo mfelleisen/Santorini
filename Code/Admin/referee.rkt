@@ -220,7 +220,7 @@
 
   (check-exn #px"distinct names"
              (lambda ()
-               (with-output-to-dev-null ; #:error-port (open-output-string)
+               (with-output-to-dev-null 
                  (lambda ()
                    (define one (new player% [name "christos"]))
                    (define two (new player% [name "christos"]))
