@@ -47,4 +47,3 @@
   (check-method (board (cboard [[1x1 2x2][3o1 0o2]])) "[[1x1 2x2]\n [3o1 0o2]]" "board")
 
   (check-method (report "you won") "you won" "report"))
-

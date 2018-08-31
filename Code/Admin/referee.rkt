@@ -12,6 +12,8 @@
   (referee%
    (class/c
     (init-field (one player/c) (two player/c))
+
+    (register (-> observer/c any/c))
     
     (best-of (->i ((this any/c) (n (and/c natural-number/c odd?)))
                   #:pre/name (this) "distinct names" (distinct? this)
@@ -27,6 +29,7 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "../Common/player-interface.rkt")
+(require "../Common/observer-interface.rkt")
 (require "../Lib/xsend.rkt")
 (module+ test
   (require "../Player/player.rkt") ;; ??? 
@@ -52,6 +55,20 @@
   (class object% (init-field one two)
     (super-new)
 
+    (define *observers '())
+
+    (define/public (register o)
+      (set! *observers (cons o *observers)))
+
+    (define-syntax-rule
+      (inform-observers (method arg))
+      (for #;((broken '())) ((o *observers))
+        (define good? (xsend o method #:thrown vector #:timed-out vector arg))
+        (unless (vector? good?)
+          (log-error "bad observer: ~a" good?)
+          (remove o *observers))))
+
+    
     ;; -----------------------------------------------------------------------------------------------
     ;; SET UP
     
@@ -126,15 +143,16 @@
         (when (bad? a)
           (define bv (bad-value a))
           [(report done XPLAY:fmt one-name (if (exn? bv) (exn-message bv) bv) two-name)])
-        (displayln a)
+        (inform-observers (action a))
         (unless (check-action board a)
-          (displayln `(bad action ,a))
+          (inform-observers (report (format "bad action: ~a" a)))
           [(report done BAD-MOVE:fmt one-name a two-name)])
-        (displayln (apply-action board a))
+        (define new-board (apply-action board a))
+        (inform-observers (board new-board))
         (cond
           [(giving-up? a) (format GIVING-UP:fmt two-name one-name)]
           [(winning-move? a) (format WINNING:fmt one-name)]
-          [(move-build? a) (play-rounds (apply-action board a) two two-name one one-name)])))
+          [(move-build? a) (play-rounds new-board two two-name one one-name)])))
     
     ;; [String -> Empty] FormatString(of 1) String -> Empty 
     (define/private ((report done fmt bad-guy-name extra winner-name) . _)
