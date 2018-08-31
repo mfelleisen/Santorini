@@ -183,8 +183,7 @@
     [define player1 (new pl-1-% [name "one"][other "two"])]
     [define player2 (new pl-2-% [name "one"][other "one"])]
     (send player2 playing-as "two")
-    (with-output-to-dev-null ; #:error-port (open-output-string) 
-      (lambda () (action (new referee% [one player1] [two player2])))))
+    (with-output-to-dev-null (lambda () (action (new referee% [one player1] [two player2])))))
 
   (define (make-mock-player%
            lot
@@ -211,7 +210,7 @@
 
   (check-exn exn:fail:contract?
              (lambda ()
-               (with-output-to-dev-null ; #:error-port (open-output-string)
+               (with-output-to-dev-null
                  (lambda ()
                    (define one (new player% [name "christos-1"]))
                    (define two (new player% [name "christos"]))
