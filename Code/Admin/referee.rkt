@@ -34,7 +34,6 @@
 (module+ test
   (require "../Player/player.rkt") ;; ??? 
   (require (submod "../Common/board.rkt" test-support))
-  (require "../Lib/with-output-to-dev-null.rkt")
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -181,7 +180,6 @@
 
   ;; -------------------------------------------------------------------------------------------------
   (require (submod ".."))
-  (require "../Lib/with-output-to-dev-null.rkt")
   (require rackunit)
   ;; -------------------------------------------------------------------------------------------------
   
@@ -201,7 +199,7 @@
     [define player1 (new pl-1-% [name "one"][other "two"])]
     [define player2 (new pl-2-% [name "one"][other "one"])]
     (send player2 playing-as "two")
-    (with-output-to-dev-null (lambda () (action (new referee% [one player1] [two player2])))))
+    (action (new referee% [one player1] [two player2])))
 
   (define (make-mock-player%
            lot
@@ -228,21 +226,17 @@
 
   (check-exn exn:fail:contract?
              (lambda ()
-               (with-output-to-dev-null
-                 (lambda ()
-                   (define one (new player% [name "christos-1"]))
-                   (define two (new player% [name "christos"]))
-                   (new referee% [one one] [two two]))))
+               (define one (new player% [name "christos-1"]))
+               (define two (new player% [name "christos"]))
+               (new referee% [one one] [two two]))
              "this test belongs into player-interface, but good enough")
 
   (check-exn #px"distinct names"
              (lambda ()
-               (with-output-to-dev-null 
-                 (lambda ()
-                   (define one (new player% [name "christos"]))
-                   (define two (new player% [name "christos"]))
-                   (define ref (new referee% [one one] [two two]))
-                   (send ref play)))))
+               (define one (new player% [name "christos"]))
+               (define two (new player% [name "christos"]))
+               (define ref (new referee% [one one] [two two]))
+               (send ref play)))
 
   ;; -------------------------------------------------------------------------------------------------
   (define diagonal (build-list 4 (lambda (i) (list i i))))
