@@ -82,7 +82,7 @@
     (define-values (in out) (tcp-accept listener))
     (parameterize ((current-input-port in) (current-output-port out))
       (define nm (read-message))
-      (displayln `(,nm signed up) (current-error-port))
+      (displayln `(,nm signed up))
       (define pl (new (make-remote-player% in out) [name nm]))
       (cons pl players)))
   ;; -- IN -- 
@@ -91,7 +91,7 @@
 ;; [Listof ExternalPlayer] -> Void
 ;; EFFECT run a complete game of Evolution 
 (define (sign-up->start-up players)
-  (displayln `(,players playing) (current-error-port))
+  (displayln `(,players playing))
   (begin0
     (tournament-manager players)
     (custodian-shutdown-all (current-custodian))))

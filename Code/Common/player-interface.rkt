@@ -91,15 +91,15 @@
   (cond
     [once 
      (unless (placed-at-least-one placements me)
-       (displayln `(during the second call ,me must have placed one worker) (current-error-port)))
+       (log-error "during the second call ~a must have placed one worker" me))
      (define you (get-field other this))
      (unless (placed-at-least-one placements you)
-       (displayln `(during the second call ,you must have placed one worker) (current-error-port)))
+       (log-error "during the second call ~a must have placed one worker" you))
      (and (placed-at-least-one placements me) (placed-at-least-one placements you))]
     [else ;; first call:
      (set-field! placement-has-been-called-once this #true)
      (when (placed-at-least-one placements me)
-       (displayln `(during the first call ,me must not have placed a worker) (current-error-port)))
+       (log-error "during the first call ~a must not have placed a worker" me))
      (not (placed-at-least-one placements me))]))
 
 (define (placed-at-least-one placements you)

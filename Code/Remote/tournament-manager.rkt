@@ -104,7 +104,7 @@
                                (and (exn:fail? xn)
                                     (not (equal? unexpected CLOSED))
                                     (regexp-match CLOSED (exn-message xn))))
-                             (lambda (xn) (displayln xn (current-error-port)))])
+                             (lambda (xn) (log-error (exn-message xn)))])
               ((tournament-manager inputs (or op (current-output-port))) matthias))))))
   
     (trailing-newline? #f)

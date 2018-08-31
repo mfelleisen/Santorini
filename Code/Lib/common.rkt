@@ -243,7 +243,6 @@
 (provide
  debug)
 
-;; (define *debug (open-output-file "/dev/tty" #:exists 'append))
 (define *debug (current-error-port))
 
 (define (debug x)
