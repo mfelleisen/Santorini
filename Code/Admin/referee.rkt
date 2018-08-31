@@ -67,7 +67,7 @@
         (define good? (xsend o method #:thrown vector #:timed-out vector arg))
         (when (vector? good?)
           (log-error "bad observer: ~a" good?)
-          (remove o *observers))))
+          (set! *observers (remove o *observers)))))
 
     
     ;; -----------------------------------------------------------------------------------------------
@@ -324,4 +324,23 @@
                                                (send ref register (new textual-observer%))
                                                (send ref best-of 3))))))
                 "one"
-                "complete test coverage for referee's observer"))
+                "complete test coverage for referee's observer")
+
+  (check-equal? (let ()
+                  [define player-1% (make-mock-player% '((0 0) (1 1)) (stepper1))]
+                  [define player-2% (make-mock-player% '((2 2) (3 3)) (stepper2))]
+                  (define bad-observer%
+                    (class object%
+                      (super-new)
+                      (define/public (action a) (void))
+                      (define/public (board a)  (/ 1 0))
+                      (define/public (report a) (void))))
+                  (with-output-to-dev-null
+                      (lambda ()
+                        (set-up-ref-and-play player-1% player-2%
+                                             (lambda (ref)
+                                               (send ref register (new textual-observer%))
+                                               (send ref register (new bad-observer%))
+                                               (send ref best-of 3))))))
+                "one"
+                "complete test coverage for referee's failing observer"))
