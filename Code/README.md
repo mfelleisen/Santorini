@@ -64,6 +64,7 @@
       this step?)
   - [ ] test server with players that fail protocol 
 
+- [X] GUI via observer pattern
 - [ ] GUI for watching a game, a round, or a tournament (observer pattern) 
 - [ ] ?? GUI for playing? 
 

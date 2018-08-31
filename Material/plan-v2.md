@@ -113,6 +113,10 @@ We will use one of the following three:
 
 Please vote for your favorite poison. It's all the same in Racket.
 
+## Rule Changes 
+
+- infinite EAST and SOUTH direction 
+
 ## Watching the Game. 
 
 Hey, e-sports is a big thing now, but how are you going to get fans to
