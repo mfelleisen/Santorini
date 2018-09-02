@@ -4,10 +4,10 @@
 
 | file			 | description					|
 | ---------------------- | -------------------------------------------- |
-!  game-description 	 | a description suitable for Sw Dev 		|
-!  plan 		 | Santori specific thoughts  	 		|
-!  plan-v2 		 | how to split the game according to the sw dev|
-!  rules.pdf 		 | the official rules, distinct from 4500's	|
+|  game-description 	 | a description suitable for Sw Dev 		|
+|  plan 		 | Santori specific thoughts  	 		|
+|  plan-v2 		 | how to split the game according to the sw dev|
+|  rules.pdf 		 | the official rules, distinct from 4500's	|
 
 ## Code: game-specific code 
   
@@ -30,11 +30,11 @@
 |  player-interface 	 | for referees to interact with players 	|
 |  observer-interface 	 | for connecting an observer to a referee's 'play' |
 |  rule-checking 	 | referees and players need to agree on the rules |
-| ---------------------- | -------------------------------------------- |
+|  			 |						|
 |  actions 		 | players' way to express how they act on their turn |
 |  placements 		 | player's way to deal with placing their workers |
 |  results 		 | communicating the results of a tournament 	   |
-| ---------------------- | -------------------------------------------- |
+|  			 |						|
 |  board 		 | the game board, incl. buildings 		|
 |  buildings 		 | buildings, of course, just their height 	|
 |  directions 		 | where workers can move, where they can build |
@@ -57,7 +57,7 @@
 | ---------------------- | -------------------------------------------- |
 |  referee 		 | safely play a game or a round of games between two players |
 |  tournament-manager 	 | set up and run a round-robin tournament 	  |
-| ---------------------- | -------------------------------------------- |   
+|  			 |     	      	    				  |
 |  primitive game and tournament setups | |
 |  run-a-game 	        | run a single game for two players		|
 |  run-a-tournament 	| run a tournament for N players		|
