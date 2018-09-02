@@ -4,8 +4,12 @@
 ;; a library that protects calls from exceptions and overly slow clients 
 
 (provide
+
+ time-out-limit
+
  (contract-out
-  
+
+  #;
   (time-out-limit
    ;; set the time-out value (default: 0.1s)
    (-> (and/c real? positive?) any))
@@ -51,10 +55,12 @@
   (custodian-shutdown-all cust)
   (cond
     [(okay? result) (okay-value result)]
-    [(false? result) (time-out-handler)]
+    [(false? result)
+     (log-error "timed out")
+     (time-out-handler)]
     [(thrw? result)
      (define thrown (thrw-value result))
-     (log-info (format EXN:fmt target m (exn-message thrown)))
+     (log-error (format EXN:fmt target m (exn-message thrown)))
      (throw-handler thrown)]
     [else (error 'xdynamic-send "something went horribly wrong: ~e" result)]))
 
