@@ -11,12 +11,13 @@
  giving-up?    
  winning-move? 
  move-build?   
-
+ 
  (contract-out
   (giving-up    (-> string? action?))
   (winning-move (-> worker? east-west/c north-south/c action?))
+  (move-build-actor (-> move-build? worker?))  
   (move-build   (-> worker? east-west/c north-south/c east-west/c north-south/c action?))
-
+  
   (apply-action
    ;; execute the given action on this board
    ;; ASSUME check-action has been called (too expansive to call again)

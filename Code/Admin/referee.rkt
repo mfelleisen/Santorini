@@ -153,7 +153,13 @@
         (cond
           [(giving-up? a) (format GIVING-UP:fmt two-name one-name)]
           [(winning-move? a) (format WINNING:fmt one-name)]
-          [(move-build? a) (play-rounds new-board two two-name one one-name)])))
+          [(move-build? a)
+           ;; *****************************************************************************
+           ;; in a sense, player one should be punished for not using winning-move
+           ;; *****************************************************************************
+           (if (= (height-of new-board (move-build-actor a)) TOP-FLOOR)
+               (format WINNING:fmt one-name) 
+               (play-rounds new-board two two-name one one-name))])))
     
     ;; [String -> Empty] FormatString(of 1) String -> Empty 
     (define/private ((report done fmt bad-guy-name extra winner-name) . _)
@@ -184,10 +190,12 @@
   (require (submod ".."))
   (require rackunit)
   ;; -------------------------------------------------------------------------------------------------
-  
-  (define-syntax-rule
-    (checker* (method method-args ...) (mock-args ... expected) ...)
-    (begin (checker expected (send) (method method-args ...) mock-args ...) ... ))
+
+  (require (for-syntax syntax/parse))
+  (define-syntax (checker* stx)
+    (syntax-parse stx
+      [(_ (method method-args ...) (mock-args ... expected) ...)
+       #'(begin (checker expected (send) (method method-args ...) mock-args ...) ... )]))
   
   (define-syntax checker
     (syntax-rules ()
@@ -195,7 +203,8 @@
        (check-equal?
         (let ([player% (make-mock-player% lot tt ...)])
           (set-up-ref-and-play player% player% (lambda (ref) (pre-action ... ref args ...))))
-        expected)]))
+        expected
+        (format "~a~a" '(pre-action ...) '(args ...)))]))
 
   (define (set-up-ref-and-play pl-1-% pl-2-% action)
     [define player1 (new pl-1-% [name "one"][other "two"])]
@@ -259,8 +268,12 @@
       [2one2 2two2 4]
       [2     4    ]
       [3     4    ]]))
-  (define actions
-    (list (move-build (worker "one2") PUT SOUTH PUT SOUTH) (winning-move (worker "two1") EAST PUT)))
+  (define actions-winning
+    (list (move-build (worker "one2") PUT SOUTH PUT SOUTH)
+          (winning-move (worker "two1") EAST PUT)))
+  (define actions-moving
+    (list (move-build (worker "one2") PUT SOUTH PUT SOUTH)
+          (move-build (worker "two1") EAST PUT WEST PUT)))
   (define ((stepper actions) b) (begin0 (first actions) (set! actions (rest actions))))
   
   (define bad-placement (make-list 4 (list 1 1)))
@@ -273,12 +286,13 @@
   
   (checker*
    (play-rounds raise board-2-rounds-play)
-   (diagonal (stepper actions)         (format WINNING:fmt "two")))
+   (diagonal (stepper actions-winning) (format WINNING:fmt "two"))
+   (diagonal (stepper actions-moving)  (format WINNING:fmt "two")))
    
   (checker*
    (play)
    (bad-placement                      (terminated "one" (format BAD-PLACEMENT:fmt "two" "")))
-   (diagonal (givesup "one")           (format GIVING-UP:fmt "two" "one"))
+   (diagonal (givesup "one")           (format GIVING-UP:fmt "two" "one") )
    (diagonal bad-action                (terminated "one" (format BAD-MOVE:fmt "two" (bad-action '_))))
    (diagonal #:other div-by-zero       (terminated "two" (format XOTHER:fmt "one" "")))
    (diagonal #:setup div-by-zero       (terminated "two" (format XSETUP:fmt "one" "")))

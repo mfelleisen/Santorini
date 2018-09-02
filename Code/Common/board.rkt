@@ -81,7 +81,9 @@
    ;; did the move of the worker end the game on this board?
    (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
         #:pre/name (b t e-w n-s) "remains on board" (stay-on-board? b t e-w n-s)
-        (r boolean?)))))
+        (r boolean?))))
+
+ (all-from-out "buildings.rkt"))
 
 ;; there is also a submodule json, which provides board->jsexpr and jsexpr->board 
 
