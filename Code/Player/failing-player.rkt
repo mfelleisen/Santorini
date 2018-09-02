@@ -17,6 +17,7 @@
         (result player-protocol%/c)))))
  
 ;; ---------------------------------------------------------------------------------------------------
+(require "super.rkt")
 (require "strategy.rkt")
 
 (module+ test
@@ -25,35 +26,23 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (make-failing-player% n0 #:p-failure (pf #f) #:tt-failure (tff #f))
-  (class object% (init-field name (other "aaaaaxxxx"))
-    (super-new)
+  (class super%
+    (super-new (other "aaaaaxxxx"))
 
-    (field
-      [playing-as-has-been-called-once #false]
-      [other-name-has-been-called      #false]
-      [placement-has-been-called-once  #false]
-      [placement-has-been-called-twice #false])
+    (inherit-field name strategy)
 
-    (define strategy #f)
-
-    (define/public (playing-as my-new-name)
-      (set! name my-new-name))
-    
     (define n n0)
-    (define/public (other-name oname)
+    (define/augment (other-name oname)
       (set! n (- n 1))
-      (set! other oname)
-      (set! strategy (new strategy% [player oname][other other])))
+      (set! strategy (new strategy% [player name][other oname])))
 
     (define-syntax-rule
       (define/failure (method arg) fail smethod)
-      (define/public (method arg) (if (and (<= n 0) fail) (fail arg) (send strategy smethod arg))))
+      (define/override (method arg) (if (and (<= n 0) fail) (fail arg) (super method arg))))
 
     (define/failure (placement list-of-places) pf initialization)
 
-    (define/failure (take-turn board) tff take-turn)
-
-    (define/public (end-of-game results) (pretty-print results))))
+    (define/failure (take-turn board) tff take-turn)))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test

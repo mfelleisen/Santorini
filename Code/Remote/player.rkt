@@ -10,6 +10,7 @@
  jsexpr->as)
 
 ;; ---------------------------------------------------------------------------------------------------
+(require "../Player/super.rkt")
 (require (submod "../Common/actions.rkt" json))
 (require (submod "../Common/board.rkt" json))
 (require (submod "../Common/placements.rkt" json))
@@ -22,32 +23,21 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (make-remote-player% in out)
-  (class object% (init-field name (other "aaxxxx"))
 
-    (super-new)
-
-    (field
-      [playing-as-has-been-called-once #false]
-      [other-name-has-been-called      #false]
-      [placement-has-been-called-once  #false]
-      [placement-has-been-called-twice #false])
-
-    (define/public (playing-as my-new-name)
-      (send-message (as->jsexpr my-new-name) out))
-
-    (define/public (other-name name)
-      (send-message name out))
-
-    (define/public (placement lop)
-      (send-message (placements->jsexpr lop) out)
-      (jsexpr->place (read-message in)))
-    
-    (define/public (take-turn b)
-      (send-message (board->jsexpr b) out)
-      (jsexpr->action (read-message in)))
-
-    (define/public (end-of-game results)
-      (send-message (results->jsexpr results) out))))
+  (define-syntax define/remote 
+    (syntax-rules (augment)
+      [(_ (method ->to augment)) (define/augment (method arg) (send-message (->to arg) out))]
+      [(_ (method ->to)) (define/override (method arg) (send-message (->to arg) out))]
+      [(_ (method ->to <-from))
+       (define/override (method arg) (send-message (->to arg) out) (<-from (read-message in)))]))
+  
+  (class super%
+    (super-new (other "aaxxxx"))
+    (define/remote (playing-as as->jsexpr))
+    (define/remote (other-name values augment))
+    (define/remote (placement placements->jsexpr jsexpr->place))
+    (define/remote (take-turn board->jsexpr jsexpr->action))
+    (define/remote (end-of-game results->jsexpr))))
 
 (define (as->jsexpr my-new-name)
   `("playing-as" ,my-new-name))
@@ -73,12 +63,12 @@
   (define-syntax-rule
     (chk-mtd (method arg) expected expected->jsexpr arg->jsexpr)
     (check-equal? (with-output-to-dev-null
-                      #:hide #false
-                    #:error-port (open-output-string)
-                    (lambda ()
-                      (define in (open-input-string (jsexpr->string expected->jsexpr expected)))
-                      (define rp (new (make-remote-player% in (current-output-port)) [name "m"]))
-                      (send rp method arg)))
+                   #:hide #false
+                   #:error-port (open-output-string)
+                   (lambda ()
+                     (define in (open-input-string (jsexpr->string expected->jsexpr expected)))
+                     (define rp (new (make-remote-player% in (current-output-port)) [name "m"]))
+                     (send rp method arg)))
                   (list expected (string->bytes/locale (jsexpr->string arg->jsexpr arg)))))
 
   (trailing-newline? #f)

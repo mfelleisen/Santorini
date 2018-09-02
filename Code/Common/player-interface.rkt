@@ -33,7 +33,7 @@
 
 (define player%/c
   (class/c
-    #:opaque
+    ; #:opaque
     (init-field (name (and/c string? good-player-name?)) (other (and/c string? good-player-name?)))
 
     ;; protocol: {playing-as | other-name}^1 -> placement-once -> placement-twice -> take-turn* -> end

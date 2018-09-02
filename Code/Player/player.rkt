@@ -1,5 +1,7 @@
 #lang racket
 
+;; a player class that uses the a 2-move look-ahead strategy
+
 (require "../Common/player-interface.rkt")
 
 (provide
@@ -7,6 +9,7 @@
   (player% player-protocol%/c)))
  
 ;; ---------------------------------------------------------------------------------------------------
+(require "super.rkt")
 (require "strategy.rkt")
 (module+ test
   (require (submod "../Common/board.rkt" test-support))
@@ -15,32 +18,13 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (define player%
-  (class object% (init-field name (other "aaaaxxxx"))
+  (class super% 
     (super-new)
 
-    (field
-      [playing-as-has-been-called-once #false]
-      [other-name-has-been-called      #false]
-      [placement-has-been-called-once  #false]
-      [placement-has-been-called-twice #false])
-
-    (define strategy #f)
-
-    (define/public (playing-as my-new-name)
-      (set! name my-new-name))
-
-    (define/public (other-name oname)
-      (set! other oname)
-      (set! strategy (new strategy% [player name][other oname])))
-
-    (define/public (placement list-of-places)
-      (send strategy initialization list-of-places))
+    (inherit-field name strategy)
     
-    (define/public (take-turn board)
-      (send strategy take-turn board))
-    
-   (define/public (end-of-game results)
-     (pretty-print results))))
+    (define/augment (other-name oname)
+      (set! strategy (new strategy% [player name][other oname])))))
 
  ;; -------------------------------------------------------------------------------------------------
 
