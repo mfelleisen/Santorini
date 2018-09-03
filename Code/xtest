@@ -1,0 +1,15 @@
+#!/bin/bash 
+
+echo "gc-ing" 
+
+rm -rf *~ */*~ ; rm -rf errors.txt 
+
+echo "testing" 
+
+raco test Lib/*.rkt Common/*.rkt Player/*.rkt Admin/*.rkt Remote/*.rkt Observer/*.rkt 2> errors.txt 
+
+if grep --quiet "non-zero exit" errors.txt; then 
+   cat errors.txt 
+else 
+   tail -1 errors.txt
+fi
