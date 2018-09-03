@@ -44,13 +44,13 @@
 (define-local-member-name play-rounds) ;; make private methods visible within this module 
 
 (define GIVING-UP:fmt     "~a, because ~a gave up")
-(define WINNING:fmt       "~a, it made a winning move")
+(define WINNING:fmt       "~a made a winning move")
 
 (define BAD-PLACEMENT:fmt "~a broke the rules of placing workers~a")
 (define BAD-MOVE:fmt      "~a broke the rules\n [~e]")
 (define XOTHER:fmt        "~a's 'other' method failed~a")
-(define XSETUP:fmt        "~a failed with the 'placement' method ~a")
-(define XPLAY:fmt         "the 'take-turn' method failed for ~a\n[~a]")
+(define XSETUP:fmt        "~a failed with the 'placement' method\n[~a]")
+(define XPLAY:fmt         "~a failed with the 'take-turn' method\n[~a]")
 
 (define referee%
   (class object% (init-field one two)
