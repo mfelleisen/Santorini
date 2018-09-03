@@ -25,7 +25,7 @@
 (module+ test
   (require rackunit)
   (require "../Player/player.rkt")
-  (require "../Player/failing-player.rkt")
+  (require "../Player/failing.rkt")
   (require "../Lib/with-output-to-dev-null.rkt"))
 
 ;; ---------------------------------------------------------------------------------------------------

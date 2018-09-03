@@ -2,11 +2,13 @@
 
 ;; a strategy that picks a move so that the opponent cannot block you from an action for the next move
 
-(require "strategy-interface.rkt")
-
 (provide
  (contract-out
-  (strategy% strategy%/c)))
+  (strategy%
+    (class/c
+      (init-field (player string?) (other string?))
+      (initialization (->m placements/c place/c))
+      (take-turn      (->m board? action?))))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "move-generating.rkt")

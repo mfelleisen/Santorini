@@ -29,7 +29,7 @@
 
  (all-from-out "board.rkt")
  (all-from-out "directions.rkt")
- (all-from-out "worker.rkt"))
+ (all-from-out "workers.rkt"))
 
 
 ;; there is also a submodule json, which provides action->jsexpr and jsexpr->action
@@ -37,7 +37,7 @@
 ;; ---------------------------------------------------------------------------------------------------
 (require "board.rkt")
 (require "rule-checking.rkt")
-(require "worker.rkt")
+(require "workers.rkt")
 (require "directions.rkt")
 (require (submod "directions.rkt" json))
 (require "../Lib/struct-with.rkt")

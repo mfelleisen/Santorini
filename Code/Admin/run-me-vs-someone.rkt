@@ -9,15 +9,11 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 
-(define matthias (new textual% [name "matthias"]))
-
 (time-out-limit 200) ;; this is interactive
 
-(define referee
-  (new referee%
-       [one (new player%  [name "autochris"])]
-       [two matthias]))
-
-(module+ main 
+(module+ main
+  (define matthias  (new textual% [name "matthias"]))
+  (define autochris (new player%  [name "autochris"]))
+  (define referee   (new referee% [one autochris] [two matthias]))
   (send referee play))
 

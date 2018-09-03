@@ -92,7 +92,7 @@
 
 (require "directions.rkt")
 (require "buildings.rkt")
-(require "worker.rkt")
+(require "workers.rkt")
 
 (require (for-syntax syntax/parse))
 (module+ test
@@ -373,7 +373,7 @@
    cell->n+h)
 
   ;; -------------------------------------------------------------------------------------------------
-  (require "worker.rkt")
+  (require "workers.rkt")
   (require rackunit)
 
   ;; -------------------------------------------------------------------------------------------------

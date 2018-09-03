@@ -50,7 +50,7 @@ The game ends
         (r boolean?)))))
  
 ;; ---------------------------------------------------------------------------------------------------
-(require "worker.rkt")
+(require "workers.rkt")
 (require "directions.rkt")
 (require "buildings.rkt")
 (require "board.rkt")
