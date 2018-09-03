@@ -60,7 +60,7 @@
      (time-out-handler)]
     [(thrw? result)
      (define thrown (thrw-value result))
-     (log-error (format EXN:fmt target m (exn-message thrown)))
+     (log-error (format EXN:fmt target m (if (exn? thrown) (exn-message thrown) thrown)))
      (throw-handler thrown)]
     [else (error 'xdynamic-send "something went horribly wrong: ~e" result)]))
 
