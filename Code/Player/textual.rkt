@@ -45,7 +45,7 @@
         (displayln `(choose your next move ,name))
         (displayln `(g for giving up))
         (displayln `((w w dx dy) for winning move in directions dx and dy))
-        (displayln `(m for move and build))
+        (displayln `((m dx dy ddx ddy) for move and build))
         (define choice (read))
         (match choice
           [(? eof-object?) (error 'take-turn "unexpected end of file")]
