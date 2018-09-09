@@ -10,9 +10,8 @@
  
 ;; ---------------------------------------------------------------------------------------------------
 (require "super.rkt")
-(require "strategy.rkt")
+(require (rename-in "../Common/directions.rkt" (east-west/c ew?) (north-south/c ns?)))
 (module+ test
-  (require (for-syntax "../Common/actions.rkt"))
   (require (submod "../Common/board.rkt" test-support))
   (require "../Lib/with-output-to-dev-null.rkt")
   (require rackunit))
@@ -50,23 +49,38 @@
         (match choice
           [(? eof-object?) (error 'take-turn "unexpected end of file")]
           ['g (giving-up name)]
-          [`(w ,(? 1-or-2? w) ,(? number? dx) ,(? number? dy))
-           (cond ;; abstraction leakage here 
-             [(and (direction/c dx) (direction/c dy) (not (and (equal? dx PUT) (equal? dx dy))))
-              (winning-move (worker (string-append name (number->string w))) dx dy)]
-             [else (displayln `(bad winning-move specification)) (loop)])
-           ]
-          [`(m ,(? 1-or-2? w) ,(? number? dx) ,(? number? dy) ,(? number? ddx) ,(? number? ddy))
-           (cond
-             [(and (direction/c dx) (direction/c dy) (direction/c ddx) (direction/c ddy)
-                   (not (and (equal? dx PUT) (equal? dx dy)))
-                   (not (and (equal? ddx PUT) (equal? ddx ddy))))
-              (move-build (worker (string-append name (number->string w))) dx dy ddx ddy)]
-             [else (displayln `(bad move-build specification)) (loop)])]
+          [`(w ,(? 1-or-2? w) ,(or (? ew? dx)  (? sew? dx)) ,(or (? ns? dy) (? sns? dy)))
+           (winner name w (->ew dx) (->ns dy) loop)]
+          [`(m ,(? 1-or-2? w)
+               ,(or (? ew? dx)  (? sew? dx))  ,(or (? ns? dy) (? sns? dy))
+               ,(or (? ew? ddx) (? sew? ddx)) ,(or (? ns? ddy) (? sns? ddy)))
+           (mover name w (->ew dx) (->ns dy) (->ew ddx) (->ns ddy) loop)]
           [else (loop)])))))
 
 (define (1-or-2? x)
   (and (number? x) (or (= x 1) (= x 2))))
+
+(define EW `((EAST ,EAST) (PUT ,PUT) (WEST ,WEST)))
+(define (sew? x) (assoc x EW))
+(define (->ew x) (or (and (number? x) x) (second (assoc x EW))))
+
+(define NS `((NORTH ,NORTH) (PUT ,PUT) (SOUTH ,SOUTH)))
+(define (sns? x) (assoc x NS))
+(define (->ns x) (or (and (number? x) x) (second (assoc x NS))))
+
+(define (winner name  w dx dy loop)
+  (cond ;; abstraction leakage here 
+    [(and (direction/c dx) (direction/c dy) (not (and (equal? dx PUT) (equal? dx dy))))
+     (winning-move (worker (string-append name (number->string w))) dx dy)]
+    [else (displayln `(bad winning-move specification)) (loop)]))
+
+(define (mover name w dx dy ddx ddy loop)
+  (cond
+    [(and (direction/c dx) (direction/c dy) (direction/c ddx) (direction/c ddy)
+          (not (and (equal? dx PUT) (equal? dx dy)))
+          (not (and (equal? ddx PUT) (equal? ddx ddy))))
+     (move-build (worker (string-append name (number->string w))) dx dy ddx ddy)]
+    [else (displayln `(bad move-build specification)) (loop)]))
 
 ;; -------------------------------------------------------------------------------------------------
 
@@ -94,8 +108,8 @@
                 (with-output-to-dev-null
                  (lambda ()
                    (send me method arg))))))
-            expected
-            msg)]))
+          expected
+          msg)]))
 
   (check-textual (placement '()) "(0 0)" '(0 0) "basic placement")
   (check-textual (placement '()) "(-1 0) (0 0)" '(0 0) "basic placement, loop1")
@@ -116,11 +130,16 @@
   (check-textual XN (take-turn b) "x" #px"unexpected end of file" "basic giving up")
   (check-textual (take-turn b) "g" (giving-up "x") "basic giving up")
   (check-textual (take-turn b) "(w 1 +1 -1)" (winning-move w1 +1 -1) "w1")
+  (check-textual (take-turn b) "(w 1 EAST -1)" (winning-move w1 +1 -1) "w1")
+  (check-textual (take-turn b) "(w 1 EAST NORTH)" (winning-move w1 +1 -1) "w1")
   (check-textual (take-turn b) "(w 0 +0 -0) (w 0 +0 -0) (w 1 +1 -1)" (winning-move w1 +1 -1) "w*1")
   (check-textual (take-turn b) "(w 1 +0 -0) (w 0 +0 -0) (w 1 +1 -1)" (winning-move w1 +1 -1) "w*A")
   (check-textual (take-turn b) "(w 1 +1 -1) (w 0 +2 -1) (w 1 +1 -1)" (winning-move w1 +1 -1) "w*B")
   (check-textual (take-turn b) "(w 1 +1 -2) (w 0 +2 -1) (w 1 +1 -1)" (winning-move w1 +1 -1) "w*2")
   (check-textual (take-turn b) "(m 1 +1 -1 0 1)" (move-build w1 +1 -1 0 1) "m1")
+  (check-textual (take-turn b) "(m 1 EAST -1 0 1)" (move-build w1 +1 -1 0 1) "m1")
+  (check-textual (take-turn b) "(m 1 EAST NORTH PUT 1)" (move-build w1 +1 -1 0 1) "m1")
+  (check-textual (take-turn b) "(m 1 EAST -1 PUT SOUTH)" (move-build w1 +1 -1 0 1) "m1")
   (check-textual (take-turn b) "(m 1 +1 -1 0 0) (m 1 +1 -1 0 1)" (move-build w1 +1 -1 0 1) "m*1")
   (check-textual (take-turn b) "(m 1 0 0 1 1)   (m 1 +1 -1 0 1)" (move-build w1 +1 -1 0 1) "m*2")
   (check-textual (take-turn b) "(m 0 0 0 1 1)   (m 1 +1 -1 0 1)" (move-build w1 +1 -1 0 1) "m*3")
