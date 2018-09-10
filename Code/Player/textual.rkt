@@ -50,15 +50,22 @@
           [(? eof-object?) (error 'take-turn "unexpected end of file")]
           ['g (giving-up name)]
           [`(w ,(? 1-or-2? w) ,(or (? ew? dx)  (? sew? dx)) ,(or (? ns? dy) (? sns? dy)))
-           (winner name w (->ew dx) (->ns dy) loop)]
+           (define dx0 (->ew dx)) (define dy0 (->ns dy))
+           (if (staying-put? dx0 dy0)
+               (begin (displayln `(bad winning-move specification)) (loop))
+               (winning-move (worker (string-append name (number->string w))) dx0 dy0))]
           [`(m ,(? 1-or-2? w)
                ,(or (? ew? dx)  (? sew? dx))  ,(or (? ns? dy) (? sns? dy))
                ,(or (? ew? ddx) (? sew? ddx)) ,(or (? ns? ddy) (? sns? ddy)))
-           (mover name w (->ew dx) (->ns dy) (->ew ddx) (->ns ddy) loop)]
+           (define dx0 (->ew dx))   (define dy0 (->ns dy))
+           (define ddx0 (->ew ddx)) (define ddy0 (->ns ddy))
+           (if (or (staying-put? dx0 dy0) (staying-put? ddx0 ddy0))
+               [begin (displayln `(bad move-build specification)) (loop)]
+               (move-build (worker (string-append name (number->string w))) dx0 dy0 ddx0 ddy0))]
           [else (loop)])))))
 
-(define (1-or-2? x)
-  (and (number? x) (or (= x 1) (= x 2))))
+(define (1-or-2? x) (and (number? x) (or (= x 1) (= x 2))))
+(define (staying-put? x y) (and (equal? x PUT) (equal? x y)))
 
 (define EW `((EAST ,EAST) (PUT ,PUT) (WEST ,WEST)))
 (define (sew? x) (assoc x EW))
@@ -67,20 +74,6 @@
 (define NS `((NORTH ,NORTH) (PUT ,PUT) (SOUTH ,SOUTH)))
 (define (sns? x) (assoc x NS))
 (define (->ns x) (or (and (number? x) x) (second (assoc x NS))))
-
-(define (winner name  w dx dy loop)
-  (cond ;; abstraction leakage here 
-    [(and (direction/c dx) (direction/c dy) (not (and (equal? dx PUT) (equal? dx dy))))
-     (winning-move (worker (string-append name (number->string w))) dx dy)]
-    [else (displayln `(bad winning-move specification)) (loop)]))
-
-(define (mover name w dx dy ddx ddy loop)
-  (cond
-    [(and (direction/c dx) (direction/c dy) (direction/c ddx) (direction/c ddy)
-          (not (and (equal? dx PUT) (equal? dx dy)))
-          (not (and (equal? ddx PUT) (equal? ddx ddy))))
-     (move-build (worker (string-append name (number->string w))) dx dy ddx ddy)]
-    [else (displayln `(bad move-build specification)) (loop)]))
 
 ;; -------------------------------------------------------------------------------------------------
 
