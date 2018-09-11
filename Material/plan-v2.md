@@ -63,6 +63,8 @@ command line.
 
 Because this step is relatively large, we break it up into several steps.
 
+#### Develop a test script that runs all unit tests before you git-push.
+
 ### Stage 2
 
 To make this game even remotely interesting and good for a stage

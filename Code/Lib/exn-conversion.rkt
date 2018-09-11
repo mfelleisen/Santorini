@@ -7,3 +7,9 @@
   (define cnm (exn-continuation-marks xn))
   (define stx (list this-syntax))
   (raise (exn:fail:syntax msg cnm stx)))
+
+;; -----------------------------------------------------------------------------
+;; consider instead
+(require racket/exn)
+
+exn->string 
