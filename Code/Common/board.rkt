@@ -57,7 +57,9 @@
   
   (height-of
    ;; the height of the building where the worker is located or looking at on this board 
-   (->* (board? worker?) (east-west/c north-south/c) natural-number/c))
+   (->i ([b board?] [t worker?]) ([e-w east-west/c][n-s north-south/c])
+        #:pre/name (b t e-w n-s) "on board" (or (unsupplied-arg? e-w) (stay-on-board? b t e-w n-s))
+        (r natural-number/c)))
  
   (location-free-of-worker?
    ;; there is no worker on (x,y) relative to given worker on this board 
@@ -68,13 +70,15 @@
    ;; (move will be called from admin only; no checks needed to ensure legality of move)
    (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
         #:pre/name (b t e-w n-s) "remains on board" (stay-on-board? b t e-w n-s)
+        #:pre/name (b t e-w n-s) "shorter than 4 stories" (< (height-of b t e-w n-s) MAX-HEIGHT)
         (r board?)))
   
   (build
    ;; add a level to the buidling that is in the specified direction
-   ;; (move will be called from admin only; no checks needed to ensure legality of build
+   ;; (move will be called from admin only; no checks needed to ensure legality of build)
    (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
-        #:pre/name (b t e-w n-s) "builds on board" (stay-on-board? b t e-w n-s)
+        #:pre/name (b t e-w n-s) "remains on board" (stay-on-board? b t e-w n-s)
+        #:pre/name (b t e-w n-s) "shorter than 4 stories" (< (height-of b t e-w n-s) MAX-HEIGHT)
         (r board?)))
  
   (is-move-a-winner?
@@ -381,8 +385,15 @@
   
   (define (cell->n+h cell)
     (define mat (regexp-match CELL (symbol->string cell)))
-    (and mat (match mat [`(,_all ,height ,name) (list name (string->number height))])))
-
+    (cond
+      [(regexp-match CELL (symbol->string cell))
+       =>
+       (lambda (mat)
+         ;; we know from CELL that height is a digit (string) and name ends in a digit (string)
+         (define tam (match mat [`(,_all ,height ,name) (list name (string->number height))]))
+         (and (< (second tam) MAX-HEIGHT) tam))]
+      [else #false]))
+    
   (define (->board x)
     (define board-pieces (->board-workers-and-buildings x))
     (and board-pieces (board-pieces->board board-pieces)))
