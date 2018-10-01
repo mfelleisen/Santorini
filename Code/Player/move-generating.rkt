@@ -94,7 +94,7 @@ The game ends
 
   (define ((directions f) t)
     (set-count (for/set ((a (tree-actions t))) (f a))))
-
+  
   #;
   (check-generate 3
                   (directions (match-lambda [(move-build _t x y _dx _dy) (list x y)]))

@@ -85,6 +85,9 @@
 
 - [X] OUCH: a bad contract and default values introduced a bug into the program 
 
+- [X] referee: bug in error reporting of rule violators for bad moves/build-ups
+- [X] rule-checker: you can't build on a place occupied by another worker 
+
 ## Racket Issues 
 
 - in class contracts, field sub-contracts can't refer to other fields 

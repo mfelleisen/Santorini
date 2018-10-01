@@ -147,7 +147,7 @@
         (inform-observers (action a))
         (unless (check-action board a)
           (inform-observers (report (format "bad action: ~a" a)))
-          [(report done BAD-MOVE:fmt one-name a two-name)])
+          [(report done BAD-MOVE:fmt two-name a one-name)])
         (define new-board (apply-action board a))
         (inform-observers (board new-board))
         (cond

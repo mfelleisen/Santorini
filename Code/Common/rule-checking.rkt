@@ -28,8 +28,6 @@ The game ends
   (check-move
    ;; can the given worker move in the specified direction on this board? 
    (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
-        ; #:pre/name (e-w n-s) "a worker can't stay put" (not (and (= e-w PUT) (= n-s PUT)))
-        ; #:pre/name (b t e-w n-s) "stay on board" (stay-on-board? b t e-w n-s) 
         (r boolean?)))
   
   (check-build-up
@@ -39,8 +37,6 @@ The game ends
          (t (b) (and/c worker? (on-board? b)))
          (e-w east-west/c) (n-s north-south/c)
          (b-e-w east-west/c) (b-n-s north-south/c))
-        ; #:pre/name (b t e-w n-s) "worker must stay on board" (stay-on-board? b t e-w n-s)
-        ; #:pre/name (b t e-w n-s b-e-w b-n-s) "worker must build on board" (stay-on-board? (move b t e-w n-s) t b-e-w b-n-s)
         (r boolean?)))))
  
 ;; ---------------------------------------------------------------------------------------------------
@@ -63,18 +59,18 @@ The game ends
            (check-build-up b t e-w n-s b-e-w b-n-s)))))
 
 (define (check-move b t e-w n-s)
-  (and (not (and (= e-w PUT) (= n-s PUT)))
-       (stay-on-board? b t e-w n-s)
-       (location-free-of-worker? b t e-w n-s)
-       (check-height-delta? b t e-w n-s)))
+  (check-it b t e-w n-s check-height-delta?))
 
 (define (check-build-up b t e-w n-s b-e-w b-n-s)
   (and (check-move b t e-w n-s)
-       (let () 
-         (define new-board (move b t e-w n-s))
-         (and (not (and (= b-e-w PUT) (= b-n-s PUT)))
-              (stay-on-board? new-board t b-e-w b-n-s)
-              (< (height-of new-board t b-e-w b-n-s) MAX-HEIGHT)))))
+       (check-it (move b t e-w n-s) t b-e-w b-n-s short-building)))
+
+#; [Board Worker E-W-Dir N-S-Dir [Board Worker E-W N-S -> Boolean] -> Boolean]
+(define (check-it b t e-w n-s f)
+  (and (not (and (= e-w PUT) (= n-s PUT)))
+       (stay-on-board? b t e-w n-s)
+       (location-free-of-worker? b t e-w n-s)
+       (f b t e-w n-s)))
 
 ;; Board Worker E-W-Dir N-S-Dir -> Boolean
 ;; is the up-delta <= 1 or is it going down?
@@ -83,6 +79,11 @@ The game ends
   (define z1 (height-of b t e-w n-s))
   (define delta (- z1 z0))
   (or (<= delta 0) (= delta 1)))
+
+;; Board Worker E-W N-S -> Boolean
+;; is the indicated building short enough to build up? 
+(define (short-building new-board t b-e-w b-n-s)
+  (< (height-of new-board t b-e-w b-n-s) MAX-HEIGHT))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
@@ -120,8 +121,14 @@ The game ends
   (checker #t check-build-up b2 ("b1") EAST SOUTH WEST PUT)
   (checker #f check-build-up b1-before ("x1") WEST PUT PUT SOUTH)
   (checker #t check-build-up b1-before ("o1") PUT SOUTH PUT SOUTH)
-  
   (checker #t can-move-and-build? b1-before ("x2"))
   (checker #f can-move-and-build? (board-move '0x1) ("x1"))
 
-  (check-fail check-move (worker "b1") ("b1") WEST PUT))
+  (check-fail check-move (worker "b1") ("b1") WEST PUT)
+
+  (define b-bug-in-move-generating
+    (cboard [[2o1 1x1]  ;; (2,0) -> 1.1 1.2 1.3 3.0
+             [2x2 1o2]  ;; (2,1) -> 3.2 2.2 3.2 2.0 3.0
+             [4   4 ]]))
+  (checker #f check-build-up b-bug-in-move-generating ("o2") EAST PUT WEST NORTH)
+  (checker #f check-build-up b-bug-in-move-generating ("o2") EAST NORTH WEST PUT))
