@@ -28,8 +28,8 @@ The game ends
   (check-move
    ;; can the given worker move in the specified direction on this board? 
    (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
-        #:pre/name (e-w n-s) "a worker can't stay put" (not (and (= e-w PUT) (= n-s PUT)))
-        #:pre/name (b t e-w n-s) "stay on board" (stay-on-board? b t e-w n-s) 
+        ; #:pre/name (e-w n-s) "a worker can't stay put" (not (and (= e-w PUT) (= n-s PUT)))
+        ; #:pre/name (b t e-w n-s) "stay on board" (stay-on-board? b t e-w n-s) 
         (r boolean?)))
   
   (check-build-up
@@ -39,14 +39,8 @@ The game ends
          (t (b) (and/c worker? (on-board? b)))
          (e-w east-west/c) (n-s north-south/c)
          (b-e-w east-west/c) (b-n-s north-south/c))
-        #:pre/name (e-w n-s) "a worker can't stay put"
-        (not (and (= e-w PUT) (= n-s PUT)))
-        #:pre/name (b t e-w n-s) "worker must stay on board"
-        (stay-on-board? b t e-w n-s)
-        #:pre/name (b-e-w b-n-s) "a worker can't build on its own spot"
-        (not (and (= b-e-w PUT) (= b-n-s PUT)))
-        #:pre/name (b t e-w n-s b-e-w b-n-s) "worker must build on board"
-        (stay-on-board? (move b t e-w n-s) t b-e-w b-n-s)
+        ; #:pre/name (b t e-w n-s) "worker must stay on board" (stay-on-board? b t e-w n-s)
+        ; #:pre/name (b t e-w n-s b-e-w b-n-s) "worker must build on board" (stay-on-board? (move b t e-w n-s) t b-e-w b-n-s)
         (r boolean?)))))
  
 ;; ---------------------------------------------------------------------------------------------------
@@ -69,12 +63,18 @@ The game ends
            (check-build-up b t e-w n-s b-e-w b-n-s)))))
 
 (define (check-move b t e-w n-s)
-  (and (location-free-of-worker? b t e-w n-s) (check-height-delta? b t e-w n-s)))
+  (and (not (and (= e-w PUT) (= n-s PUT)))
+       (stay-on-board? b t e-w n-s)
+       (location-free-of-worker? b t e-w n-s)
+       (check-height-delta? b t e-w n-s)))
 
 (define (check-build-up b t e-w n-s b-e-w b-n-s)
-  (define new-board (move b t e-w n-s))
-  (and (location-free-of-worker? new-board t b-e-w b-n-s)
-       (< (height-of new-board t b-e-w b-n-s) MAX-HEIGHT)))
+  (and (check-move b t e-w n-s)
+       (let () 
+         (define new-board (move b t e-w n-s))
+         (and (not (and (= b-e-w PUT) (= b-n-s PUT)))
+              (stay-on-board? new-board t b-e-w b-n-s)
+              (< (height-of new-board t b-e-w b-n-s) MAX-HEIGHT)))))
 
 ;; Board Worker E-W-Dir N-S-Dir -> Boolean
 ;; is the up-delta <= 1 or is it going down?
