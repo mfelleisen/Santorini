@@ -62,8 +62,10 @@
         (r natural-number/c)))
  
   (location-free-of-worker?
-   ;; there is no worker on (x,y) relative to given worker on this board 
-   (-> board? worker? east-west/c north-south/c boolean?))
+   ;; there is no worker on (x,y) relative to given worker on this board
+   (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
+        #:pre/name (b t e-w n-s) "remains on board" (stay-on-board? b t e-w n-s)
+        (r boolean?)))
 
   (move
    ;; move the worker one step in the given direction
