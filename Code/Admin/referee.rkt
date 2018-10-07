@@ -145,9 +145,9 @@
           (define bv (bad-value a))
           [(report done XPLAY:fmt one-name (if (exn? bv) (exn-message bv) bv) two-name)])
         (inform-observers (action a))
-        (unless (check-action board a)
+        (unless (check-action one-name board a)
           (inform-observers (report (format "bad action: ~a" a)))
-          [(report done BAD-MOVE:fmt two-name a one-name)])
+          [(report done BAD-MOVE:fmt one-name a two-name)])
         (define new-board (apply-action board a))
         (inform-observers (board new-board))
         (cond
@@ -288,12 +288,20 @@
    (play-rounds raise board-2-rounds-play)
    (diagonal (stepper actions-winning) (format WINNING:fmt "two"))
    (diagonal (stepper actions-moving)  (format WINNING:fmt "two")))
+
+  (check-action "one"
+                (cboard
+                 [[0one1]
+                  [0     0two1]
+                  [0     0     0one2]
+                  [0     0     0     0two2]])
+                (bad-action '_))
    
   (checker*
    (play)
    (bad-placement                      (terminated "one" (format BAD-PLACEMENT:fmt "two" "")))
    (diagonal (givesup "one")           (format GIVING-UP:fmt "two" "one") )
-   (diagonal bad-action                (terminated "one" (format BAD-MOVE:fmt "two" (bad-action '_))))
+   (diagonal bad-action                (terminated "two" (format BAD-MOVE:fmt "one" (bad-action '_))))
    (diagonal #:other div-by-zero       (terminated "two" (format XOTHER:fmt "one" "")))
    (diagonal #:setup div-by-zero       (terminated "two" (format XSETUP:fmt "one" "")))
    (diagonal (lambda _ (let L () (L))) (terminated "two" (format XPLAY:fmt "one" timed)))
@@ -321,6 +329,13 @@
     (let ((two "two"))
       (stepper (append (actions1 two) (actions2 two) (actions1 two) (actions2 two) (actions2 two)))))
   
+  (check-equal? (let ()
+                  [define player-1% (make-mock-player% '((0 0) (1 1)) (stepper2))]
+                  [define player-2% (make-mock-player% '((2 2) (3 3)) (stepper2))]
+                  (set-up-ref-and-play player-1% player-2% (lambda (ref) (send ref play))))
+                (terminated "two" (format BAD-MOVE:fmt "one" (first (actions1 "two"))))
+                "player 1 uses worker2 for turn")
+
   (check-equal? (let ()
                   [define player-1% (make-mock-player% '((0 0) (1 1)) (stepper1))]
                   [define player-2% (make-mock-player% '((2 2) (3 3)) (stepper2))]

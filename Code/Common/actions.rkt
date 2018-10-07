@@ -24,8 +24,8 @@
    (->i ([b board?] [a action?]) (r board?)))
 
   (check-action
-   ;; is the given action legal on this board? 
-   (-> board? action? boolean?)))
+   ;; is the given action legal on this board for the designated player? 
+   (-> string? board? action? boolean?)))
 
  (all-from-out "board.rkt")
  (all-from-out "directions.rkt")
@@ -82,20 +82,27 @@
      (define new-board (move board t e-w-move n-s-move))
      (build new-board t e-w-build n-s-build)]))
 
-(define (check-action board a)
+(define (check-action player-name board a)
   (match a
-    [(giving-up a) #true] ;; players can give up for all kinds of reasons 
+    [(giving-up a) (string=? player-name a)] ;; players can give up for all kinds of reasons 
     [(winning-move t e-w n-s)
-     (and (not (and (= e-w PUT) (= n-s PUT)))
+     (and (worker-match t player-name)
+          (not (and (= e-w PUT) (= n-s PUT)))
           (stay-on-board? board t e-w n-s)
           (check-move board t e-w n-s)
           (is-move-a-winner? board t e-w n-s))]
     [(move-build t e-w n-s e-w-build n-s-build)
-     (and (not (and (= e-w PUT) (= n-s PUT)))
+     (and (worker-match t player-name)
+          (not (and (= e-w PUT) (= n-s PUT)))
           (stay-on-board? board t e-w n-s) 
           (not (and (= e-w-build PUT) (= n-s-build PUT)))
           (stay-on-board? (move board t e-w n-s) t e-w-build n-s-build)
           (check-build-up board t e-w n-s e-w-build n-s-build))]))
+
+;; Worker String -> Boolean
+;; does the name-string match the worker's name? 
+(define (worker-match w name-string)
+  (regexp-match name-string (worker-name w)))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; priniting auxiliaries 
@@ -152,7 +159,7 @@
 (module+ test
   (require (submod ".."))
 
-  (define-syntax-rule (check-check b a r) (check-equal? (check-action b a) r))
+  (define-syntax-rule (check-check b a r) (check-equal? (check-action "o" b a) r))
   (define-syntax-rule (check-apply b a r) (check-equal? (apply-action b a) r))
 
   (define (make-board ss0 tt)
