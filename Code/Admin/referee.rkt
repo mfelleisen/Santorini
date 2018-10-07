@@ -195,28 +195,48 @@
   (define-syntax (checker* stx)
     (syntax-parse stx
       [(_ (method method-args ...) (mock-args ... expected) ...)
+       ;; checker_s referee on _method_ (with _method args_) on
+       ;; a series of two identifcal players wth names "one" and "two", which
+       ;; are constructed from the mock-args ...
+       ;; _expected_ is the expected result 
        #'(begin (checker expected (send) (method method-args ...) mock-args ...) ... )]))
   
   (define-syntax checker
     (syntax-rules ()
-      [(checker expected (pre-action ...) (args ...) lot tt ...)
+      [(checker expected (pre-action ...) (args ...) placements take-turn ...)
+       ;; runs referee on (pre-action ... args ...) after setting up a mock-player class
+       ;; from lot tt ... ---> _expected_ 
        (check-equal?
-        (let ([player% (make-mock-player% lot tt ...)])
+        (let ([player% (make-mock-player% placements take-turn ...)])
           (set-up-ref-and-play player% player% (lambda (ref) (pre-action ... ref args ...))))
         expected
         (format "~a~a" '(pre-action ...) '(args ...)))]))
 
+  ;; Player% Player% [Referee -> X]
+  ;; creates two players, called "one" and "two" from the two classes, then creates a referee,
+  ;; and runs it on the provided action 
   (define (set-up-ref-and-play pl-1-% pl-2-% action)
     [define player1 (new pl-1-% [name "one"][other "two"])]
     [define player2 (new pl-2-% [name "one"][other "one"])]
     (send player2 playing-as "two")
     (action (new referee% [one player1] [two player2])))
 
+  #; ([Listof BoardLocation] { [Board -> Action] } 
+                             #:other [String -> Void]
+                             #:setup [ [Listof WorkerLocations] -> BoardLocation ]
+                             ->
+                             Player%)
+  ;; create a class that satisfies the player interface and plays according to the arguments 
   (define (make-mock-player%
-           lot
-           (tt void)
-           #:other (oo void)
-           #:setup (ss (lambda (_) (begin0 (first lot) (set! lot (rest lot))))))
+           placements
+           (take-turn/p
+            void)
+           #:other
+           (other-name/p
+            void)
+           #:setup
+           (place-a-worker
+            (lambda (_) (begin0 (first placements) (set! placements (rest placements))))))
     (class object% (init-field name (other "aaaxxx")) 
       (super-new)
       (field
@@ -225,9 +245,9 @@
        [placement-has-been-called-once  #false]
        [placement-has-been-called-twice #false])
       (define/public (playing-as new-name) (set! name new-name))
-      (define/public (other-name s) (oo s))
-      (define/public (placement _lot) (ss _lot))
-      (define/public (take-turn board) (tt board))
+      (define/public (other-name s) (other-name/p s))
+      (define/public (placement _lot) (place-a-worker _lot))
+      (define/public (take-turn board) (take-turn/p board))
       (define/public (end-of-game results) "the referee does not call this method"))))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -288,15 +308,7 @@
    (play-rounds raise board-2-rounds-play)
    (diagonal (stepper actions-winning) (format WINNING:fmt "two"))
    (diagonal (stepper actions-moving)  (format WINNING:fmt "two")))
-
-  (check-action "one"
-                (cboard
-                 [[0one1]
-                  [0     0two1]
-                  [0     0     0one2]
-                  [0     0     0     0two2]])
-                (bad-action '_))
-   
+  
   (checker*
    (play)
    (bad-placement                      (terminated "one" (format BAD-PLACEMENT:fmt "two" "")))
@@ -311,7 +323,7 @@
    (best-of 1)
    (bad-placement                      (terminated "one" (format BAD-PLACEMENT:fmt "two" "")))
    (diagonal (givesup "one")           "two")
-   (diagonal bad-action                (terminated "one" (format BAD-MOVE:fmt "two" (bad-action '_))))
+   (diagonal bad-action                (terminated "two" (format BAD-MOVE:fmt "one" (bad-action '_))))
    (diagonal #:other div-by-zero       (terminated "two" (format XOTHER:fmt "one" "")))
    (diagonal #:setup div-by-zero       (terminated "two" (format XSETUP:fmt "one" "")))
    (diagonal (lambda _ (let L () (L))) (terminated "two" (format XPLAY:fmt "one" timed)))
