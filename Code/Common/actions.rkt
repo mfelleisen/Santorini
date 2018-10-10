@@ -90,7 +90,7 @@
           (not (and (= e-w PUT) (= n-s PUT)))
           (stay-on-board? board t e-w n-s)
           (check-move board t e-w n-s)
-          (is-move-a-winner? board t e-w n-s))]
+          (= (height-of board t e-w n-s) TOP-FLOOR))]
     [(move-build t e-w n-s e-w-build n-s-build)
      (and (worker-match t player-name)
           (not (and (= e-w PUT) (= n-s PUT)))

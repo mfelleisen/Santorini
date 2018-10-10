@@ -77,9 +77,23 @@ The game ends
 (define (step gt a)
   (with tree gt (next (apply-action board a))))
 
+(define (is-move-a-winner? b t e-w n-s)
+  (= (height-of b t e-w n-s) TOP-FLOOR))
+
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
   (require (submod ".."))
+
+   (define (board-move ss tt)
+    (cboard 
+     [[,ss ,tt 1x1]
+      [3   2o1 1o2]]))
+  
+  (define b1-before (board-move 3 '2x2))
+  (define b1-after  (board-move '3x2 2))
+
+  (check-false (is-move-a-winner? b1-before (worker "x2") EAST PUT))
+  (check-true  (is-move-a-winner? b1-after (worker "x2") PUT SOUTH))
 
   (define-syntax-rule
     (check-generate r sel b player other)

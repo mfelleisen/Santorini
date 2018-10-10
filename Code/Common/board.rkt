@@ -22,10 +22,6 @@
  board?
  
  (contract-out
-  (non-occupied-places
-   ;; compute the list of places where players can still place a worker 
-   (-> (listof (list/c in-range? in-range?)) (listof (list/c in-range? in-range?))))
-
   (init
    ;; create the board and place the four worker?s on it
    (->i ((t1 init/c) (t2 init/c) (t3 init/c) (t4 init/c))
@@ -33,9 +29,17 @@
         (let ([L (map rest (list t1 t2 t3 t4))]) (= (set-count (apply set L)) (length L)))
         (r board?)))
 
+  (board-players
+   ;; retrieve the list of player names 
+   (-> board? (listof string?)))
+
   (named-workers
    ;; retrieve the workers of the given name on this board
    (-> board? string? (list/c worker? worker?)))
+
+  (non-occupied-places
+   ;; compute the list of places where players can still place a worker 
+   (-> (listof (list/c in-range? in-range?)) (listof (list/c in-range? in-range?))))
 
   (on?
    ;; is this the name of a player on this boar? 
@@ -81,14 +85,8 @@
    (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
         #:pre/name (b t e-w n-s) "remains on board" (stay-on-board? b t e-w n-s)
         #:pre/name (b t e-w n-s) "shorter than 4 stories" (< (height-of b t e-w n-s) MAX-HEIGHT)
-        (r board?)))
+        (r board?))))
  
-  (is-move-a-winner?
-   ;; did the move of the worker end the game on this board?
-   (->i ((b board?) (t (b) (and/c worker? (on-board? b))) (e-w east-west/c) (n-s north-south/c))
-        #:pre/name (b t e-w n-s) "remains on board" (stay-on-board? b t e-w n-s)
-        (r boolean?))))
-
  (all-from-out "buildings.rkt"))
 
 ;; there is also a submodule json, which provides board->jsexpr and jsexpr->board 
@@ -194,6 +192,11 @@
 (define (init worker1 worker2 worker3 worker4)
   (board (list worker1 worker2 worker3 worker4) '()))
 
+(define (board-players b)
+  (define workers (for*/list ((t (board-workers b)) (w (in-value (first t)))) (worker-name w)))
+  (define players (set-map (apply set workers) values))
+  players)
+
 (define (named-workers b n)
   (for*/list ((t (board-workers b)) (w (in-value (first t))) #:when (string=? (worker-name w) n))
     w))
@@ -216,9 +219,6 @@
 (define (stay-on-board? board t e-w n-s)
   (define-values (x y) (worker-location board t))
   (and (in-range? (+ x e-w)) (in-range? (+ y n-s))))
-
-(define (is-move-a-winner? b t e-w n-s)
-  (= (height-of b t e-w n-s) TOP-FLOOR))
 
 (define (location-free-of-worker? b t e-w n-s)
   (define-values (x0 y0) (shift b t e-w n-s))
@@ -620,6 +620,8 @@
   (check-true  ((on-board? board0) (first (first lox0))))
   (check-false ((on-board? board0) (worker "w2")))
 
+  (check-equal? (board-players board0) (list "x" "o"))
+
   (check-true  ((on? board0) "o"))
   (check-false ((on? board0) "xxx"))
 
@@ -640,9 +642,6 @@
 
   (check-false (stay-on-board? b1-before (worker "x2") PUT NORTH))
   (check-true  (stay-on-board? b1-before (worker "x2") PUT SOUTH))
-
-  (check-false (is-move-a-winner? b1-before (worker "x2") EAST PUT))
-  (check-true  (is-move-a-winner? b1-after (worker "x2") PUT SOUTH))
   
   (check-equal? (height-of b1-before (worker "o1") PUT SOUTH) 0)
   (check-equal? (height-of b1-before (worker "x2")) 2)

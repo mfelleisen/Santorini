@@ -46,34 +46,39 @@
       (define actions (tree-actions tree))
       (and (cons? (member a actions))
            (or (winning-move? a)
-               (all-safe? a tree (sub1 n))
+               (for-all-safe? a tree (sub1 n))
                (giving-up? a))))
 
     (define/public (take-turn board (n 2))
       (define tree (generate board player other))
-      (find-a-good-action tree n))
+      (exists-action tree n))
 
     ;; GameTree N -> Action
     ;; find first action that is a winner or guarantees n move-and-build turns
     ;; if all else fails, give up 
-    (define/private (find-a-good-action tree n)
+    (define/private (exists-action tree n)
       (define actions (tree-actions tree))
-      (or (for/first ((a actions) #:when (winning-move? a)) a)      
-          (for/first ((a actions) #:when (or (<= n 1) (all-safe? a tree (sub1 n)))) a)
+      (or (for/first ((a actions) #:when (winning-move? a)) a)
+          (for/first ((a actions) #:when (or (<= n 1) (for-all-safe? a tree (sub1 n)))) a)
           (giving-up player)))
 
+    ;; GameTree N -> Boolean
+    (define/private (exists-good-action mine n)
+      (not (giving-up? (exists-action mine (sub1 n)))))
+    
     ;; Action GameTree N -> Boolean 
-    (define/private (all-safe? a gt n)
+    (define/private (for-all-safe? a gt n)
       (define next (step gt a))
       (define other-actions (tree-actions next))
-      (for/and ((a other-actions))
-        (define mine (step next a))
-        (define acts (tree-actions mine))
-        (and
-         (not (winning-move? a))
-         ;; there is more than a giving-up action available 
-         (cons? (rest acts))
-         (not (giving-up? (find-a-good-action mine (sub1 n)))))))))
+      (and (>= n 1)
+           (for/and ((a other-actions))
+             (define mine (step next a))
+             (define acts (tree-actions mine))
+             (and
+              (not (winning-move? a))
+              ;; there is more than a giving-up action available 
+              (cons? (rest acts))
+              (exists-good-action mine (sub1 n))))))))
 
 (define (distance p q)
   (sqrt (apply + (map sqr (map - p q)))))
@@ -130,7 +135,7 @@
   (define 8board2
     (cboard
      [[0one1 0one2]
-     [3      0]
-     [0two1 0two2]]))
+      [3      0]
+      [0two1 0two2]]))
   (check-true (send one-two safe-for (move-build (worker "one1") EAST SOUTH WEST PUT) 8board2 3)))
   
