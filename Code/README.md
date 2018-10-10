@@ -91,6 +91,9 @@
 - [X] referee and actions: did not ensure that the player moved one of its own workers
 - [X] referee: the error reporting was correct, my expected answer was wrong; see above 
 
+- [X] strategy: failed to check whether the opponent could win 
+
+
 ## Racket Issues 
 
 - in class contracts, field sub-contracts can't refer to other fields 

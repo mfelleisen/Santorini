@@ -5,10 +5,11 @@
 (provide
  (contract-out
   (strategy%
-    (class/c
-      (init-field (player string?) (other string?))
-      (initialization (->m placements/c place/c))
-      (take-turn      (->m board? action?))))))
+   (class/c
+    (init-field (player string?) (other string?))
+    (initialization (->m placements/c place/c))
+    (take-turn      (->m board? action?))
+    (safe-for       (->m action? board? natural-number/c boolean?))))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "move-generating.rkt")
@@ -39,30 +40,40 @@
            (for/list ((f free-places))
              (list f (for/sum ((o others)) (distance f o)))))
          (first (argmax second with-distances))]))
-    
+
+    (define/public (safe-for a board n)
+      (define tree (generate board player other))
+      (define actions (tree-actions tree))
+      (and (cons? (member a actions))
+           (or (winning-move? a)
+               (all-safe? a tree (sub1 n))
+               (giving-up? a))))
+
     (define/public (take-turn board (n 2))
       (define tree (generate board player other))
-      ;; GameTree N -> Action
-      ;; find first action that is a winner or guarantees n move-and-build turns
-      ;; if all else fails, give up 
-      (define (find-a-good-action tree n)
-        (define actions (tree-actions tree))
-        (or (for/first ((a actions) #:when (winning-move? a)) a)       
-            (for/first ((a actions) #:when (or (<= n 1) (safe? a tree (sub1 n)))) a)
-            (giving-up player)))
+      (find-a-good-action tree n))
 
-      ;; Action GameTree N -> Boolean 
-      (define (safe? a gt n)
-        (define next (step gt a))
-        (for/and ((a (tree-actions next)))
-          (define mine (step next a))
-          (define acts (tree-actions mine))
-          (and
-           ;; there is more than a giving-up action available 
-           (cons? (rest acts))
-           (not (giving-up? (find-a-good-action mine (sub1 n)))))))
-      ;; -- IN -- 
-      (find-a-good-action tree n))))
+    ;; GameTree N -> Action
+    ;; find first action that is a winner or guarantees n move-and-build turns
+    ;; if all else fails, give up 
+    (define/private (find-a-good-action tree n)
+      (define actions (tree-actions tree))
+      (or (for/first ((a actions) #:when (winning-move? a)) a)      
+          (for/first ((a actions) #:when (or (<= n 1) (all-safe? a tree (sub1 n)))) a)
+          (giving-up player)))
+
+    ;; Action GameTree N -> Boolean 
+    (define/private (all-safe? a gt n)
+      (define next (step gt a))
+      (define other-actions (tree-actions next))
+      (for/and ((a other-actions))
+        (define mine (step next a))
+        (define acts (tree-actions mine))
+        (and
+         (not (winning-move? a))
+         ;; there is more than a giving-up action available 
+         (cons? (rest acts))
+         (not (giving-up? (find-a-good-action mine (sub1 n)))))))))
 
 (define (distance p q)
   (sqrt (apply + (map sqr (map - p q)))))
@@ -106,4 +117,20 @@
       [2   4]
       [4   4]]))
 
-  (check-equal? (send x-o-take-turn take-turn gu-2-down-board) (giving-up "x")))
+  (check-equal? (send x-o-take-turn take-turn gu-2-down-board) (giving-up "x"))
+
+  (define one-two (make-safe "one" "two"))
+
+  (define 8board1
+    (cboard
+     [[0one1 1one2 3 2two1]
+      [0     2two2 3      ]]))
+  (check-false (send one-two safe-for (move-build (worker "one2") WEST SOUTH PUT SOUTH) 8board1 0))
+
+  (define 8board2
+    (cboard
+     [[0one1 0one2]
+     [3      0]
+     [0two1 0two2]]))
+  (check-true (send one-two safe-for (move-build (worker "one1") EAST SOUTH WEST PUT) 8board2 3)))
+  
