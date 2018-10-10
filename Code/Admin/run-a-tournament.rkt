@@ -50,7 +50,7 @@ christos ../Player/player.rkt
   (check-equal? (with-input-from-string player-info:string read-player-info) player-info:struct)
   (check-pred cons? (info->players player-info:struct))
 
-  (time-out-limit 1.2)
+  (time-out-limit 4.8)
 
   (check-equal? (with-output-to-dev-null (lambda () (with-input-from-string player-info:string main)))
-                '(() (("matthias" "christos")))))
+                '(() (("christos" "matthias")))))

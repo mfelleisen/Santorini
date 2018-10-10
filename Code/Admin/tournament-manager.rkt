@@ -134,7 +134,7 @@
         
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
-  (time-out-limit 1.2)
+  (time-out-limit 4.8)
 
   (check-equal? (all-pairings '(a b)) '((a b)))
   
@@ -172,10 +172,10 @@
 
   ; (check-tm plain           '(() (("matthias" "christos"))) "plain 1")
   ; (check-tm (reverse plain) '(() (("christos" "matthias"))) "plain 2")
-  (check-tm plain+fail-1    '(("baddypl") (("matthias" "christos") ("matthias" "baddypl"))) "bad pl")
+  (check-tm plain+fail-1    '(("baddypl") (("christos" "matthias") ("matthias" "baddypl"))) "bad pl")
 
   (check-tm plain+fail-1+3  '(("baddytt" "baddypla" "baddypl")
-                              (("matthias" "christos")
+                              (("christos" "matthias")
                                ("matthias" "baddytt")))
             "bad tt"))
 
