@@ -59,7 +59,7 @@
     (define/private (exists-action tree n)
       (define actions (tree-actions tree))
       (or (for/first ((a actions) #:when (winning-move? a)) a)
-          (for/first ((a actions) #:when (or (<= n 1) (for-all-safe? a tree (sub1 n)))) a)
+          (for/first ((a actions) #:when (or (<= n 0) (for-all-safe? a tree (sub1 n)))) a)
           (giving-up player)))
 
     ;; GameTree N -> Boolean
@@ -70,15 +70,15 @@
     (define/private (for-all-safe? a gt n)
       (define next (step gt a))
       (define other-actions (tree-actions next))
-      (and (>= n 1)
-           (for/and ((a other-actions))
-             (define mine (step next a))
-             (define acts (tree-actions mine))
-             (and
-              (not (winning-move? a))
-              ;; there is more than a giving-up action available 
-              (cons? (rest acts))
-              (exists-good-action mine (sub1 n))))))))
+      (or (<= n 0)
+          (for/and ((a other-actions))
+            (define mine (step next a))
+            (define acts (tree-actions mine))
+            (and
+             (not (winning-move? a))
+             ;; there is more than a giving-up action available 
+             (cons? (rest acts))
+             (exists-good-action mine (sub1 n))))))))
 
 (define (distance p q)
   (sqrt (apply + (map sqr (map - p q)))))
@@ -138,4 +138,24 @@
       [3      0]
       [0two1 0two2]]))
   (check-true (send one-two safe-for (move-build (worker "one1") EAST SOUTH WEST PUT) 8board2 3)))
-  
+
+;; ---------------------------------------------------------------------------------------------------
+(require (submod "../Common/board.rkt" test-support))
+(require (submod "../Common/board.rkt" json))
+
+(define b1 (cboard [[0a1 0   0 0 0   0]
+                    [0   0a2 0 0 0   0]
+                    []
+                    []
+                    [0   0   0 0 0b2 0]
+                    [0   0   0 0 0   0b1]]))
+
+
+;; Board -> Void
+;; display all actions that are safe for the [board "a" "b"] by player "a"
+(define (main b1)
+  (define s (new strategy% [player "a"][other "b"]))
+  (for ((a (tree-actions (generate b1 "a" "b"))))
+    (for ((i (in-range 4)))
+      (when (send s safe-for a b1 i)
+        (displayln `("a" ,(board->jsexpr b1) ,i ,a))))))

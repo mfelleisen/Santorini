@@ -92,6 +92,7 @@
 - [X] referee: the error reporting was correct, my expected answer was wrong; see above 
 
 - [X] strategy: failed to check whether the opponent could win 
+- [X} strategy: failed to count properly 
 
 
 ## Racket Issues 
