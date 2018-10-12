@@ -9,6 +9,7 @@
     (init-field (player string?) (other string?))
     (initialization (->m placements/c place/c))
     (take-turn      (->m board? action?))
+    (dead?          (->m board? boolean?))
     (safe-for       (->m action? board? natural-number/c boolean?))))))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -41,6 +42,10 @@
              (list f (for/sum ((o others)) (distance f o)))))
          (first (argmax second with-distances))]))
 
+    (define/public (dead? board)
+      (define actions (tree-actions (generate board player other)))
+      (and (empty? (rest actions)) (giving-up? (first actions))))
+      
     (define/public (safe-for a board n)
       (define tree (generate board player other))
       (define actions (tree-actions tree))
