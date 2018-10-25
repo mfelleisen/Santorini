@@ -5,6 +5,11 @@
 (require "../Common/player-interface.rkt")
 
 (provide
+
+ ;; SYNTAX
+ ;; (failing-module n:N k:keyword f:function-for-failure)
+ failing-module
+
  (contract-out 
   (make-failing-player%
    ;; the constructed player will fail after n calls to other
@@ -43,6 +48,24 @@
     (define/failure (placement list-of-places) pf initialization)
 
     (define/failure (take-turn board) tff take-turn)))
+
+(define-syntax-rule (failing-module n kw f)
+  (begin
+
+    (require "../Common/player-interface.rkt")
+
+    (provide
+     (contract-out
+      (rename
+       failing-after-3-for-take-turn%
+       player%
+       player%/c)))
+
+    ;; -----------------------------------------------------------------------------------------------
+    (require "failing.rkt")
+
+    (define failing-after-3-for-take-turn%
+      (make-failing-player% n kw f))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
