@@ -11,7 +11,7 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (define (main)
-  (tournament-manager/proc (info->players (read-player-info))))
+  (tournament-manager/proc (info->players (read-player-info)) '()))
 
 (struct player-info (name mechanics) #:transparent)
 
