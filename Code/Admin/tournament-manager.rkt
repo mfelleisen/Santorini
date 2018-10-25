@@ -10,17 +10,25 @@
 ;; its opponents.
 
 (require "../Common/player-interface.rkt")
+(require "../Common/observer-interface.rkt")
 
 (provide
+ 
  (contract-out
-  (tournament-manager
+  (rename
+   tournament-manager main
+   ;; configure tournament manager from the information in the specified file 
+   (-> path-string? (list/c (listof string?) result*/c)))
+  
+  (tournament-manager/proc
    ;; determine the winners of a round-robin tourhament 
-   (-> (listof player/c) (list/c (listof string?) result*/c)))))
+   (-> (listof player/c) (listof observer/c) (list/c (listof string?) result*/c)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "referee.rkt")
-(require (submod "../Common/results.rkt" json))
+; (require (submod "../Common/results.rkt" json))
 (require "../Lib/xsend.rkt")
+(require json)
 
 (module+ test
   (require rackunit)
@@ -29,37 +37,78 @@
   (require "../Lib/with-output-to-dev-null.rkt"))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define (tournament-manager lop0)
+(define (tournament-manager file.rc)
+  (define-values (lop-spec loo-spec) (with-input-from-file file.rc read-player-info))
+  (define lop (create-players lop-spec))
+  (define loo (create-observers loo-spec))
+  (tournament-manager lop loo))
+
+#; [type PlayerSpec   = [List Kind String PathString]]
+#; [type ObserverSpec = [List String PathString]]
+
+#; [-> (values [Listof PlayerSpec] [Listof ObserverSpec])]
+;; read player info from STDIN
+(define (read-player-info)
+  (define configuration (read-json))
+  (unless (hash? configuration)
+    (error 'tournament-manager "hash expected, given ~e" configuration))
+  (define players   (hash-ref configuration 'players))
+  (define observers (hash-ref configuration 'observers))
+  (values players observers))
+
+;; [ [Listof PlayerSpec] -> [Listof Player] ]
+(define (create-players lop-spec)
+  (for/list ((pi lop-spec))
+    (match-define `(,kind ,name ,mechanics) pi)
+    (define player% (dynamic-require mechanics 'player%))
+    (new player% [name name])))
+
+;; [ [Listof ObserverSpec] -> [Listof Player] ]
+(define (create-observers loo-spec)
+  (for/list ((pi loo-spec))
+    (match-define `(,name ,mechanics) pi)
+    (define observer% (dynamic-require mechanics 'observer%))
+    (new observer% [name name])))
+  
+#; [type Schedule = [Listof [List [List String Player] [List String Player]]]]
+#; [type Result   = [Listof [List String[winner] String[loser]]]]
+
+;; ---------------------------------------------------------------------------------------------------
+(define (tournament-manager/proc lop0 loo)
   ;; [Listof [List String Player]]
   ;; ASSERT the strings form a set 
   (define lop (assign-unique-names lop0))
   
-  ;; [Listof [List [List String Player] [List String Player]]]
   (define schedule (all-pairings lop))
-  
-  ;; [Listof [List String[winner] String[loser]]] 
-  (define-values (results cheaters)
-    (for*/fold ([results '()] [cheaters '()])
-               ((pairing schedule)
-                (name1   (in-value (first (first pairing))))
-                [name2   (in-value (first (second pairing)))]
-                #:unless (or (member name1 cheaters) (member name2 cheaters)))
-      (define player1 (second (first pairing)))
-      (define player2 (second (second pairing)))
-      (define referee (new referee% [one player1][two player2]))
-      (define result  (send referee best-of 3))
-      (match result
-        [(? string? winner)
-         (define loser (other-one winner name1 name2))
-         (values (cons (list winner loser) results) cheaters)]
-        [(terminated winner reason)
-         (define loser (other-one winner name1 name2))
-         (values (cons (list winner loser) (purge loser results cheaters)) (cons loser cheaters))])))
+  (define-values (results cheaters) (run-tournament schedule loo))
 
   ;; use _lop_ not _lop0_ because we don't want to rely on 'playing-as' actually changing the name
   ;; (even though this player is 'ours' and not 'theirs') 
   (list (inform-all-non-cheaters lop cheaters results) results))
 
+#; (Schedule [Listof Observer] -> (values Result [Listtof String]))
+(define (run-tournament schedule loo)
+  (for*/fold ([results '()] [cheaters '()])
+             ((pairing schedule)
+              (name1   (in-value (first (first pairing))))
+              [name2   (in-value (first (second pairing)))]
+              #:unless (or (member name1 cheaters) (member name2 cheaters)))
+    (define player1 (second (first pairing)))
+    (define player2 (second (second pairing)))
+    (define referee (attach-observers (new referee% [one player1][two player2]) loo))
+    (define result  (send referee best-of 3))
+    (match result
+      [(? string? winner)
+       (define loser (other-one winner name1 name2))
+       (values (cons (list winner loser) results) cheaters)]
+      [(terminated winner reason)
+       (define loser (other-one winner name1 name2))
+       (values (cons (list winner loser) (purge loser results cheaters)) (cons loser cheaters))])))
+
+#; [ Referee [Listof Observer] -> Referee ]
+(define (attach-observers referee loo)
+  (for ((o loo)) (send referee register))
+  referee)
 
 ;; [Listof Player] -> [Listof [List String Player]]
 ;; EFFECT send those player a "playing as" message whose name coincides with another player 
@@ -134,7 +183,9 @@
         
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
-  (time-out-limit 4.8)
+  (require (submod ".."))
+  
+  (time-out-limit 9.6)
 
   (check-equal? (all-pairings '(a b)) '((a b)))
   
@@ -151,7 +202,7 @@
   
   (define-syntax-rule
     (check-tm players expected msg)
-    (check-equal? (with-output-to-dev-null (lambda () (tournament-manager players)))
+    (check-equal? (with-output-to-dev-null (lambda () (tournament-manager/proc players '())))
                   expected
                   msg))
   
@@ -177,5 +228,53 @@
   (check-tm plain+fail-1+3  '(("baddytt" "baddypla" "baddypl")
                               (("christos" "matthias")
                                ("matthias" "baddytt")))
-            "bad tt"))
+            "bad tt")
 
+
+  ;; -------------------------------------------------------------------------------------------------
+  (define player-info:json
+    #<< eos
+{ "players" : [["good", "matthias", "../Player/player.rkt"],
+               ["good", "christos", "../Player/player.rkt"]],
+  "observers" : []}
+ eos
+    )
+
+  (define player-info:jsexpr
+    '[["good" "matthias" "../Player/player.rkt"]
+      ["good" "christos" "../Player/player.rkt"]])
+
+  (let-values ([(p* o*) (with-input-from-string player-info:json read-player-info)])
+    (check-equal? p* player-info:jsexpr)
+    (check-equal? o* '()))
+
+  (define players (create-players player-info:jsexpr))
+    
+  (check-tm players '(() (("christos" "matthias"))) "created players")
+
+  (define mixed-player-info:json
+    #<< eos
+{ "players" : [["good",     "matthias",     "../Player/player.rkt"],
+               ["good",     "christos",     "../Player/player.rkt"],
+               ["infinite", "infplace", "../Player/failing-inf-placement.rkt"],
+               ["breaker",  "badplace", "../Player/failing-placement.rkt"],
+               ["breaker",  "badturn",  "../Player/failing-placement.rkt"],
+               ["infinite", "infturn",  "../Player/failing-inf-turn.rkt"]],
+  "observers" : []}
+ eos
+    )
+
+  (let-values ([(p* o*) (with-input-from-string mixed-player-info:json read-player-info)])
+    (check-equal? (length p*) 6)
+    (check-equal? o* '())
+    (define players (create-players p*))
+    (match-define `(,cheaters ,games)
+      (with-output-to-dev-null (lambda () (tournament-manager/proc players '()))))
+    (check-equal? (length cheaters) 4              "cheaters for config")
+    (check-equal? games '(("christos" "infturn")
+                          ("matthias" "badplace")
+                          ("christos" "matthias")
+                          ("matthias" "infplace")
+                          ("matthias" "badturn")
+                          ("matthias" "infturn"))
+                  "games for config")))

@@ -68,6 +68,8 @@
 - [ ] GUI for watching a game, a round, or a tournament (observer pattern) 
 - [ ] ?? GUI for playing? 
 
+- [X] configurations for tournament done properly 
+
 ## Refactorings 
 
 - [x] move protocol from strategy to player

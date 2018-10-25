@@ -7,6 +7,10 @@
   (textual-observer% observer%/c)))
 
 ;; ---------------------------------------------------------------------------------------------------
+(require "../Lib/io.rkt")
+(require (submod "../Common/actions.rkt" json))
+(require (submod "../Common/board.rkt" json))
+
 (module+ test
   ; (require (submod ".."))
   (require "../Common/actions.rkt")
@@ -19,14 +23,23 @@
   (class object%
     (super-new)
     (define/public (action a)
-      (displayln a))
+      ((render) action->jsexpr a)
+      (newline))
     (define/public (board b)
-      (display b))
+      ((render) board->jsexpr b))
     (define/public (report msg)
-      (displayln msg))))
+      ((render) values msg)
+      (newline))))
+
+(define render (make-parameter (lambda (x y) (send-message (x y)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
+
+  ;; ********************************
+  (render (lambda (x y) (display y)))
+  ;; ********************************
+
   (define observer (new textual-observer%))
 
   (define-syntax-rule

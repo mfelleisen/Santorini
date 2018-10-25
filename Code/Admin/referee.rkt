@@ -63,7 +63,7 @@
 
     (define-syntax-rule
       (inform-observers (method arg))
-      (for #;((broken '())) ((o *observers))
+      (for ((o *observers))
         (define good? (xsend o method #:thrown vector #:timed-out vector arg))
         (when (vector? good?)
           (log-error "bad observer: ~a" good?)
