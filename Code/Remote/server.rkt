@@ -93,7 +93,7 @@
 (define (sign-up->start-up players)
   (displayln `(,players playing))
   (begin0
-    (tournament-manager players)
+    (tournament-manager/proc players '())
     (custodian-shutdown-all (current-custodian))))
 
 ;; ---------------------------------------------------------------------------------------------------
