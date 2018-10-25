@@ -135,7 +135,7 @@
     (cboard
      [[0one1 1one2 3 2two1]
       [0     2two2 3      ]]))
-  (check-false (send one-two safe-for (move-build (worker "one2") WEST SOUTH PUT SOUTH) 8board1 0))
+  (check-true (send one-two safe-for (move-build (worker "one2") WEST SOUTH PUT SOUTH) 8board1 0))
 
   (define 8board2
     (cboard
