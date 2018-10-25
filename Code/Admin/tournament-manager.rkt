@@ -18,7 +18,7 @@
   (rename
    tournament-manager main
    ;; configure tournament manager from the information in the specified file 
-   (-> path-string? (list/c (listof string?) result*/c)))
+   (-> (list/c (listof string?) result*/c)))
   
   (tournament-manager/proc
    ;; determine the winners of a round-robin tourhament 
@@ -37,11 +37,14 @@
   (require "../Lib/with-output-to-dev-null.rkt"))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define (tournament-manager file.rc)
-  (define-values (lop-spec loo-spec) (with-input-from-file file.rc read-player-info))
+(define (tournament-manager (file.rc #f))
+  (define-values (lop-spec loo-spec)
+    (if file.rc
+        (with-input-from-file file.rc read-player-info)
+        (read-player-info)))
   (define lop (create-players lop-spec))
   (define loo (create-observers loo-spec))
-  (tournament-manager lop loo))
+  (tournament-manager/proc lop loo))
 
 #; [type PlayerSpec   = [List Kind String PathString]]
 #; [type ObserverSpec = [List String PathString]]
@@ -56,24 +59,33 @@
   (define observers (hash-ref configuration 'observers))
   (values players observers))
 
-;; [ [Listof PlayerSpec] -> [Listof Player] ]
+#; [ [Listof PlayerSpec] -> [Listof Player] ]
+;; dynamically load player from specified path 
 (define (create-players lop-spec)
   (for/list ((pi lop-spec))
     (match-define `(,kind ,name ,mechanics) pi)
-    (define player% (dynamic-require mechanics 'player%))
+    (define player% (loader mechanics 'player%))
     (new player% [name name])))
 
 ;; [ [Listof ObserverSpec] -> [Listof Player] ]
 (define (create-observers loo-spec)
   (for/list ((pi loo-spec))
     (match-define `(,name ,mechanics) pi)
-    (define observer% (dynamic-require mechanics 'observer%))
+    (define observer% (loader mechanics 'observer%))
     (new observer% [name name])))
+
+;; PathString -> Any
+;; raise an exception if neither direct dynamic-require nor collection-oriented works 
+(define (loader mechanics id)
+  (with-handlers ([exn:fail?
+                   (lambda (xn)
+                     (dynamic-require (string->symbol mechanics) id))])
+    (dynamic-require mechanics id)))
   
+;; ---------------------------------------------------------------------------------------------------
 #; [type Schedule = [Listof [List [List String Player] [List String Player]]]]
 #; [type Result   = [Listof [List String[winner] String[loser]]]]
 
-;; ---------------------------------------------------------------------------------------------------
 (define (tournament-manager/proc lop0 loo)
   ;; [Listof [List String Player]]
   ;; ASSERT the strings form a set 
@@ -254,8 +266,8 @@
 
   (define mixed-player-info:json
     #<< eos
-{ "players" : [["good",     "matthias",     "../Player/player.rkt"],
-               ["good",     "christos",     "../Player/player.rkt"],
+{ "players" : [["good",     "matthias", "../Player/player.rkt"],
+               ["good",     "christos", "../Player/player.rkt"],
                ["infinite", "infplace", "../Player/failing-inf-placement.rkt"],
                ["breaker",  "badplace", "../Player/failing-placement.rkt"],
                ["breaker",  "badturn",  "../Player/failing-placement.rkt"],
