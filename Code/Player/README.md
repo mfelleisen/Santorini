@@ -1,6 +1,6 @@
-## 
+## The Player Arrangement 
 
-A Player implements the mechanics of the Common/player-interface, meaning 
+A _player_ implements the mechanics of the Common/player-interface, meaning 
 
 - it could realize a MVC architecture to interact with a human being 
 - it could perform remote procedure calls to other computers where a player

@@ -12,7 +12,9 @@
 (module+ main
   (time-out-limit 1.2)
   (define observer (new textual-observer%))
-  (define referee (new referee% [one (new player% [name "mf"])] [two (new player% [name "cd"])]))
+  (define player1  (new player% [name "mf"]))
+  (define player2  (new player% [name "cd"]))
+  (define referee  (new referee% [one player1] [one-name "mf"] [two player2] [two-name "cd"]))
   (send referee register observer)
   (send referee play)
   #;
