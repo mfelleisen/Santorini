@@ -11,7 +11,7 @@
  (contract-out
   (referee%
    (class/c
-    (init-field (one player/c) (two player/c))
+    (init-field (one player/c) (one-name string?) (two player/c) (two-name string?))
 
     (register (->m observer/c any/c))
     
@@ -23,9 +23,9 @@
                   (r (or/c string? terminated?))))))))
 
 (define (distinct? this)
-  (define player1 (get-field one this))
-  (define player2 (get-field two this))
-  (not (string=? (get-field name player1) (get-field name player2))))
+  (define name1 (get-field one-name this))
+  (define name2 (get-field two-name this))
+  (not (string=? name1 name2)))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "../Common/player-interface.rkt")
@@ -53,7 +53,7 @@
 (define XPLAY:fmt         "~a failed with the 'take-turn' method\n[~a]")
 
 (define referee%
-  (class object% (init-field one two)
+  (class object% (init-field one one-name two two-name )
     (super-new)
 
     (define *observers '())
@@ -94,8 +94,6 @@
         (init player1-worker1 player1-worker2 player2-worker1 player2-worker2)))
     
     (field
-     [one-name (get-field name one)]
-     [two-name (get-field name two)]
      [board ;; (U Terminated Board) ~~ the initial board, with four workers, two per player 
       (let/ec done
         (define ex-one (report done XOTHER:fmt one-name "" two-name))
@@ -219,7 +217,7 @@
     [define player1 (new pl-1-% [name "one"][other "two"])]
     [define player2 (new pl-2-% [name "one"][other "one"])]
     (send player2 playing-as "two")
-    (action (new referee% [one player1] [two player2])))
+    (action (new referee% [one player1][one-name "one"] [two player2][two-name "two"])))
 
   #; ([Listof BoardLocation] { [Board -> Action] } 
                              #:other [String -> Void]
@@ -259,14 +257,14 @@
              (lambda ()
                (define one (new player% [name "christos-1"]))
                (define two (new player% [name "christos"]))
-               (new referee% [one one] [two two]))
+               (new referee% [one one][one-name "christos-1"] [two two] [two-name "christos"]))
              "this test belongs into player-interface, but good enough")
 
   (check-exn #px"distinct names"
              (lambda ()
-               (define one (new player% [name "christos"]))
-               (define two (new player% [name "christos"]))
-               (define ref (new referee% [one one] [two two]))
+               (define one (new player% [name "one"]))
+               (define two (new player% [name "one"]))
+               (define ref (new referee% [one one][one-name "one"] [two two][two-name "one"]))
                (send ref play)))
 
   ;; -------------------------------------------------------------------------------------------------

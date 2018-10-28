@@ -96,6 +96,12 @@
 - [X] strategy: failed to check whether the opponent could win 
 - [X} strategy: failed to count properly 
 
+- [X] referee and tournament-manager: there is one piece of game state
+  besides the board, namely, the names assigned to the players (in case of
+  overlapping names). Instead of using the assigned name from the schedule, 
+  the tournament manager asked the player to "know" their names and thus
+  used _externally supplied_ software components to keep track of game
+  state (which they may or may not, or may not do so honestly). 
 
 ## Racket Issues 
 

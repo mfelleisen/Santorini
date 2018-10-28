@@ -105,10 +105,11 @@
               (name1   (in-value (first (first pairing))))
               [name2   (in-value (first (second pairing)))]
               #:unless (or (member name1 cheaters) (member name2 cheaters)))
-    (define player1 (second (first pairing)))
-    (define player2 (second (second pairing)))
-    (define referee (attach-observers (new referee% [one player1][two player2]) loo))
-    (define result  (send referee best-of 3))
+    (define player1  (second (first pairing)))
+    (define player2  (second (second pairing)))
+    (define referee  (new referee% [one player1][one-name name1][two player2][two-name name2]))
+    (define ref-with (attach-observers referee loo))
+    (define result   (send ref-with best-of 3))
     (match result
       [(? string? winner)
        (define loser (other-one winner name1 name2))
