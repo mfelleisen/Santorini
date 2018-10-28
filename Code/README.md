@@ -1,3 +1,174 @@
+## Running a Full-fledged Santorini Gaming Framework 
+
+This directory implements a distributed Santorini gaming framework, both the
+client and the server side. The _Remote_ directory provides 
+
+- the `server` and 
+- the `client` programs 
+
+plus some remote-proxy components for turning the monolithic version 
+into a distributed one. 
+
+The server waits for a certain number of seconds to sign up a (minimum)
+number of remote players. Once there are enough players, the server
+hands the (proxy) players to the _tournament manager_, which implements the
+logic of running a complete "everyone plays everyone" tournament. 
+
+By connecting remote clients to the _tournament manager_, we isolate their
+control-flow disturbing, memory, and file-access capabilities. But we still
+wish to make the server robust enough so that exception-raising flaws in
+the player do not kill the server completely (if possible). We therefore 
+place the protections into the administrative components (_tournament
+manager_, _referee_). For now these protections include 
+- catching all exceptions and 
+- limiting time consumption 
+of any call to a _player_ component. Any errors of this kind are currently
+logged to `info`. 
+
+The client connects to a remote server and then waits for "remote function
+calls", which are translated into method calls for the local player
+component. 
+
+## Running a Monolithic Santorini Gaming Framework 
+
+The _Admin_ and _Player_ directories implement the essential components for
+a *monolithic* Santorini gaming framework. How these two interact is spelled
+out in the files of the _Common_ directory. 
+
+The distributed version of the gaming framework is derived from the
+monolithic one via the _remote proxy design pattern_. 
+
+The _Admin_ directory implements a _tournament manager_, which manages the
+entire tournament. To conduct an individual encounter, it delegates to the
+_referee_. 
+
+The _Player_ directory implements two kinds of Santorini players, derived
+from a `super` class: 
+
+- `player` uses a simplistic "stay alive" strategy with a parametrized
+  look-ahead strategy for a game tree. It delegates its decisions to a
+  `strategy` component. This code is simplistic; it allows the team to run
+  a complete tournament. 
+
+- `textual` presents the game information to a human player who can then
+  make decisions. The UX is an extreme simple read-eval-print loop. 
+
+The _Common_ directory spells out all data representations that _Admin_ and
+_Player_ must share and have a common understanding of. The first cluster
+concerns the basic game pieces: 
+
+- the Santorini `board`
+- the `worker`s
+- the `building`s
+- the `direction`s 
+
+The second cluster is about how the _Admin_ components may interact with
+the _Player_: 
+
+- the `player-interface`, including methods 
+  - about the game name of a player (in case of name clashes) 
+  - about the name of the opponent (called at the beginning of an encounter) 
+  - for setting up the initial game board 
+  - for taking a turn 
+  - for being told about the result of an individual game 
+
+In turn, these methods demand further common data representations, namely,
+about 
+
+- the information a player needs to place the next worker (`placements`)
+- .. and the information that is returned 
+- the information a player needs to choose its next turn 
+- .. and the information about what it wishes to do (incl. giving up) 
+- and the information it receives at the end of the game. 
+
+The _Lib_ directory contains common pieces of functionality that should be
+part of the programming language but aren't. 
+
+## The Interaction Protocol (Monolithic) 
+
+The interact
+
+### Tournament Set-up 
+
+---------------------------------------------------------------------------------------------------
+
+```
+   manager <-------------- player (p1)  . . . player (pn)
+     |                        |        |      |
+     |                        |        |      |
+     |------------------------|--------|----->|   playing-as(string) % in case of name clash 
+     |                        |        |      |
+     |------------------------|------->|      |   playing-as(string) % in case of name clash 
+     .                        .               .
+     |                        |               |
+     |               referee  |               |
+     |--new(p1,p2)-------+    |               |
+     |                   |    |               |
+     .                   .    .               .   an encounter between player p1 and p2     
+     |<================= |    |               |   result: string or string plus termination notice
+     |                   _    |               |
+     |                        |               |
+     |                        |               |
+     |               referee  |               |
+     |--new(p1,p3)-------+    |               |
+     |                   |    |               |
+     .                   .    .               .   an encounter between player p1 and p3
+     |<================= |    |               |   result: string or string plus termination notice
+     |                   _    |               |
+     |                        |               |
+     | ---------------------> |   	      |	  end-of-game(results/c)
+     | 			      |		      |
+     .			      .		      .
+     | -------------------------------------> |   end-of-game(results/c)
+     .                        .               .   for all surviving players 
+     | 			      |		      |
+```
+
+Terminated players no longer compete and their past games are re-evaluated. See _Admin_ for policy
+and its implementation.  
+
+
+### A Referee Interaction 
+
+```
+  referee             player: p1          player: p2
+     |                   |                    |
+     |-----------------> |                    |   other-name(string)
+     |                   |                    |   (the name of the other player,
+     |                   |                    |   which is also the name of its workers)
+     |--------------------------------------> |   other-name(string)
+     |                   |                    |
+     |-----------------> |                    |   placement(placements/c)
+     | <================ |                    |   place/c
+     | -------------------------------------> |   placement(placements/c)
+     | <===================================== |   place/c
+     |-----------------> |                    |   placement(placements/c)
+     | <================ |                    |   place/c
+     | -------------------------------------> |   placement(placements/c)
+     | <===================================== |   place/c
+     |                   |                    |
+     |-----------------> |                    |   take-turn(board/c)
+     | <================ |                    |   action/c
+     | -------------------------------------> |   take-turn(board/c)
+     | <===================================== |   action/c
+     |                   |                    |
+     .                   .                    .
+     |-----------------> |                    |   take-turn(board/c)
+     | <================ |                    |   action/c
+     | -------------------------------------> |   take-turn(board/c)
+     | <===================================== |   action/c
+```
+
+An interaction ends normally if a player wins or a player gives up. 
+
+An interaction is terminated if a player breaks the rules, raises an exception, or takes too long
+to complete an interaction. 
+
+## Observers 
+
+A game-level observe protocol exists. 
+
+
 ## TODO List 
 
 ## NSF 
