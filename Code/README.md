@@ -1,13 +1,13 @@
 ## Running a Full-fledged Santorini Gaming Framework 
 
 This directory implements a distributed Santorini gaming framework, both the
-client and the server side. The _Remote_ directory provides 
+client and the server side. The _Remote_ directory provides the
 
-- the `server` and 
-- the `client` programs 
+- `server` and 
+- `client` 
 
-plus some remote-proxy components for turning the monolithic version 
-into a distributed one. 
+programs plus some remote-proxy components for turning the monolithic
+version into a distributed one.
 
 The server waits for a certain number of seconds to sign up a (minimum)
 number of remote players. Once there are enough players, the server
@@ -20,8 +20,10 @@ wish to make the server robust enough so that exception-raising flaws in
 the player do not kill the server completely (if possible). We therefore 
 place the protections into the administrative components (_tournament
 manager_, _referee_). For now these protections include 
+
 - catching all exceptions and 
 - limiting time consumption 
+
 of any call to a _player_ component. Any errors of this kind are currently
 logged to `info`. 
 
@@ -90,8 +92,6 @@ The interact
 
 ### Tournament Set-up 
 
----------------------------------------------------------------------------------------------------
-
 ```
    manager <-------------- player (p1)  . . . player (pn)
      |                        |        |      |
@@ -116,12 +116,12 @@ The interact
      |<================= |    |               |   result: string or string plus termination notice
      |                   _    |               |
      |                        |               |
-     | ---------------------> |   	      |	  end-of-game(results/c)
-     | 			      |		      |
-     .			      .		      .
+     | ---------------------> |               |   end-of-game(results/c)
+     |                        |               |
+     .                        .               .
      | -------------------------------------> |   end-of-game(results/c)
      .                        .               .   for all surviving players 
-     | 			      |		      |
+     |                        |               |
 ```
 
 Terminated players no longer compete and their past games are re-evaluated. See _Admin_ for policy
@@ -214,10 +214,10 @@ A game-level observe protocol exists.
 - [X] tournament for P players and O observers 
   - [X] DESIGN FLAW: player must consume the strategy itself 
     - [x] turns out, this is a mistake but it's not quite an undo
-	        because what I want is configure the same mechanical player
-	        with different strategies and then load those dynamically 
+                because what I want is configure the same mechanical player
+                with different strategies and then load those dynamically 
   - [X] DESIGN FLAW: a strategy module must export a strategy, no funny names;
-      	  otherwiseit can't be loaded dynamically 
+          otherwiseit can't be loaded dynamically 
 - [ ] distributed version 
   - [X] json for testing individual steps: board 
   - [X] json for testing individual steps: action
