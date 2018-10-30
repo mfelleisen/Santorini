@@ -31,6 +31,28 @@ The client connects to a remote server and then waits for "remote function
 calls", which are translated into method calls for the local player
 component. 
 
+## Designing a Santorini Player 
+
+### Local Interface 
+
+To design a Santorini player, study 
+
+- _Common/README.md_  
+
+first. It specifies the complete interface between a Santorini player and
+the _Admin_ gaming framework in Racket. For the interaction protocol, see 
+
+- _Common/protocol.md_ 
+
+### Remote Interface 
+
+The remote protocol is specified in 
+
+- _Remote/protocol.md _
+
+It implements the local interface via remote procedure/method calls that
+use JSON to represent the methods and the arguments. 
+
 ## Running a Monolithic Santorini Gaming Framework 
 
 The _Admin_ and _Player_ directories implement the essential components for
@@ -85,84 +107,6 @@ about
 
 The _Lib_ directory contains common pieces of functionality that should be
 part of the programming language but aren't. 
-
-## The Interaction Protocol (Monolithic) 
-
-The interact
-
-### Tournament Set-up 
-
-```
-   manager <-------------- player (p1)  . . . player (pn)
-     |                        |        |      |
-     |                        |        |      |
-     |------------------------|--------|----->|   playing-as(string) % in case of name clash 
-     |                        |        |      |
-     |------------------------|------->|      |   playing-as(string) % in case of name clash 
-     .                        .               .
-     |                        |               |
-     |               referee  |               |
-     |--new(p1,p2)-------+    |               |
-     |                   |    |               |
-     .                   .    .               .   an encounter between player p1 and p2     
-     |<================= |    |               |   result: string or string plus termination notice
-     |                   _    |               |
-     |                        |               |
-     |                        |               |
-     |               referee  |               |
-     |--new(p1,p3)-------+    |               |
-     |                   |    |               |
-     .                   .    .               .   an encounter between player p1 and p3
-     |<================= |    |               |   result: string or string plus termination notice
-     |                   _    |               |
-     |                        |               |
-     | ---------------------> |               |   end-of-game(results/c)
-     |                        |               |
-     .                        .               .
-     | -------------------------------------> |   end-of-game(results/c)
-     .                        .               .   for all surviving players 
-     |                        |               |
-```
-
-Terminated players no longer compete and their past games are re-evaluated. See _Admin_ for policy
-and its implementation.  
-
-
-### A Referee Interaction 
-
-```
-  referee             player: p1          player: p2
-     |                   |                    |
-     |-----------------> |                    |   other-name(string)
-     |                   |                    |   (the name of the other player,
-     |                   |                    |   which is also the name of its workers)
-     |--------------------------------------> |   other-name(string)
-     |                   |                    |
-     |-----------------> |                    |   placement(placements/c)
-     | <================ |                    |   place/c
-     | -------------------------------------> |   placement(placements/c)
-     | <===================================== |   place/c
-     |-----------------> |                    |   placement(placements/c)
-     | <================ |                    |   place/c
-     | -------------------------------------> |   placement(placements/c)
-     | <===================================== |   place/c
-     |                   |                    |
-     |-----------------> |                    |   take-turn(board/c)
-     | <================ |                    |   action/c
-     | -------------------------------------> |   take-turn(board/c)
-     | <===================================== |   action/c
-     |                   |                    |
-     .                   .                    .
-     |-----------------> |                    |   take-turn(board/c)
-     | <================ |                    |   action/c
-     | -------------------------------------> |   take-turn(board/c)
-     | <===================================== |   action/c
-```
-
-An interaction ends normally if a player wins or a player gives up. 
-
-An interaction is terminated if a player breaks the rules, raises an exception, or takes too long
-to complete an interaction. 
 
 ## Observers 
 

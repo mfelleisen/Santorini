@@ -1,5 +1,12 @@
 ## The Common Ontology .. Understanding between the Player and the Admin 
 
+This directory defines the interface between a (local) Santorini player and
+the gaming framework (_Admin_). This includes 
+
+- the class contract for a player 
+- the data exchanged between the _Admin_ framework and a player. 
+
+
 ### The Game Pieces 
 
 The game framework relies on the following data representations of the
