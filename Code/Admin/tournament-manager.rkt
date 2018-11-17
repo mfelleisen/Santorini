@@ -53,11 +53,11 @@
 ;; read player info from STDIN
 (define (read-player-info)
   (define configuration (read-json))
-  (unless (hash? configuration)
-    (error 'tournament-manager "hash expected, given ~e" configuration))
-  (define players   (hash-ref configuration 'players))
-  (define observers (hash-ref configuration 'observers))
-  (values players observers))
+  (match configuration
+    [(hash-table (observers (and o `((,o-name ,o-path) ...)))
+                 (players (and p `((,kind ,p-name ,p-path) ...))))
+     (values p o)]
+    [else (error 'tournament-manager "hash expected, given ~e" configuration)]))
 
 #; [ [Listof PlayerSpec] -> [Listof Player] ]
 ;; dynamically load player from specified path 
