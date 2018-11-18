@@ -50,7 +50,7 @@
     (collect listener (WAIT-FOR))))
 
 #; [-> (list N Port# Positive 0or1)]
-;; read player info from STDIN
+;; read configuration info from STDIN
 (define (read-server-configuration)
   (define configuration (read-json))
   (match configuration
@@ -104,14 +104,24 @@
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
 
+    (define sample-client-config
+      #<< eos
+{ "players"   : [["good", "matthias", "../Player/player.rkt"],
+                 ["good", "christos", "../Player/player.rkt"]],
+  "observers" : [],
+  "ip"        : "LOCALHOST",
+  "port"      : 45678
+}
+ eos
+      )
 
   (define sample-server-config
     #<< eos
-  { "min players" : 3,
-    "port"        : 56789,
-    "waiting for" : 10,
-    "repeat"      : 0
-  }
+{ "min players" : 3,
+  "port"        : 56789,
+  "waiting for" : 10,
+ "repeat"      : 0
+}
  eos
     )
 
@@ -119,31 +129,20 @@
                 (list 3 56789 10 0))
 
   ;; -------------------------------------------------------------------------------------------------
-  (define ((run-client ch name))
-    (channel-put ch (client LOCALHOST (PORT) name)))
-
   (define-syntax-rule
-    (tester ch [(ch1 name1) (ch2 name2) (ch3 name3) ...] checks ...)
-    (let ([ch  (make-channel)]
-          [ch1 (make-channel)]
-          [ch2 (make-channel)]
-          [ch3 (make-channel)] ...)
+    (tester ch checks ...)
+    (let ([ch  (make-channel)])
       (thread
        (lambda ()
          (define result (with-output-to-dev-null server-proper))
          (channel-put ch result)))
-      (for ([name (list name1 name2 name3 ...)][ch (list ch1 ch2 ch3 ...)])
-        (sleep 1) ;; this way matthias signs up first
-        (thread (run-client ch name)))
-      ;; now test 
+      (sleep 1)
+      (with-input-from-string sample-client-config client)
+      ;; now test
       checks ...))
 
   (define name1 "matthias")
   (define name2 "christos")
-  (define expected (list (list name2 name1)))
-  (tester ch ([ch1 name1][ch2 name2])
-          ;; --- running ... then test:
-          (check-equal? (channel-get ch1) expected)
-          (check-equal? (channel-get ch2) expected)
-          (check-equal? (channel-get ch) (list '() expected))))
+  (define expected (list (list name1 name2)))
+  (tester ch (check-equal? (channel-get ch) (list '() expected))))
           

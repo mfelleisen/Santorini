@@ -11,28 +11,58 @@
 
 ;; -----------------------------------------------------------------------------
 (require "tournament-manager.rkt")
+(require "../Admin/tournament-manager.rkt")
+(require "../Lib/io.rkt") 
+(require json)
 
 (module+ test
   (require (submod "tournament-manager.rkt" test-support)))
 
 ;; -----------------------------------------------------------------------------
-(define DEFAULT-PLAYER "../Player/player.rkt")
+(define IP   (make-parameter LOCALHOST))
+(define PORT (make-parameter 45678))
 
-;; String String String [String] -> [Listof Results]
-(define (client server port name (player%-file DEFAULT-PLAYER))
-  (call-with-values (lambda () (tcp-connect server port)) (run-client name player%-file)))
+;; -> [Listof Results]
+(define (client)
+  (define ch (make-channel))
+  (match-define `(,p* ,o* ,ip ,port) (read-client-configuration))
+  (IP   ip)
+  (PORT port)
+  (for ((p (create-players p*)))
+    (thread
+     (lambda ()
+       (channel-put ch (call-with-values (lambda () (tcp-connect (IP) (PORT))) (run-client p))))))
+  (channel-get ch))
+
+#; [-> (list N Port# Positive 0or1)]
+;; read player info from STDIN
+(define (read-client-configuration)
+  (define configuration (read-json))
+  (match configuration
+    [(hash-table ('observers (and o* `((,o-name ,o-path) ...)))
+                 ('players   (and p* `((,kind ,p-name ,p-path) ...)))
+                 ('ip        (and ip-address string?))
+                 ('port      (and port-number port#)))
+     (list p* o* ip-address port-number)]
+    [else (error 'client "hash expected, given ~e" configuration)]))
 
 ;; String String -> [InputPort OutputPort -> [Listof Results]]
-(define ((run-client name player%-file) in out)
-  (define player% (dynamic-require player%-file 'player%))
-  (define player  (new player% [name name]))
+(define ((run-client player) in out)
   (define manager (tournament-manager in out))
   (manager player))
 
+#; (Number -> (U #false Number))
+(define (port# n)
+  (and (integer? n) (<= 50000 n 60000) n))
+
 ;; -----------------------------------------------------------------------------
 (module+ test
+  (define DEFAULT-PLAYER "../Player/player.rkt")
+
   (define (run in out)
-    (define manager (run-client "matthias" DEFAULT-PLAYER))
+    (define player% (dynamic-require DEFAULT-PLAYER 'player%))
+    (define player  (new player% [name  "matthias"]))
+    (define manager (run-client player))
     (lambda (_player) (manager in out)))
   
   (test-suite run))
