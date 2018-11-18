@@ -94,8 +94,8 @@
         eof]
        [(list 'exn e)
         (local-require racket/exn)
-        (log-info "Error reading message:\n~a" (exn->string e))
+        (log-error "Error reading message:\n~a" (exn->string e))
         'error]
        [#f
-        (log-info "Timed out waiting for reading to complete.")
+        (log-error "Timed out waiting for reading to complete.")
         'timeout-2])]))
