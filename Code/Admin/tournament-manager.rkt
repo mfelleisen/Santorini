@@ -12,6 +12,9 @@
 (require "../Common/player-interface.rkt")
 (require "../Common/observer-interface.rkt")
 
+(define player-spec/c   (list/c string? string? path-string?))
+(define observer-spec/c (list/c string? path-string?))
+
 (provide
  
  (contract-out
@@ -22,7 +25,15 @@
   
   (tournament-manager/proc
    ;; determine the winners of a round-robin tourhament 
-   (-> (listof player/c) (listof observer/c) (list/c (listof string?) result*/c)))))
+   (-> (listof player/c) (listof observer/c) (list/c (listof string?) result*/c)))
+
+  (create-players
+   ;; create players from configuration specs 
+   (-> (listof player-spec/c) (listof any/c #;player/c)))
+
+  (create-observers
+   ;; create observers from configuration specs 
+   (-> (listof observer-spec/c) (listof observer/c)))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "referee.rkt")
