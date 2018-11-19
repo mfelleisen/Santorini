@@ -13,7 +13,7 @@
 (define placements/c
   (listof
    (list/c
-    string?   ;; who placed a worker 
+    string?   ;; who placed which worker on the board
     in-range? ;; at x 
     in-range? ;; at y on the initial board
     )))
