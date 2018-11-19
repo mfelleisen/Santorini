@@ -37,7 +37,7 @@ component.
 
 To design a Santorini player, study 
 
-- _Common/README.md_  
+- _[Common/README.md](Common/README.md)_  
 
 first. It specifies the complete interface between a Santorini player and
 the _Admin_ gaming framework in Racket. For the interaction protocol, see 
