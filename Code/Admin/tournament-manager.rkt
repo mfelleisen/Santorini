@@ -48,11 +48,8 @@
   (require "../Lib/with-output-to-dev-null.rkt"))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define (tournament-manager (file.rc #f))
-  (define-values (lop-spec loo-spec)
-    (if file.rc
-        (with-input-from-file file.rc read-player-info)
-        (read-player-info)))
+(define (tournament-manager)
+  (define-values (lop-spec loo-spec) (read-player-info))
   (define lop (create-players lop-spec))
   (define loo (create-observers loo-spec))
   (tournament-manager/proc lop loo))
@@ -70,20 +67,18 @@
      (values p o)]
     [else (error 'tournament-manager "hash expected, given ~e" configuration)]))
 
-#; [ [Listof PlayerSpec] -> [Listof Player] ]
-;; dynamically load player from specified path 
-(define (create-players lop-spec)
+(define ((make-create class% name-selector mechanics-selector) lop-spec)
   (for/list ((pi lop-spec))
-    (match-define `(,kind ,name ,mechanics) pi)
-    (define player% (loader mechanics 'player%))
-    (new player% [name name])))
+    (define name (name-selector pi))
+    (define mechanics (mechanics-selector pi))
+      (new (loader mechanics class%) [name name])))
 
-;; [ [Listof ObserverSpec] -> [Listof Player] ]
-(define (create-observers loo-spec)
-  (for/list ((pi loo-spec))
-    (match-define `(,name ,mechanics) pi)
-    (define observer% (loader mechanics 'observer%))
-    (new observer% [name name])))
+#; [ [Listof PlayerSpec] -> [Listof Player] ]
+;; dynamically load player from specified path
+(define create-players (make-create 'player% second third))
+
+#; [ [Listof ObserverSpec] -> [Listof Observer] ]
+(define create-observers (make-create 'observer% first second))
 
 ;; PathString -> Any
 ;; raise an exception if neither direct dynamic-require nor collection-oriented works 
@@ -98,11 +93,8 @@
 #; [type Result   = [Listof [List String[winner] String[loser]]]]
 
 (define (tournament-manager/proc lop0 loo)
-  ;; [Listof [List String Player]]
-  ;; ASSERT the strings form a set 
-  (define lop (assign-unique-names lop0))
-  
-  (define schedule (all-pairings lop))
+  (define lop       (assign-unique-names lop0))
+  (define schedule  (all-pairings lop))
   (define-values (results cheaters) (run-tournament schedule loo))
   (define cheaters+ (inform-all-non-cheaters lop cheaters results))
   (list cheaters+ results))
@@ -303,5 +295,5 @@
         ("matthias" "infturn")))
     (define outcome (with-output-to-dev-null (lambda () (tournament-manager/proc players '()))))
     (match-define `(,cheaters ,games) outcome)
-    (check-equal? (length cheaters) 4 "cheaters for config")
-    (check-equal? games results "games for config")))
+    (check-equal? cheaters '("infplace" "badplace" "badturn" "infturn") "cheaters for config")
+    (check-equal? games    results                                      "games for config")))
