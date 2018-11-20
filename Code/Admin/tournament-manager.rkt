@@ -104,30 +104,30 @@
   
   (define schedule (all-pairings lop))
   (define-values (results cheaters) (run-tournament schedule loo))
-
-  ;; use _lop_ not _lop0_ because we don't want to rely on 'playing-as' actually changing the name
-  ;; (even though this player is 'ours' and not 'theirs') 
-  (list (inform-all-non-cheaters lop cheaters results) results))
+  (define cheaters+ (inform-all-non-cheaters lop cheaters results))
+  (list cheaters+ results))
 
 #; (Schedule [Listof Observer] -> (values Result [Listtof String]))
 (define (run-tournament schedule loo)
-  (for*/fold ([results '()] [cheaters '()])
-             ((pairing schedule)
-              (name1   (in-value (first (first pairing))))
-              [name2   (in-value (first (second pairing)))]
-              #:unless (or (member name1 cheaters) (member name2 cheaters)))
-    (define player1  (second (first pairing)))
-    (define player2  (second (second pairing)))
-    (define referee  (new referee% [one player1][one-name name1][two player2][two-name name2]))
-    (define ref-with (attach-observers referee loo))
-    (define result   (send ref-with best-of 3))
-    (match result
-      [(? string? winner)
-       (define loser (other-one winner name1 name2))
-       (values (cons (list winner loser) results) cheaters)]
-      [(terminated winner reason)
-       (define loser (other-one winner name1 name2))
-       (values (cons (list winner loser) (purge loser results cheaters)) (cons loser cheaters))])))
+  (define-values (results cheaters)
+    (for*/fold ([results '()] [cheaters '()])
+               ((pairing schedule)
+                (name1   (in-value (first (first pairing))))
+                [name2   (in-value (first (second pairing)))]
+                #:unless (or (member name1 cheaters) (member name2 cheaters)))
+      (define player1  (second (first pairing)))
+      (define player2  (second (second pairing)))
+      (define referee  (new referee% [one player1][one-name name1][two player2][two-name name2]))
+      (define ref-with (attach-observers referee loo))
+      (define result   (send ref-with best-of 3))
+      (match result
+        [(? string? winner)
+         (define loser (other-one winner name1 name2))
+         (values (cons (list winner loser) results) cheaters)]
+        [(terminated winner reason)
+         (define loser (other-one winner name1 name2))
+         (values (cons (list winner loser) (purge loser results cheaters)) (cons loser cheaters))])))
+  (values (reverse results) (reverse cheaters)))
 
 #; [ Referee [Listof Observer] -> Referee ]
 (define (attach-observers referee loo)
@@ -169,8 +169,8 @@
   (let loop ([lop lop][others lop])
     (cond
       [(empty? lop) '()]
-      [else (define player1   (first lop))
-            (define nuothers  (remove player1 others))
+      [else (define player1  (first lop))
+            (define nuothers (remove player1 others))
             (append (for/list ((opponent nuothers)) (list player1 opponent))
                     (loop (rest lop) nuothers))])))
 
@@ -223,7 +223,10 @@
                     (list result effect))
                   (list (list (list "matthias" pl1) (list "matthiasa" pl2)) "matthiasa")))
   (check-assign-unique-names-result-and-effect)
+
   
+
+  ;; -------------------------------------------------------------------------------------------------
   (define-syntax-rule
     (check-tm players expected msg)
     (check-equal? (with-output-to-dev-null (lambda () (tournament-manager/proc players '())))
@@ -244,16 +247,14 @@
   (define plain          (list matthias christos))
   (define plain+fail-1   (cons baddypl plain))
   (define plain+fail-1+3 (list* baddypl baddytt baddypla plain))
+  
+  (check-tm plain+fail-1
+            '(("baddypl") (("matthias" "baddypl") ("christos" "matthias")))
+            "bad pl")
 
-  ; (check-tm plain           '(() (("matthias" "christos"))) "plain 1")
-  ; (check-tm (reverse plain) '(() (("christos" "matthias"))) "plain 2")
-  (check-tm plain+fail-1    '(("baddypl") (("christos" "matthias") ("matthias" "baddypl"))) "bad pl")
-
-  (check-tm plain+fail-1+3  '(("baddytt" "baddypla" "baddypl")
-                              (("christos" "matthias")
-                               ("matthias" "baddytt")))
+  (check-tm plain+fail-1+3
+            '(("baddypl" "baddypla" "baddytt") (("matthias" "baddytt") ("christos" "matthias")))
             "bad tt")
-
 
   ;; -------------------------------------------------------------------------------------------------
   (define player-info:json
@@ -292,12 +293,13 @@
     (check-equal? (length p*) 6)
     (check-equal? o* '())
     (define players (create-players p*))
-    (match-define `(,cheaters ,games)
-      (with-output-to-dev-null (lambda () (tournament-manager/proc players '()))))
-    (check-equal? (length cheaters) 4              "cheaters for config")
-    (check-equal? games '(("matthias" "infturn")
-                          ("matthias" "badplace")
-                          ("christos" "matthias")
-                          ("matthias" "infplace")
-                          ("matthias" "badturn"))
-                  "games for config")))
+    (define results
+      '(("matthias" "badturn")
+        ("matthias" "infplace")
+        ("christos" "matthias")
+        ("matthias" "badplace")
+        ("matthias" "infturn")))
+    (define outcome (with-output-to-dev-null (lambda () (tournament-manager/proc players '()))))
+    (match-define `(,cheaters ,games) outcome)
+    (check-equal? (length cheaters) 4 "cheaters for config")
+    (check-equal? games results "games for config")))
