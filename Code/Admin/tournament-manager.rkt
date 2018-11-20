@@ -224,7 +224,7 @@
                   (list (list (list "matthias" pl1) (list "matthiasa" pl2)) "matthiasa")))
   (check-assign-unique-names-result-and-effect)
 
-  
+  (check-equal? (purge "b" '(("a" "b") ("c" "b") ("c" "d")) '("a" "b")) '(("c" "b") ("c" "d")))
 
   ;; -------------------------------------------------------------------------------------------------
   (define-syntax-rule
