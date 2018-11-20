@@ -188,13 +188,15 @@
 ;; String [Listof Result] [Listof String] -> [Listof Result]
 ;; flip the results of any past games 
 (define (purge name results cheaters)
-  (for/fold ((purged '())) ((r results))
-    (match-define `(,winner ,loser) r)
-    (if (string=? winner name)
-        (if (member loser cheaters)
-            purged
-            (cons (list loser winner) purged))
-        (cons r purged))))
+  (define purged-results
+    (for/fold ((purged '())) ((r results))
+      (match-define `(,winner ,loser) r)
+      (if (string=? winner name)
+          (if (member loser cheaters)
+              purged
+              (cons (list loser winner) purged))
+          (cons r purged))))
+  (reverse purged-results))
 
 ;; [Listof Player] [Listof String] Results -> [Listof String]
 ;; EFFECT inform all players on lop, except for those whose name is on the cheater's list 
@@ -224,7 +226,7 @@
                   (list (list (list "matthias" pl1) (list "matthiasa" pl2)) "matthiasa")))
   (check-assign-unique-names-result-and-effect)
 
-  (check-equal? (purge "b" '(("a" "b") ("c" "b") ("c" "d")) '("a" "b")) '(("c" "b") ("c" "d")))
+  (check-equal? (purge "b" '(("b" "a") ("c" "b") ("c" "d")) '("a" "b")) '(("c" "b") ("c" "d")))
 
   ;; -------------------------------------------------------------------------------------------------
   (define-syntax-rule
@@ -294,10 +296,10 @@
     (check-equal? o* '())
     (define players (create-players p*))
     (define results
-      '(("matthias" "badturn")
+      '(("christos" "matthias")
         ("matthias" "infplace")
-        ("christos" "matthias")
         ("matthias" "badplace")
+        ("matthias" "badturn")
         ("matthias" "infturn")))
     (define outcome (with-output-to-dev-null (lambda () (tournament-manager/proc players '()))))
     (match-define `(,cheaters ,games) outcome)
