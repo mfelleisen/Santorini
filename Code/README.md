@@ -221,6 +221,9 @@ A game-level observe protocol exists.
 - [X] setup new board per game -- This was a major logical bug and it
   wasn't discovered because the tests didn't inspect the best-of 3
   properly. 
+
+- [X] don't use message-based communication in remote proxy
+  the server may take its time. 
   
 
 ## Racket Issues 
