@@ -98,17 +98,12 @@
         (init player1-worker1 player1-worker2 player2-worker1 player2-worker2)))
     
     (field
-     [board ;; (U Terminated Board) ~~ the initial board, with four workers, two per player 
-      (let/ec done
-        (define ex-one (report done XOTHER:fmt one-name two-name))
-        (define ex-two (report done XOTHER:fmt two-name one-name))
-        (xsend one other-name #:thrown ex-one #:timed-out ex-one two-name)
-        (xsend two other-name #:thrown ex-two #:timed-out ex-two one-name)
-        (setup done))])
+     ;; (U False Board) ~~ the initial board, with four workers, two per player 
+     [board #f])
 
     ;; -----------------------------------------------------------------------------------------------
     ;; RUN A GAME 
-
+    
     ;; N -> (U String Terminated)
     ;; who is going to win most games 
     ;; a rule-violating, failing or timed-out player loses regardless of prior rounds
@@ -117,6 +112,7 @@
       (define one-won (regexp (string-append "^" one-name)))
       
       (let/ec done
+        (inform-other done)
         (let loop ([one# 0][two# 0])
           (cond
             [(>= one# n-winners) one-name]
@@ -125,14 +121,26 @@
                   (if (regexp-match one-won outcome)
                       (loop (+ one# 1) two#)
                       (loop one#       (+ two# 1)))]))))
-    
+
+    ;; [Terminate -> Empty] -> Void 
+    ;; inform the players about each other's names 
+    (define/private (inform-other done)
+      (define ex-one (report done XOTHER:fmt one-name two-name))
+      (define ex-two (report done XOTHER:fmt two-name one-name))
+      (xsend one other-name #:thrown ex-one #:timed-out ex-one two-name)
+      (xsend two other-name #:thrown ex-two #:timed-out ex-two one-name))
+
     ;; {[Terminate -> Empty]} -> String
     ;; determine the winner (and the loser)
     (define/public (play (done #false))
       (cond
-        [(terminated? board) (if done (done board) board)]
-        [done (play-rounds done board)]
-        [else (let/ec done (play-rounds done board))]))
+        [done 
+         (set! board (setup done))
+         (play-rounds done board)]
+        [else 
+         (let/ec done
+           (set! board (setup done))
+           (play-rounds done board))]))
 
     ;; [Terminated -> Empty] Board -> String
     ;; EFFECT escape with done if
@@ -183,12 +191,6 @@
   (provide
    ;; SYNTAX (checker* (method method-args ...) (mock-args ... expected) ...)
    checker*
-
-   ;; SYNTAX
-   #;(checker expected (pre-action ...) (args ...) lo-placements
-              ;; optional args: 
-              [take-turn-f] [#:other other-f] [#:setup placement-f])
-   checker
 
    set-up-ref-and-play
    make-mock-player%)
@@ -264,9 +266,10 @@
 
   (check-exn exn:fail:contract?
              (lambda ()
-               (define one (new player% [name "christos-1"]))
-               (define two (new player% [name "christos"]))
-               (new referee% [one one][one-name "christos-1"] [two two] [two-name "christos"]))
+               (define one (new player% [name "chris-1"]))
+               (define two (new player% [name "chris"]))
+               (define r (new referee% [one one][one-name "chris-1"] [two two] [two-name "chris"]))
+               (let/ec done (send r play done)))
              "this test belongs into player-interface, but good enough")
 
   (check-exn #px"distinct names"
@@ -279,15 +282,6 @@
   ;; -------------------------------------------------------------------------------------------------
   (define diagonal (build-list 4 (lambda (i) (list i i))))
   
-  (define board-diagonal
-    (cboard
-     [[0one1]
-      [0       0two1]
-      [0       0       0one2]
-      [0       0       0       0two2]]))
-
-  (checker board-diagonal (get-field board) () diagonal)
-
   ;; -------------------------------------------------------------------------------------------------
   (define board-2-rounds-play
     (cboard
@@ -308,23 +302,20 @@
   (define (bad-action b) (move-build (worker "one1") EAST SOUTH PUT NORTH))
   (define (div-by-zero b) (/ 1 0))
 
-  (define div0  "/: division by zero")
+  (define div0 (with-handlers ((exn:fail:contract? exn-message)) (/ 1 0)))
   (define timed "timed out")
   
   (checker*
    (play-rounds raise board-2-rounds-play)
    (diagonal (stepper actions-winning) (format WINNING:fmt "two"))
    (diagonal (stepper actions-moving)  (format WINNING:fmt "two")))
-
-  (define div0-message (with-handlers ((exn:fail:contract? exn-message)) (/ 1 0)))
   
   (checker*
    (play)
    (bad-placement                      (terminated "one" (format BAD-PLACEMENT:fmt "two" "")))
    (diagonal (givesup "one")           (format GIVING-UP:fmt "two" "one") )
    (diagonal bad-action                (terminated "two" (format BAD-MOVE:fmt "one" (bad-action '_))))
-   (diagonal #:other div-by-zero       (terminated "two" (format XOTHER:fmt "one" div0-message)))
-   (diagonal #:setup div-by-zero       (terminated "two" (format XSETUP1:fmt "one" div0-message)))
+   (diagonal #:setup div-by-zero       (terminated "two" (format XSETUP1:fmt "one" div0)))
    (diagonal (lambda _ (let L () (L))) (terminated "two" (format XPLAY:fmt "one" timed)))
    (diagonal div-by-zero               (terminated "two" (format XPLAY:fmt "one" div0))))
 
@@ -333,8 +324,8 @@
    (bad-placement                      (terminated "one" (format BAD-PLACEMENT:fmt "two" "")))
    (diagonal (givesup "one")           "two")
    (diagonal bad-action                (terminated "two" (format BAD-MOVE:fmt "one" (bad-action '_))))
-   (diagonal #:other div-by-zero       (terminated "two" (format XOTHER:fmt "one" div0-message)))
-   (diagonal #:setup div-by-zero       (terminated "two" (format XSETUP1:fmt "one" div0-message)))
+   (diagonal #:other div-by-zero       (terminated "two" (format XOTHER:fmt "one" div0)))
+   (diagonal #:setup div-by-zero       (terminated "two" (format XSETUP1:fmt "one" div0)))
    (diagonal (lambda _ (let L () (L))) (terminated "two" (format XPLAY:fmt "one" timed)))
    (diagonal div-by-zero               (terminated "two" (format XPLAY:fmt "one" div0))))
 
@@ -350,35 +341,38 @@
     (let ((two "two"))
       (stepper (append (actions1 two) (actions2 two) (actions1 two) (actions2 two) (actions2 two)))))
   
+  (define 3-placements-1 '((0 0) (1 1) (0 0) (1 1) (0 0) (1 1)))
+  (define 3-placements-2 '((2 2) (3 3) (2 2) (3 3) (2 2) (3 3)))
+
   (check-equal? (let ()
-                  [define player-1% (make-mock-player% '((0 0) (1 1)) (stepper2))]
-                  [define player-2% (make-mock-player% '((2 2) (3 3)) (stepper2))]
+                  [define player-1% (make-mock-player% 3-placements-1 (stepper2))]
+                  [define player-2% (make-mock-player% 3-placements-2 (stepper2))]
                   (set-up-ref-and-play player-1% player-2% (lambda (ref) (send ref play))))
                 (terminated "two" (format BAD-MOVE:fmt "one" (first (actions1 "two"))))
                 "player 1 uses worker2 for turn")
-
+  
   (check-equal? (let ()
-                  [define player-1% (make-mock-player% '((0 0) (1 1)) (stepper1))]
-                  [define player-2% (make-mock-player% '((2 2) (3 3)) (stepper2))]
+                  [define player-1% (make-mock-player% 3-placements-1 (stepper1))]
+                  [define player-2% (make-mock-player% 3-placements-2 (stepper2))]
                   (set-up-ref-and-play player-1% player-2% (lambda (ref) (send ref best-of 3))))
                 "one"
                 "complete test coverage for referee")
   
   (check-equal? (let ()
-                  [define player-1% (make-mock-player% '((0 0) (1 1)) (stepper1))]
-                  [define player-2% (make-mock-player% '((2 2) (3 3)) (stepper2))]
+                  [define player-1% (make-mock-player% 3-placements-1 (stepper1))]
+                  [define player-2% (make-mock-player% 3-placements-2 (stepper2))]
                   (with-output-to-dev-null
-                      (lambda ()
-                        (set-up-ref-and-play player-1% player-2%
-                                             (lambda (ref)
-                                               (send ref register (new textual-observer%))
-                                               (send ref best-of 3))))))
+                   (lambda ()
+                     (set-up-ref-and-play player-1% player-2%
+                                          (lambda (ref)
+                                            (send ref register (new textual-observer%))
+                                            (send ref best-of 3))))))
                 "one"
                 "complete test coverage for referee's observer")
 
   (check-equal? (let ()
-                  [define player-1% (make-mock-player% '((0 0) (1 1)) (stepper1))]
-                  [define player-2% (make-mock-player% '((2 2) (3 3)) (stepper2))]
+                  [define player-1% (make-mock-player% 3-placements-1 (stepper1))]
+                  [define player-2% (make-mock-player% 3-placements-2 (stepper2))]
                   (define bad-observer%
                     (class object%
                       (super-new)
@@ -386,11 +380,11 @@
                       (define/public (board a)  (/ 1 0))
                       (define/public (report a) (void))))
                   (with-output-to-dev-null
-                      (lambda ()
-                        (set-up-ref-and-play player-1% player-2%
-                                             (lambda (ref)
-                                               (send ref register (new textual-observer%))
-                                               (send ref register (new bad-observer%))
-                                               (send ref best-of 3))))))
+                   (lambda ()
+                     (set-up-ref-and-play player-1% player-2%
+                                          (lambda (ref)
+                                            (send ref register (new textual-observer%))
+                                            (send ref register (new bad-observer%))
+                                            (send ref best-of 3))))))
                 "one"
                 "complete test coverage for referee's failing observer"))
