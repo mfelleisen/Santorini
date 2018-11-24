@@ -48,8 +48,9 @@
 
 (define BAD-PLACEMENT:fmt "~a broke the rules of placing workers~a")
 (define BAD-MOVE:fmt      "~a broke the rules\n [~e]")
-(define XOTHER:fmt        "~a's 'other' method failed~a")
-(define XSETUP:fmt        "~a failed with the 'placement' method\n[~a]")
+(define XOTHER:fmt        "~a's 'other' method failed\n [~e]")
+(define XSETUP1:fmt       "~a failed with the 'placement' method\n[~a]")
+(define XSETUP2:fmt       "~a timed out for the 'placement' method\n[~a]")
 (define XPLAY:fmt         "~a failed with the 'take-turn' method\n[~a]")
 
 (define referee%
@@ -79,10 +80,13 @@
       ;; (Player String [String -> Empty] Placements -> (values (List Worker [List N N]) Placements))
       ;; get a placement for a specific worker from target
       (define (placement target target-name worker# winner-name lot)
-        (define ex-t (report done XSETUP:fmt target-name "" winner-name))
-        (define new-place (xsend target placement #:thrown ex-t #:timed-out ex-t lot))
+        (define new-place
+          (xsend target placement
+                 #:thrown    (report done XSETUP1:fmt target-name winner-name)
+                 #:timed-out (report done XSETUP2:fmt target-name winner-name)
+                 lot))
         (when (memf (lambda (t) (equal? (rest t) new-place)) lot)
-          [(report done BAD-PLACEMENT:fmt target-name "" winner-name)])
+          [(report done BAD-PLACEMENT:fmt target-name winner-name)])
         (define full-name (string-append target-name (number->string worker#)))
         (values (cons (worker full-name) new-place) (cons (cons target-name new-place) lot)))
       ;; -- IN --
@@ -96,8 +100,8 @@
     (field
      [board ;; (U Terminated Board) ~~ the initial board, with four workers, two per player 
       (let/ec done
-        (define ex-one (report done XOTHER:fmt one-name "" two-name))
-        (define ex-two (report done XOTHER:fmt two-name "" one-name))
+        (define ex-one (report done XOTHER:fmt one-name two-name))
+        (define ex-two (report done XOTHER:fmt two-name one-name))
         (xsend one other-name #:thrown ex-one #:timed-out ex-one two-name)
         (xsend two other-name #:thrown ex-two #:timed-out ex-two one-name)
         (setup done))])
@@ -141,11 +145,11 @@
         (define a (xsend one take-turn #:thrown bad #:timed-out (lambda () (bad "timed out")) board))
         (when (bad? a)
           (define bv (bad-value a))
-          [(report done XPLAY:fmt one-name (if (exn? bv) (exn-message bv) bv) two-name)])
+          [(report done XPLAY:fmt one-name two-name) (if (exn? bv) (exn-message bv) bv)])
         (inform-observers (action a))
         (unless (check-action one-name board a)
           (inform-observers (report (format "bad action: ~a" a)))
-          [(report done BAD-MOVE:fmt one-name a two-name)])
+          [(report done BAD-MOVE:fmt one-name two-name) a])
         (define new-board (apply-action board a))
         (inform-observers (board new-board))
         (cond
@@ -160,8 +164,13 @@
                (play-rounds new-board two two-name one one-name))])))
     
     ;; [String -> Empty] FormatString(of 1) String -> Empty 
-    (define/private ((report done fmt bad-guy-name extra winner-name) . _)
-      (define msg (format fmt bad-guy-name extra))
+    (define/private ((report done fmt bad-guy-name  winner-name) . extra)
+      (define extra*
+        (cond
+          [(empty? extra) ""]
+          [(exn? (first extra)) (exn-message (first extra))]
+          [else (first extra)]))
+      (define msg (format fmt bad-guy-name extra*))
       (done (terminated winner-name msg)))))
 
 ;; -------------------------------------------------------------------------------------------------
@@ -306,14 +315,16 @@
    (play-rounds raise board-2-rounds-play)
    (diagonal (stepper actions-winning) (format WINNING:fmt "two"))
    (diagonal (stepper actions-moving)  (format WINNING:fmt "two")))
+
+  (define div0-message (with-handlers ((exn:fail:contract? exn-message)) (/ 1 0)))
   
   (checker*
    (play)
    (bad-placement                      (terminated "one" (format BAD-PLACEMENT:fmt "two" "")))
    (diagonal (givesup "one")           (format GIVING-UP:fmt "two" "one") )
    (diagonal bad-action                (terminated "two" (format BAD-MOVE:fmt "one" (bad-action '_))))
-   (diagonal #:other div-by-zero       (terminated "two" (format XOTHER:fmt "one" "")))
-   (diagonal #:setup div-by-zero       (terminated "two" (format XSETUP:fmt "one" "")))
+   (diagonal #:other div-by-zero       (terminated "two" (format XOTHER:fmt "one" div0-message)))
+   (diagonal #:setup div-by-zero       (terminated "two" (format XSETUP1:fmt "one" div0-message)))
    (diagonal (lambda _ (let L () (L))) (terminated "two" (format XPLAY:fmt "one" timed)))
    (diagonal div-by-zero               (terminated "two" (format XPLAY:fmt "one" div0))))
 
@@ -322,8 +333,8 @@
    (bad-placement                      (terminated "one" (format BAD-PLACEMENT:fmt "two" "")))
    (diagonal (givesup "one")           "two")
    (diagonal bad-action                (terminated "two" (format BAD-MOVE:fmt "one" (bad-action '_))))
-   (diagonal #:other div-by-zero       (terminated "two" (format XOTHER:fmt "one" "")))
-   (diagonal #:setup div-by-zero       (terminated "two" (format XSETUP:fmt "one" "")))
+   (diagonal #:other div-by-zero       (terminated "two" (format XOTHER:fmt "one" div0-message)))
+   (diagonal #:setup div-by-zero       (terminated "two" (format XSETUP1:fmt "one" div0-message)))
    (diagonal (lambda _ (let L () (L))) (terminated "two" (format XPLAY:fmt "one" timed)))
    (diagonal div-by-zero               (terminated "two" (format XPLAY:fmt "one" div0))))
 
