@@ -21,13 +21,14 @@
 (require (submod "../Common/results.rkt" json))
 (require "../Lib/io.rkt")
 (require "../Lib/xsend.rkt") (time-out-limit 1.2)
+(require json)
 
 ;; ---------------------------------------------------------------------------------------------------
 (define ((tournament-manager in out) player)
   (define name (get-field name player))
   (parameterize ([current-input-port in] [current-output-port out])
     ;; register the player with the server-side tournament manager 
-    (send-message name out)
+    (send-message name)
     
     ;; deal with all game interactions from, and back to, the server-side referee
     (define loop-on #false)
@@ -43,8 +44,9 @@
             [(vector msg) (error 'manager "the server violated the game protocol\n ~a" msg)]
             [r            (when ->return (send-message (->return r)))
                           (or loop? (loop))])))
-
-      (define message (read-message in))
+      
+      (define message (read-json))
+      
       (cond
         [(eof-object? message) (error 'manager "the server unexpectedly closed the connection")]
         [(jsexpr->as message)            => (ssend playing-as  #false         loop-on)]
