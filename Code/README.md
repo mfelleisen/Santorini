@@ -218,6 +218,11 @@ A game-level observe protocol exists.
   used _externally supplied_ software components to keep track of game
   state (which they may or may not, or may not do so honestly). 
 
+- [X] setup new board per game -- This was a major logical bug and it
+  wasn't discovered because the tests didn't inspect the best-of 3
+  properly. 
+  
+
 ## Racket Issues 
 
 - in class contracts, field sub-contracts can't refer to other fields 

@@ -80,10 +80,8 @@
   (set-field! other-name-has-been-called this #true))
 
 (define ((protocol-placements-set? this) _)
-  #true
-  #;
-  (and (get-field placement-has-been-called-once this)
-       (get-field placement-has-been-called-twice this)))
+  (set-field! placement-has-been-called-once this #false)
+  #true)
 
 (define ((protocol-placement this) placements)
   (define me    (get-field name this))
