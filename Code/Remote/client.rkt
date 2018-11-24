@@ -28,11 +28,27 @@
   (match-define `(,p* ,o* ,ip ,port) (read-client-configuration))
   (IP   ip)
   (PORT port)
-  (for ((p (create-players p*)))
-    (thread
-     (lambda ()
-       (channel-put ch (call-with-values (lambda () (tcp-connect (IP) (PORT))) (run-client p))))))
-  (channel-get ch))
+  (define player-thread-evts
+    (for/list ((p (create-players p*)))
+      (sleep 3)
+      (thread-dead-evt
+       (thread
+        (lambda ()
+          (with-handlers ([exn:fail:network? (lambda (xn) (printf "connection failed\n"))])
+            (define m (call-with-values (lambda () (tcp-connect (IP) (PORT))) (run-client p)))
+            (channel-put ch m)))))))
+  (define ch?
+    (let loop ([t* player-thread-evts])
+      (cond
+        [(empty? t*) (channel-get ch) #;(error 'client "no thread sent a result")]
+        [else 
+         (define s (map (lambda (pte) (handle-evt pte (lambda (t) (loop (remove t t*))))) t*))
+         (apply sync ch s)])))
+  ch?)
+
+(define (tee tag x)
+  (displayln `(,tag ,x) (current-error-port))
+  x)
 
 #; [-> (list N Port# Positive 0or1)]
 ;; read player info from STDIN
