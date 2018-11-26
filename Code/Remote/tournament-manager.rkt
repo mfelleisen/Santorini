@@ -21,6 +21,7 @@
 (require (submod "../Common/results.rkt" json))
 (require "../Lib/io.rkt")
 (require "../Lib/xsend.rkt") (time-out-limit 1.2)
+(require json)
 
 ;; ---------------------------------------------------------------------------------------------------
 (define ((tournament-manager in out) player)
@@ -32,19 +33,17 @@
     ;; deal with all game interactions from, and back to, the server-side referee
     (define loop-on #false)
     (let loop ()
-      
+      ;; (ssend method ->return loop?)
+      ;; invokes _method_ on player with the matched argument (x) 
+      ;; it sends a message to the server, if a conversion is specified
+      ;; it resumes the loop, unless _loop?_ holds 
       (define-syntax-rule (ssend method ->return loop?)
         (lambda (x)
-          ;; --- this is where I need to check for 3 results so we can log errors in protocol/contract
-          ;; --- NOTE this is a protection against the srver; all Remotes are on the "same side"
-          
-          (match (xsend player method #:thrown vector #:timed-out vector x)
-            [(vector)     (error 'manager "the ~a method timed out\n" 'method)]
-            [(vector msg) (error 'manager "the server violated the game protocol\n ~a" msg)]
-            [r            (when ->return (send-message (->return r)))
-                          (or loop? (loop))])))
+          (define r (send player method x))
+          (when ->return (send-message (->return r)))
+          (or loop? (loop))))
 
-      (define message (read-message in))
+      (define message (read-json in))
       (cond
         [(eof-object? message) (error 'manager "the server unexpectedly closed the connection")]
         [(jsexpr->as message)            => (ssend playing-as  #false         loop-on)]
@@ -146,19 +145,7 @@
      ;; --- sent messages 
      ((values "matthias")
       (place->jsexpr '(0 0)))
-     "testing an unexpected JSON message")
-
-    (check-manager 
-     #px"violated the game protocol"
-     ;; --- received messages 
-     ((values "christos")
-      (placements->jsexpr '())
-      (placements->jsexpr '(("christos" 0 0))))
-     ;; --- sent messages 
-     ((values "matthias")
-      (place->jsexpr '(0 0)))
-     "testing a violation of the game protocol (wrt the placement protocol)")))
-  
+     "testing an unexpected JSON message")))
 
 (module+ test
   (require (submod ".."))
