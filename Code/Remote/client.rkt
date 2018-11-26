@@ -21,6 +21,7 @@
 ;; -----------------------------------------------------------------------------
 (define IP   (make-parameter LOCALHOST))
 (define PORT (make-parameter 45678))
+(define TRIES 10) ;; how often we retry to connect from player to server 
 
 ;; -> [Listof Results]
 (define (client)
@@ -30,13 +31,8 @@
   (PORT port)
   (define player-thread-evts
     (for/list ((p (create-players p*)))
-      (sleep 3)
-      (thread-dead-evt
-       (thread
-        (lambda ()
-          (with-handlers ([exn:fail:network? (lambda (xn) (printf "connection failed\n"))])
-            (define m (call-with-values (lambda () (tcp-connect (IP) (PORT))) (run-client p)))
-            (channel-put ch m)))))))
+      (define-values (in out) (launch-player p ch))
+      (thread-dead-evt (thread (lambda () (channel-put ch (run-client p in out)))))))
   (define ch?
     (let loop ([t* player-thread-evts])
       (cond
@@ -46,10 +42,25 @@
          (apply sync ch s)])))
   ch?)
 
-(define (tee tag x)
-  (displayln `(,tag ,x) (current-error-port))
-  x)
+#; (Player ->* InputPort OutputPort)
+;; EFFECT connect player p to the server and return the two I/O streams 
+(define (launch-player p ch)
+  (define ip (IP))
+  (define port (PORT))
+  (let loop ([n TRIES])
+    (cond
+      [(<= n 0) (log-error "connection failed\n")]
+      [else
+        (sleep 3)
+        (with-handlers ([exn:fail:network? (lambda (xn) (loop (- n 1)))])
+          (tcp-connect ip port))])))
 
+#; (Player InputPort OutputPort -> [Listof Result])
+;; launch a remote tournament manager to manage the connection between in/out and the player 
+(define (run-client player in out)
+  (define manager (tournament-manager in out))
+  (manager player))
+    
 #; [-> (list N Port# Positive 0or1)]
 ;; read player info from STDIN
 (define (read-client-configuration)
@@ -62,11 +73,6 @@
      (list p* o* ip-address port-number)]
     [else (error 'client "hash expected, given ~e" configuration)]))
 
-;; String String -> [InputPort OutputPort -> [Listof Results]]
-(define ((run-client player) in out)
-  (define manager (tournament-manager in out))
-  (manager player))
-
 #; (Number -> (U #false Number))
 (define (port# n)
   (and (integer? n) (<= 50000 n 60000) n))
@@ -78,7 +84,6 @@
   (define (run in out)
     (define player% (dynamic-require DEFAULT-PLAYER 'player%))
     (define player  (new player% [name  "matthias"]))
-    (define manager (run-client player))
-    (lambda (_player) (manager in out)))
+    (lambda (_player) (run-client player in out)))
   
   (test-suite run))
