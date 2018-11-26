@@ -49,10 +49,13 @@
   (define port (PORT))
   (let loop ([n TRIES])
     (cond
-      [(<= n 0) (log-error "connection failed\n")]
+      [(<= n 0) (error "connection failed\n")]
       [else
         (sleep 3)
-        (with-handlers ([exn:fail:network? (lambda (xn) (loop (- n 1)))])
+        (with-handlers ([exn:fail:network?
+                         (lambda (xn)
+                           (log-error (format "connection failed: ~a\n" n))
+                           (loop (- n 1)))])
           (tcp-connect ip port))])))
 
 #; (Player InputPort OutputPort -> [Listof Result])
