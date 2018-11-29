@@ -2,8 +2,8 @@
 
 The game administration framework consists of two components: 
 
--- tournament-manager 
--- referee 
+- [`tournament-manager`](tournament-manager.rkt)
+- [`referee`](referee.rkt)
 
 ### Managing a Tournament 
 
@@ -24,7 +24,8 @@ The tournament manager comes with the functionality to read a tournament
 configuration file, which 
 
 ```
-{ "players"   : [[Kind, Name, PathString],
+{ 
+  "players"   : [[Kind, Name, PathString],
                  ..., 
                  [Kind, Name, PathString]],
   "observers" : [[Name, PathString],
@@ -37,7 +38,6 @@ where
 - `Kind` is either "good", "breaker", "infinite"
 - `Name` is a JSON String
 - `PathString` is a Linux Path to an executable that implements the respective player or observer
-
 
 ### Managing an Encounter 
 
@@ -57,9 +57,12 @@ of the players.
 
 ### Additional Files for Testing 
 
-- `run-a-game` ~~ run a single game with an observer 
-- `run-me-vs-someone` ~~ as the name says 
-- `run-a-tournament` ~~ run a tournament -
+- [`run-a-game`](run-a-game.rkt)
+  ~~ run a single game with an observer 
+- [`run-me-vs-someone`](run-me-vs-someone.rkt)
+  ~~ as the name says 
+- [`run-a-tournament`](run-a-tournament.rkt)
+   ~~ run a tournament -
 
 
 

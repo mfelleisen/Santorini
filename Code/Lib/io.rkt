@@ -84,7 +84,7 @@
          [else (channel-put control-ch 'response-not-started)]))))
   (match (channel-get control-ch)
     ['response-not-started
-     (log-info "Timed out waiting for reading to start.")
+     (log-error "Timed out waiting for reading to start.")
      'timeout-1]
     ['response-started
      (match (sync/timeout response-duration-timeout-sec reply-ch)

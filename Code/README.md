@@ -1,4 +1,4 @@
-## Running a Full-fledged Santorini Gaming Framework 
+## A Full-fledged Santorini Gaming Framework 
 
 This directory implements a distributed Santorini gaming framework, both the
 client and the server side. The _Remote_ directory provides the
@@ -25,7 +25,7 @@ manager_, _referee_). For now these protections include
 - limiting time consumption 
 
 of any call to a _player_ component. Any errors of this kind are currently
-logged to `info`. 
+logged to `error`. 
 
 The client connects to a remote server and then waits for "remote function
 calls", which are translated into method calls for the local player
@@ -37,21 +37,25 @@ component.
 
 To design a Santorini player, study 
 
-- _[Common/README.md](Common/README.md)_  
+- [Common/README.md](Common/README.md)
 
 first. It specifies the complete interface between a Santorini player and
 the _Admin_ gaming framework in Racket. For the interaction protocol, see 
 
-- _Common/protocol.md_ 
+- [Common/protocol.md](Common/protocol.md)
 
 ### Remote Interface 
 
 The remote protocol is specified in 
 
-- _Remote/protocol.md _
+- [Remote/protocol.md](Remote/protocol.md)
 
 It implements the local interface via remote procedure/method calls that
 use JSON to represent the methods and the arguments. 
+
+For a sample server/client implementation, see 
+
+- [Remote/README.md](Remote/README.md)
 
 ## Running a Monolithic Santorini Gaming Framework 
 
@@ -110,10 +114,13 @@ part of the programming language but aren't.
 
 ## Observers 
 
-A game-level observe protocol exists. 
+A game-level observer protocol exists and can be used from the referee. 
 
+## Not implemented 
 
-## TODO List 
+- The client configuration element for observers is ignored. 
+- The server configuration element for repeated tournaments is ignored.
+- The server isn't stress tested; scheduling might be an n^2 algorithm. 
 
 ## NSF 
 - [X] protocol prototype 
@@ -229,3 +236,4 @@ A game-level observe protocol exists.
 ## Racket Issues 
 
 - in class contracts, field sub-contracts can't refer to other fields 
+1
