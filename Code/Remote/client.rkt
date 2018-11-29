@@ -36,7 +36,7 @@
   (define ch?
     (let loop ([t* player-thread-evts])
       (cond
-        [(empty? t*) (channel-get ch) #;(error 'client "no thread sent a result")]
+        [(empty? t*) (channel-get ch)]
         [else 
          (define s (map (lambda (pte) (handle-evt pte (lambda (t) (loop (remove t t*))))) t*))
          (apply sync ch s)])))

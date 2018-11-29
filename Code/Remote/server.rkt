@@ -46,7 +46,7 @@
   (define c (make-custodian))
   (parameterize ((current-custodian c))
     (define listener (tcp-listen (PORT) MAX-TCP REOPEN))
-    (displayln (~a 'listening))
+    (log-error (~a 'listening))
     (collect listener (WAIT-FOR) c)))
 
 #; [-> (list N Port# Positive 0or1)]
@@ -87,7 +87,7 @@
   (define (add-player players)
     (define-values (in out) (tcp-accept listener))
     (define nm (parameterize ((current-input-port in) (current-output-port out)) (read-message)))
-    (displayln (~a `(,nm signed up)))
+    (log-error (~a `(,nm signed up)))
     (define pl (new (make-remote-player% in out) [name nm]))
     (cons pl players))
   ;; -- IN -- 
@@ -96,7 +96,7 @@
 ;; [Listof ExternalPlayer] Custodian -> Void
 ;; EFFECT run a complete game of Evolution 
 (define (sign-up->start-up players c)
-  (displayln (~a `(,players playing)))
+  (log-error (~a `(,players playing)))
   (begin0
     (tournament-manager/proc players '())
     (custodian-shutdown-all c)))
