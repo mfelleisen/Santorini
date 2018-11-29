@@ -25,7 +25,7 @@
   
   (tournament-manager/proc
    ;; determine the winners of a round-robin tourhament 
-   (-> (listof player/c) (listof observer/c) (list/c (listof string?) result*/c)))
+   (-> (listof player/c) (listof observer/c) result*/c))
 
   (create-players
    ;; create players from configuration specs 
@@ -97,7 +97,7 @@
   (define schedule  (all-pairings lop))
   (define-values (results cheaters) (run-tournament schedule loo))
   (define cheaters+ (inform-all-non-cheaters lop cheaters results))
-  (list cheaters+ results))
+  results)
 
 #; (Schedule [Listof Observer] -> (values Result [Listtof String]))
 (define (run-tournament schedule loo)
@@ -117,8 +117,9 @@
          (define loser (other-one winner name1 name2))
          (values (cons (list winner loser) results) cheaters)]
         [(terminated winner reason)
-         (define loser (other-one winner name1 name2))
-         (values (cons (list winner loser) (purge loser results cheaters)) (cons loser cheaters))])))
+         (define loser    (other-one winner name1 name2))
+         (define results+ (cons (list winner loser IRREGULAR) results))
+         (values (purge loser results+ cheaters) (cons loser cheaters))])))
   (values (reverse results) (reverse cheaters)))
 
 #; [ Referee [Listof Observer] -> Referee ]
@@ -182,9 +183,9 @@
 (define (purge name results cheaters)
   (define purged-results
     (for/fold ((purged '())) ((r results))
-      (match-define `(,winner ,loser) r)
+      (match-define `(,winner ,loser ,irregular ...) r)
       (if (string=? winner name)
-          (if (member loser cheaters)
+          (if (member loser cheaters) ; equivalently: (cons? irregular) 
               purged
               (cons (list loser winner) purged))
           (cons r purged))))
@@ -243,11 +244,13 @@
   (define plain+fail-1+3 (list* baddypl baddytt baddypla plain))
   
   (check-tm plain+fail-1
-            '(("baddypl") (("matthias" "baddypl") ("christos" "matthias")))
+            #; '(("baddypl") (("matthias" "baddypl") ("christos" "matthias")))
+            `(("matthias" "baddypl" ,IRREGULAR) ("christos" "matthias"))
             "bad pl")
 
   (check-tm plain+fail-1+3
-            '(("baddypl" "baddypla" "baddytt") (("matthias" "baddytt") ("christos" "matthias")))
+            #; '(("baddypl" "baddypla" "baddytt") (("matthias" "baddytt") ("christos" "matthias")))
+            `(("matthias" "baddytt" ,IRREGULAR) ("christos" "matthias"))
             "bad tt")
 
   ;; -------------------------------------------------------------------------------------------------
@@ -269,7 +272,7 @@
 
   (define players (create-players player-info:jsexpr))
     
-  (check-tm players '(() (("christos" "matthias"))) "created players")
+  (check-tm players '(("christos" "matthias")) "created players")
 
   (define mixed-player-info:json
     #<< eos
@@ -287,13 +290,11 @@
     (check-equal? (length p*) 6)
     (check-equal? o* '())
     (define players (create-players p*))
-    (define results
-      '(("christos" "matthias")
-        ("matthias" "infplace")
-        ("matthias" "badplace")
-        ("matthias" "badturn")
-        ("matthias" "infturn")))
+    (define expected-results
+      `(("christos" "matthias")
+        ("matthias" "infplace" ,IRREGULAR)
+        ("matthias" "badplace" ,IRREGULAR)
+        ("matthias" "badturn"  ,IRREGULAR)
+        ("matthias" "infturn"  ,IRREGULAR)))
     (define outcome (with-output-to-dev-null (lambda () (tournament-manager/proc players '()))))
-    (match-define `(,cheaters ,games) outcome)
-    (check-equal? cheaters '("infplace" "badplace" "badturn" "infturn") "cheaters for config")
-    (check-equal? games    results                                      "games for config")))
+    (check-equal? outcome expected-results "games for config")))

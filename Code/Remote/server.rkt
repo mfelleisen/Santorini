@@ -21,6 +21,7 @@
 
 (module+ test
   (require "client.rkt")
+  (require "../Common/results.rkt")
   (require "../Lib/with-output-to-dev-null.rkt")
   (require rackunit))
 
@@ -152,7 +153,7 @@
           sample-client-config
           sample-server-config
           (check-true (channel? server-result:ch))
-          (check-equal? (channel-get server-result:ch) (list '() expected)))
+          (check-equal? (channel-get server-result:ch) expected))
 
   (define server-config-1
     #<< eos
@@ -178,7 +179,7 @@
  eos
     )
 
-  (define expected-1 '[["infplace" "infturn"] [["matthias" "infplace"] ["matthias" "infturn"]]])
+  (define expected-1 `[["matthias" "infplace" ,IRREGULAR] ["matthias" "infturn" ,IRREGULAR]])
   (tester ch
           client-config-1
           server-config-1

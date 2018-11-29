@@ -53,4 +53,4 @@ christos ../Player/player.rkt
   (time-out-limit 4.8)
 
   (check-equal? (with-output-to-dev-null (lambda () (with-input-from-string player-info:string main)))
-                '(() (("christos" "matthias")))))
+                '(("christos" "matthias"))))
