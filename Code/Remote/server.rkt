@@ -32,7 +32,6 @@
 ;; tournaments; then it tail-calls server-proper 
 (define (server)
   (match-define `(,min-players ,port ,wait-for ,_repeat) (read-server-configuration))
-  (displayln `(,min-players ,port ,wait-for ,_repeat) (current-error-port))
   (server-proper min-players port wait-for))
 
 #; [-> (list N Port# Positive 0or1)]
@@ -127,7 +126,7 @@
       (thread
        (lambda ()
          (define result
-           (#; with-output-to-dev-null
+           (with-output-to-dev-null
                (lambda ()
                  (with-input-from-string sample-server-config server))))
          (channel-put ch result)))

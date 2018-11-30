@@ -6,7 +6,7 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (provide
- ;; -> [Listof Results] 
+ ;; ->  "done"
  client)
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -35,7 +35,8 @@
                             (log-error (format "connection failed: ~a\n" n))
                             (loop (- n 1)))])
            (define-values (in out) (tcp-connect ip port))
-           (thread (lambda () (channel-put ch (run-client p in out)))))]))))
+           (thread (lambda () (channel-put ch (run-client p in out)))))])))
+  (channel-get ch))
 
 #; (Player InputPort OutputPort -> [Listof Result])
 ;; launch a remote tournament manager to manage the connection between in/out and the player 
