@@ -37,7 +37,7 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "referee.rkt")
-; (require (submod "../Common/results.rkt" json))
+(require "../Common/results.rkt")
 (require "../Lib/xsend.rkt")
 (require json)
 
