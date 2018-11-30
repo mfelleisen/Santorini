@@ -1,10 +1,9 @@
 #lang racket
 
-;; The server listens on TCP _port_, accepting connections from clients until enoough
-;; of them have connected or at least two players have signed up and a certain _time_
-;; has passed. At that point, each connection is turned into a remote player, all of
-;; which are handed to a tournament manager, which runs a compettiton of every player
-;; against every other player. 
+;; The server listens on TCP _port_, accepting connections from clients.
+;; Each connection is turned into a proxy player, after it sends over its name (see BUG).
+;; When there are enough proxy players, it signs up additional players for the specified min time.
+;; At that point, the players are handed to a tournament manager, which runs a round-robin compettiton
 
 (provide
  ;; -> [Listof Result]
@@ -26,87 +25,79 @@
   (require rackunit))
 
 ;; ---------------------------------------------------------------------------------------------------
-(define WAIT-FOR    (make-parameter    10))
-(define MIN-PLAYERS (make-parameter     2))
-(define PORT        (make-parameter 45678))
-(define REPEAT      (make-parameter #false))
 (define MAX-TCP     30)
 (define REOPEN      #t)
 
+;; EFFECT sets four parameters (min players, wait time, port #, and whether the server is to repeat 
+;; tournaments; then it tail-calls server-proper 
 (define (server)
-  (match-define `(,m ,p ,w ,r) (read-server-configuration))
-  (MIN-PLAYERS m)
-  (WAIT-FOR    w)
-  (PORT        p)
-  (REPEAT      r)
-  (server-proper))
-
-;; -> Void
-;; set up custodian, start listening on TCP, and collect players
-(define (server-proper)
-  (define c (make-custodian))
-  (parameterize ((current-custodian c))
-    (define listener (tcp-listen (PORT) MAX-TCP REOPEN))
-    (log-error (~a 'listening))
-    (collect listener (WAIT-FOR) c)))
+  (match-define `(,min-players ,port ,wait-for ,_repeat) (read-server-configuration))
+  (displayln `(,min-players ,port ,wait-for ,_repeat) (current-error-port))
+  (server-proper min-players port wait-for))
 
 #; [-> (list N Port# Positive 0or1)]
 ;; read configuration info from STDIN
 (define (read-server-configuration)
-  (define configuration (read-json))
+  (define configuration (read-json)) ;; This may raise exn; deserves better error message for user
   (match configuration
     [(hash-table (|min players| (and m (? natural-number/c)))
                  (port          (and p (? port#)))
-                 (|waiting for| (and w postiive-number/c))
+                 (|waiting for| (and w (? number? integer? positive?)))
                  (repeat        (and r (or 0 1))))
      (list m p w r)]
     [else (error 'server "hash with four fields expected (see spec.), given ~e" configuration)]))
 
+#; (type Port# satisfies port#)
 #; (Number -> (U #false Number))
 (define (port# n)
   (and (integer? n) (<= 50000 n 60000) n))
 
-;; Tcp-listener N  Custodian -> [Lstof Result]
+#; (N Port# Positive-> Results)
+;; set up custodian, start listening on TCP, then 
 ;; 1. accept players until there are >= MIN-PLAYERS
-;; 2. wait for at most time-limit seconds for next player to sign up
-;; then run a tournament
-(define (collect listener time-limit c)
-  ;; Players = [Listof [List String String RemotePlayer]
-  ;;                         name playing-as player 
-  (define (collect-up-to-min-players players player#)
-    (define players+ (add-player players))
-    (define player#+ (+ player# 1))
-    (if (< player#+ (MIN-PLAYERS))
-        (collect-up-to-min-players players+ player#+)
-        (collect-additional-players players+)))
-  (define (collect-additional-players players)
-    (if (sync/timeout time-limit listener)
-        (collect-additional-players (add-player players))
-        (sign-up->start-up (reverse players) c)))
-  ;; Players -> Players
-  ;; EFFECT accept a connection on the listener 
-  (define (add-player players)
-    (define-values (in out) (tcp-accept listener))
-    (define nm (parameterize ((current-input-port in) (current-output-port out)) (read-message)))
-    (log-error (~a `(,nm signed up)))
-    (define pl (new (make-remote-player% in out) [name nm]))
-    (cons pl players))
-  ;; -- IN -- 
-  (collect-up-to-min-players '() 0))
+;; 2. wait for at most time-limit seconds for next player to sign up, then run a tournament
+(define (server-proper min-players port time-limit)
+  (define c (make-custodian))
+  (parameterize ((current-custodian c))
+    (define listener (tcp-listen port MAX-TCP REOPEN))
+    (log-error (~a 'listening))
 
-;; [Listof ExternalPlayer] Custodian -> Void
+    (let collect-up-to-min-players ((players '()))
+      (define players+ (add-player players listener))
+      (cond
+        [(< (length players+) min-players) (collect-up-to-min-players players+)]
+        [else
+         (let collect-additional-players ((players players+))
+           (if (sync/timeout time-limit listener)
+               (collect-additional-players (add-player players))
+               (sign-up->start-up (reverse players))))]))))
+
+#; (type Players = [Listof [List String String RemotePlayer]])
+;;                               name playing-as player
+
+#; (Players TCPListener -> Players)
+;; EFFECT accept a connection on the listener 
+(define (add-player players listener)
+  (define-values (in out) (tcp-accept listener))
+  ;; BUG: read-message may raise an exception when a player doesn't supply a name 
+  (define nm (parameterize ((current-input-port in) (current-output-port out)) (read-message)))
+  (log-error (~a `(,nm signed up)))
+  (define pl (new (make-remote-player% in out) [name nm]))
+  (cons pl players))
+
+#; ([Listof ExternalPlayer] -> Results)
 ;; EFFECT run a complete game of Evolution 
-(define (sign-up->start-up players c)
+(define (sign-up->start-up players)
   (log-error (~a `(,players playing)))
   (begin0
     (tournament-manager/proc players '())
-    (custodian-shutdown-all c)))
+    (custodian-shutdown-all (current-custodian))))
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
 
-    (define sample-client-config
-      #<< eos
+  (define sample-client-config
+    #<< eos
 { "players"   : [["good", "matthias", "../Player/player.rkt"],
                  ["good", "christos", "../Player/player.rkt"]],
   "observers" : [],
@@ -114,7 +105,7 @@
   "port"      : 55555
 }
  eos
-      )
+    )
 
   (define sample-server-config
     #<< eos
@@ -136,13 +127,13 @@
       (thread
        (lambda ()
          (define result
-           (with-output-to-dev-null
-            (lambda ()
-              (with-input-from-string sample-server-config server))))
+           (#; with-output-to-dev-null
+               (lambda ()
+                 (with-input-from-string sample-server-config server))))
          (channel-put ch result)))
       (with-output-to-dev-null
-       (lambda ()
-         (with-input-from-string sample-client-config client)))
+          (lambda ()
+            (with-input-from-string sample-client-config client)))
       ;; now test
       checks ...))
 
@@ -185,5 +176,5 @@
           server-config-1
           (check-true (channel? ch))
           (check-equal? (channel-get ch) expected-1))
-)
+  )
           

@@ -1,15 +1,15 @@
 #lang racket
 
-;; The client script is responsible for connecting to the server,
-;; creating a player, and connecting it to the server via the
-;; Remote/tournament-manager. The rest of the interaction is up to
-;; the latter.
+;; The client script is responsible for creating players from a configuration,
+;; connecting each of them to the server via a Remote/tournament-manager.
+;; The rest of the interaction is up to the latter.
 
-;; -----------------------------------------------------------------------------
+;; ---------------------------------------------------------------------------------------------------
 (provide
+ ;; -> [Listof Results] 
  client)
 
-;; -----------------------------------------------------------------------------
+;; ---------------------------------------------------------------------------------------------------
 (require "tournament-manager.rkt")
 (require "../Admin/tournament-manager.rkt")
 (require "../Lib/io.rkt") 
@@ -18,45 +18,24 @@
 (module+ test
   (require (submod "tournament-manager.rkt" test-support)))
 
-;; -----------------------------------------------------------------------------
-(define IP   (make-parameter LOCALHOST))
-(define PORT (make-parameter 45678))
+;; ---------------------------------------------------------------------------------------------------
 (define TRIES 10) ;; how often we retry to connect from player to server 
 
-;; -> [Listof Results]
 (define (client)
   (define ch (make-channel))
   (match-define `(,p* ,o* ,ip ,port) (read-client-configuration))
-  (IP   ip)
-  (PORT port)
-  (define player-thread-evts
-    (for/list ((p (create-players p*)))
-      (define-values (in out) (launch-player p ch))
-      (thread-dead-evt (thread (lambda () (channel-put ch (run-client p in out)))))))
-  (define ch?
-    (let loop ([t* player-thread-evts])
+  (for ((p (create-players p*)))
+    (let loop ([n TRIES])
       (cond
-        [(empty? t*) (channel-get ch)]
-        [else 
-         (define s (map (lambda (pte) (handle-evt pte (lambda (t) (loop (remove t t*))))) t*))
-         (apply sync ch s)])))
-  ch?)
-
-#; (Player ->* InputPort OutputPort)
-;; EFFECT connect player p to the server and return the two I/O streams 
-(define (launch-player p ch)
-  (define ip (IP))
-  (define port (PORT))
-  (let loop ([n TRIES])
-    (cond
-      [(<= n 0) (error "connection failed\n")]
-      [else
-        (sleep 3)
-        (with-handlers ([exn:fail:network?
-                         (lambda (xn)
-                           (log-error (format "connection failed: ~a\n" n))
-                           (loop (- n 1)))])
-          (tcp-connect ip port))])))
+        [(<= n 0) (error "connection failed\n")]
+        [else
+         (sleep 3)
+         (with-handlers ([exn:fail:network?
+                          (lambda (xn)
+                            (log-error (format "connection failed: ~a\n" n))
+                            (loop (- n 1)))])
+           (define-values (in out) (tcp-connect ip port))
+           (thread (lambda () (channel-put ch (run-client p in out)))))]))))
 
 #; (Player InputPort OutputPort -> [Listof Result])
 ;; launch a remote tournament manager to manage the connection between in/out and the player 
@@ -80,7 +59,7 @@
 (define (port# n)
   (and (integer? n) (<= 50000 n 60000) n))
 
-;; -----------------------------------------------------------------------------
+;; ---------------------------------------------------------------------------------------------------
 (module+ test
   (define DEFAULT-PLAYER "../Player/player.rkt")
 
