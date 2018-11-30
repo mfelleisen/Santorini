@@ -150,9 +150,9 @@
     [(member nm names)
      (define as (make-longer-name nm longest))
      (match (xsend fst playing-as #:thrown vector #:timed-out vector as)
-       [(vector)     (displayln `(manager ,nm : "playing-as" method timed out))
+       [(vector)     (log-error `(manager ,nm : "playing-as" method timed out))
                      #false]
-       [(vector msg) (displayln `(manager ,nm : "playing-as" method failed ,msg))
+       [(vector msg) (log-error `(manager ,nm : "playing-as" method failed ,msg))
                      #false]
        [r            as])]
     [else nm]))
