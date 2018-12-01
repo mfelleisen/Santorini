@@ -121,6 +121,8 @@
 
   ;; -------------------------------------------------------------------------------------------------
   (define-syntax-rule
+    ;; SYNTAX
+    ;; (tester ...) performs .. 
     (tester ch sample-client-config sample-server-config checks ...)
     (let ([ch  (make-channel)])
       (thread
