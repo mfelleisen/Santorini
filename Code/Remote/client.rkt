@@ -22,21 +22,21 @@
 (define TRIES 10) ;; how often we retry to connect from player to server 
 
 (define (client)
-  (define ch (make-channel))
   (match-define `(,p* ,o* ,ip ,port) (read-client-configuration))
-  (for ((p (create-players p*)))
-    (let loop ([n TRIES])
-      (cond
-        [(<= n 0) (error "connection failed\n")]
-        [else
-         (sleep 3)
-         (with-handlers ([exn:fail:network?
-                          (lambda (xn)
-                            (log-error (format "connection failed: ~a\n" n))
-                            (loop (- n 1)))])
-           (define-values (in out) (tcp-connect ip port))
-           (thread (lambda () (channel-put ch (run-client p in out)))))])))
-  (channel-get ch))
+  (define threads
+    (for/list ((p (create-players p*)))
+      (let loop ([n TRIES])
+        (cond
+          [(<= n 0) (error "connection failed\n")]
+          [else
+           (sleep 1)
+           (with-handlers ([exn:fail:network?
+                            (lambda (xn)
+                              (log-error (format "connection failed: ~a\n" n))
+                              (loop (- n 1)))])
+             (define-values (in out) (tcp-connect ip port))
+             (thread (lambda () (run-client p in out))))]))))
+  (apply sync threads))
 
 #; (Player InputPort OutputPort -> [Listof Result])
 ;; launch a remote tournament manager to manage the connection between in/out and the player 
