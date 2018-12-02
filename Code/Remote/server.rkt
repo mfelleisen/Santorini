@@ -2,8 +2,12 @@
 
 ;; The server listens on TCP _port_, accepting connections from clients.
 ;; Each connection is turned into a proxy player, after it sends over its name (see BUG).
-;; When there are enough proxy players, it signs up additional players for the specified min time.
-;; At that point, the players are handed to a tournament manager, which runs a round-robin compettiton
+;; When there are enough proxy players, it signs up additional players.
+
+;; Each wait for a new connection is limited by the specified time-limit. 
+
+;; At that point, the players are handed to a tournament manager,
+;; which runs a round-robin compettiton
 
 (provide
  ;; -> [Listof Result]
@@ -27,6 +31,7 @@
 ;; ---------------------------------------------------------------------------------------------------
 (define MAX-TCP     30)
 (define REOPEN      #t)
+(define MIN-ERROR:fmt "could not sign up the minimal number (~a) of players in the given time")
 
 ;; EFFECT sets four parameters (min players, wait time, port #, and whether the server is to repeat 
 ;; tournaments; then it tail-calls server-proper 
@@ -56,33 +61,38 @@
 ;; 1. accept players until there are >= MIN-PLAYERS
 ;; 2. wait for at most time-limit seconds for next player to sign up, then run a tournament
 (define (server-proper min-players port time-limit)
-  (define c (make-custodian))
-  (parameterize ((current-custodian c))
+  (parameterize ((current-custodian (make-custodian)))
     (define listener (tcp-listen port MAX-TCP REOPEN))
     (log-error (~a 'listening))
-
     (let collect-up-to-min-players ((players '()))
-      (define players+ (add-player players listener))
-      (cond
-        [(< (length players+) min-players) (collect-up-to-min-players players+)]
-        [else
-         (let collect-additional-players ((players players+))
-           (if (sync/timeout time-limit listener)
-               (collect-additional-players (add-player players))
-               (sign-up->start-up (reverse players))))]))))
+      (if (< (length players) min-players)
+          (if (sync/timeout time-limit listener)
+              (collect-up-to-min-players (add-player-from-listener players listener))
+              (format MIN-ERROR:fmt min-players))
+          (let collect-additional-players ((players players))
+            (if (sync/timeout time-limit listener)
+                (collect-additional-players (add-player-from-listener players listener))
+                (sign-up->start-up (reverse players))))))))
 
 #; (type Players = [Listof [List String String RemotePlayer]])
 ;;                               name playing-as player
 
-#; (Players TCPListener -> Players)
-;; EFFECT accept a connection on the listener 
-(define (add-player players listener)
+#; (Players Listener -> Players)
+;; EFFECT accept a connection on the listener
+(define (add-player-from-listener players listener)
   (define-values (in out) (tcp-accept listener))
-  ;; BUG: read-message may raise an exception when a player doesn't supply a name 
-  (define nm (parameterize ((current-input-port in) (current-output-port out)) (read-message)))
-  (log-error (~a `(,nm signed up)))
-  (define pl (new (make-remote-player% in out) [name nm]))
-  (cons pl players))
+  (add-player players in out))
+
+#; (Players InputPort OutputPort -> Players)
+;; EFFECT turn a connection on in/out into a player 
+(define (add-player players in out)
+  (with-handlers ((exn:fail:network (lambda (xn) (log-error (~a xn)) players)))
+    (define nm (parameterize ((current-input-port in) (current-output-port out)) (read-message)))
+    (cond
+      [(not (string? nm)) players]
+      [else (define pl (new (make-remote-player% in out) [name nm]))
+            (log-error (~a `(,nm signed up)))
+            (cons pl players)])))
 
 #; ([Listof ExternalPlayer] -> Results)
 ;; EFFECT run a complete game of Evolution 
@@ -94,6 +104,8 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (module+ test
+
+  (check-equal? (add-player '() (open-input-string "") (open-output-string)) '() "add-player failure")
 
   (define sample-client-config
     #<< eos
@@ -129,12 +141,12 @@
        (lambda ()
          (define result
            (with-output-to-dev-null
-               (lambda ()
-                 (with-input-from-string sample-server-config server))))
+            (lambda ()
+              (with-input-from-string sample-server-config server))))
          (channel-put ch result)))
       (with-output-to-dev-null
-          (lambda ()
-            (with-input-from-string sample-client-config client)))
+       (lambda ()
+         (with-input-from-string sample-client-config client)))
       ;; now test
       checks ...))
 
