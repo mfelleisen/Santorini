@@ -167,13 +167,16 @@
          (cons (format " [~a]" (string-join cleansed)) lines)))
 
      (parameterize ([current-output-port op])
-       (let print ([lines (rest reversed-lines)])
-         (cond
-           [(empty? (rest lines))
-            (displayln (string-append "[" (substring (first lines) 1)))]
-           [else
-            (print (rest lines))
-            (displayln (first lines))]))
+       (define remainder (rest reversed-lines))
+       (if (empty? remainder)
+           (display "[")
+           (let print ([lines remainder])
+             (cond
+               [(empty? (rest lines))
+                (displayln (string-append "[" (substring (first lines) 1)))]
+               [else
+                (print (rest lines))
+                (displayln (first lines))])))
        (displayln (string-append (first reversed-lines) "]"))))
 
    ;; [X -> N] [Listof X] -> N
