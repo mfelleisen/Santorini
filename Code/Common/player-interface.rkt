@@ -27,14 +27,10 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 
-(define PLAYER-NAME #px"[a-z]+")
-(define (good-player-name? name)
-  (regexp-match PLAYER-NAME name))
-
 (define player%/c
   (class/c
     ; #:opaque
-    (init-field (name (and/c string? good-player-name?)) (other (and/c string? good-player-name?)))
+    (init-field (name good-player-name?) (other good-player-name?))
 
     ;; protocol: {playing-as | other-name}^1 -> placement-once -> placement-twice -> take-turn* -> end
     (field
@@ -44,9 +40,9 @@
      [placement-has-been-called-twice boolean?])
 
     ;; IF name is already taken by some other player, this method is called with a replacement name
-    (playing-as (->m string? any/c))
+    (playing-as (->m good-player-name? any/c))
     ;; name of the opponent of this player
-    (other-name (->m string? any/c))
+    (other-name (->m good-player-name? any/c))
     ;; compute the placement of this player's next worker, given the placement of other workers
     (placement (->m placements/c place/c))
     ;; compute the next action that this player can take for the given board

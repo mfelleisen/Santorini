@@ -44,7 +44,7 @@
 
 (define (jsexpr->as message)
   (match message
-    [`("playing-as" ,new-name) new-name]
+    [`("playing-as" ,(and new-name (? good-player-name?))) new-name]
     [else #false]))
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -53,10 +53,12 @@
   (require (submod "../Common/board.rkt" test-support))
   (require json)
 
+  (define matthias1 "matthias")
   (define matthias2 "matthias2")
-  (check-pred jsexpr? (as->jsexpr matthias2))
-  (check-equal? (jsexpr->as (as->jsexpr matthias2)) matthias2)
+  (check-pred jsexpr? (as->jsexpr matthias1))
+  (check-equal? (jsexpr->as (as->jsexpr matthias1)) matthias1)
   (check-false (jsexpr->as matthias2) matthias2)
+  (check-false (jsexpr->as '["playing-as" ""]))
 
   (define (jsexpr->string ->jsexpr x)
     (with-output-to-string (lambda () (define y (->jsexpr x)) (if (jsexpr? y) (send-message y) y))))

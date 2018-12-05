@@ -151,3 +151,13 @@
   (require (submod ".."))
   (require (submod ".." test-support))
   (test-suite tournament-manager))
+
+
+(module+ test
+  (require (submod "../Common/board.rkt" test-support))
+  (require (except-in rackunit test-suite))
+  (check-false (let ([m '["playing-as" ""]]) (jsexpr->as m)))
+  (check-equal? (let ([m '[]]) (jsexpr->placements m)) '[])
+  (check-equal? (let ([m '[["0x1" "0x2"] ["0y1" "0y2"]]]) (jsexpr->board m))
+                (cboard [[0x1 0x2] [0y1 0y2]]))
+  (check-false (let ([m '[["0x1" "0x2"] ["0y1" "0y2"]]]) (jsexpr->results m))))

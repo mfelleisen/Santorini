@@ -231,7 +231,7 @@ A game-level observer protocol exists and can be used from the referee.
 
 - [X] don't use message-based communication in remote proxy
   the server may take its time. 
-  
+- [X] make sure player names are player names   
 
 ## Racket Issues 
 

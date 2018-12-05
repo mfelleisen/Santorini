@@ -8,13 +8,14 @@
  result*/c)
 
 ;; -----------------------------------------------------------------------------
+(require "workers.rkt")
 (module+ test
   (require rackunit))
 
 ;; -----------------------------------------------------------------------------
 (define result/c
-  (or/c (list/c string? #;=winner string? #;=loser)
-        (list/c string? #;=winner string? #;=loser IRREGULAR)))
+  (or/c (list/c good-player-name? #;=winner good-player-name? #;=loser)
+        (list/c good-player-name? #;=winner good-player-name? #;=loser IRREGULAR)))
 (define result*/c (listof result/c))
 
 ;; -----------------------------------------------------------------------------
@@ -24,14 +25,16 @@
    results->jsexpr
    jsexpr->results)
   
+  (require "workers.rkt")
+
   (define IRREGULAR "irregular")
   
   (define results->jsexpr values)
 
   (define (jsexpr->results j)
     (match j
-      [(list (or (list (? string?) (? string?))
-                 (list (? string?) (? string?) (? (curry string=? IRREGULAR))))
+      [(list (or (list (? good-player-name?) (? good-player-name?))
+                 (list (? good-player-name?) (? good-player-name?) (? (curry string=? IRREGULAR))))
              ...)
        j]
       [else #false])))
