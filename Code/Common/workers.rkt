@@ -12,7 +12,8 @@
 
 (provide
  (contract-out
-  (good-player-name? (-> any/c boolean?)))
+  (good-player-name? (-> any/c boolean?))
+  (good-worker-name? (-> any/c boolean?)))
 
  ;; type Worker = (worker String Range Range)
  worker?

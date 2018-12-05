@@ -8,6 +8,7 @@
 
 ;; ---------------------------------------------------------------------------------------------------
 (require "board.rkt")
+(require "workers.rkt")
 
 ;; ---------------------------------------------------------------------------------------------------
 (define placements/c
@@ -30,14 +31,25 @@
    jsexpr->place)
 
   (define (placements->jsexpr p)
-    p)
+    (let loop ((p p) (seen '()))
+      (cond
+        [(empty? p) '()]
+        [else
+         (match (first p)
+           [`(,(and name (? good-player-name?)) ,x ,y)
+            (if (member name seen)
+                (cons `(,(format "~a~a" name 2) ,x ,y) (loop (rest p) seen))
+                (cons `(,(format "~a~a" name 1) ,x ,y) (loop (rest p) (cons name seen))))]
+           [else (error 'placements->jsexpr "can't happen: ~e" (first p))])])))
+
 
   (define (jsexpr->placements j*)
     (let/ec return 
       (unless (list? j*) (return #false))
       (for/list ((j j*))
         (match j
-          [`(,(? string? name) ,(? natural-number/c x) ,(? natural-number/c y)) j]
+          [`(,(? good-worker-name? name) ,(? natural-number/c x) ,(? natural-number/c y))
+           `(,(worker-name (worker name)) ,x ,y)]
           [else (return #false)]))))
 
   (define (place->jsexpr p) p)
@@ -53,12 +65,15 @@
   (require json)
   (require rackunit)
 
-  (check-pred jsexpr? (placements->jsexpr '(("x1" 1 1))))
+  (check-pred jsexpr? (placements->jsexpr '(("x" 1 1))))
   (check-pred jsexpr? (place->jsexpr '(1 1)))
 
+  (define 2pieces '(("x" 1 1) ("y" 2 2)))
+  (define 3pieces '(("x" 1 1) ("y" 2 2) ("x" 3 3)))
   (check-equal? (jsexpr->placements '()) '())
-  (define ps '(("x1" 1 1) ("y1" 2 2)))
-  (check-equal? (jsexpr->placements (placements->jsexpr ps)) ps)
+  (check-equal? (jsexpr->placements (placements->jsexpr 2pieces)) 2pieces)
+  (check-equal? (jsexpr->placements (placements->jsexpr 3pieces)) 3pieces)
+  
   (check-false  (jsexpr->placements '((0christos1 2matthias1 3) (0christos2 1matthias2 2))))
   (check-false  (jsexpr->placements "the end"))
 
