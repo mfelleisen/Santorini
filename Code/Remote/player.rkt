@@ -26,10 +26,14 @@
 
   (define-syntax define/remote 
     (syntax-rules (augment)
-      [(_ (method ->to augment)) (define/augment (method arg) (send-message (->to arg) out))]
-      [(_ (method ->to)) (define/override (method arg) (send-message (->to arg) out))]
+      [(_ (method ->to augment))
+       (define/augment (method arg) (send-message (->to arg) out))]
+      [(_ (method ->to))
+       (define/override (method arg) (send-message (->to arg) out))]
       [(_ (method ->to <-from))
-       (define/override (method arg) (send-message (->to arg) out) (<-from (read-message in)))]))
+       (define/override (method arg)
+         (send-message (->to arg) out)
+         (<-from (read-message in)))]))
   
   (class super%
     (super-new (other "aaxxxx"))
