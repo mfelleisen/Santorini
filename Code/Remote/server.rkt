@@ -36,8 +36,8 @@
 ;; EFFECT sets four parameters (min players, wait time, port #, and whether the server is to repeat 
 ;; tournaments; then it tail-calls server-proper 
 (define (server)
-  (match-define `(,min-players ,port ,wait-for ,_repeat) (read-server-configuration))
-  (server-proper min-players port wait-for))
+  (match-define `(,min-players ,port ,wait-for ,repeat) (read-server-configuration))
+  (server-proper min-players port wait-for (= repeat 0)))
 
 #; [-> (list N Port# Positive 0or1)]
 ;; read configuration info from STDIN
@@ -56,23 +56,25 @@
 (define (port# n)
   (and (integer? n) (<= 50000 n 60000) n))
 
-#; (N Port# Positive-> Results)
+#; (N Port# Positive Boolean -> Results)
 ;; set up custodian, start listening on TCP, then 
 ;; 1. accept players until there are >= MIN-PLAYERS
 ;; 2. wait for at most time-limit seconds for next player to sign up, then run a tournament
-(define (server-proper min-players port time-limit)
-  (parameterize ((current-custodian (make-custodian)))
-    (define listener (tcp-listen port MAX-TCP REOPEN))
-    (log-error (~a 'listening))
-    (let collect-up-to-min-players ((players '()))
-      (if (< (length players) min-players)
-          (if (sync/timeout time-limit listener)
-              (collect-up-to-min-players (add-player-from-listener players listener))
-              (format MIN-ERROR:fmt min-players))
-          (let collect-additional-players ((players players))
+(define (server-proper min-players port time-limit once?)
+  (define (run)
+    (parameterize ((current-custodian (make-custodian)))
+      (define listener (tcp-listen port MAX-TCP REOPEN))
+      (log-error (~a 'listening))
+      (let collect-up-to-min-players ((players '()))
+        (if (< (length players) min-players)
             (if (sync/timeout time-limit listener)
-                (collect-additional-players (add-player-from-listener players listener))
-                (sign-up->start-up (reverse players))))))))
+                (collect-up-to-min-players (add-player-from-listener players listener))
+                (format MIN-ERROR:fmt min-players))
+            (let collect-additional-players ((players players))
+              (if (sync/timeout time-limit listener)
+                  (collect-additional-players (add-player-from-listener players listener))
+                  (sign-up->start-up (reverse players))))))))
+  (if once? (run) (let loop () (run) (loop))))
 
 #; (type Players = [Listof [List String String RemotePlayer]])
 ;;                               name playing-as player
@@ -141,12 +143,12 @@
        (lambda ()
          (define result
            (with-output-to-dev-null
-            (lambda ()
-              (with-input-from-string sample-server-config server))))
+               (lambda ()
+                 (with-input-from-string sample-server-config server))))
          (channel-put ch result)))
       (with-output-to-dev-null
-       (lambda ()
-         (with-input-from-string sample-client-config client)))
+          (lambda ()
+            (with-input-from-string sample-client-config client)))
       ;; now test
       checks ...))
 

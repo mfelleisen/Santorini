@@ -119,7 +119,6 @@ A game-level observer protocol exists and can be used from the referee.
 ## Not implemented 
 
 - The client configuration element for observers is ignored. 
-- The server configuration element for repeated tournaments is ignored.
 - The server isn't stress tested; scheduling might be an n^2 algorithm. 
 
 ## NSF 
