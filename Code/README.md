@@ -233,8 +233,9 @@ A game-level observer protocol exists and can be used from the referee.
 
 - [X] make sure player names are player names   
 - [X] transmit worker names in protocols 
+- [X] failing players with proper descriptions and more options 
 
 ## Racket Issues 
 
 - in class contracts, field sub-contracts can't refer to other fields 
-1
+
