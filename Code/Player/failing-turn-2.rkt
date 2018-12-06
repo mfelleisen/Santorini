@@ -9,5 +9,5 @@
  #:tt-failure
  (lambda (board)
    (define players (board-players board))
-   (define workers (named-workers (first players)))
+   (define workers (named-workers board (first players)))
    (move-build (first workers) PUT PUT PUT PUT)))
