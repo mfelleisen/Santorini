@@ -234,6 +234,7 @@ A game-level observer protocol exists and can be used from the referee.
 - [X] make sure player names are player names   
 - [X] transmit worker names in protocols 
 - [X] failing players with proper descriptions and more options 
+- [X] protocol violation for giving-up action 
 
 ## Racket Issues 
 
