@@ -88,7 +88,7 @@
 #; (Players InputPort OutputPort -> Players)
 ;; EFFECT turn a connection on in/out into a player 
 (define (add-player players in out)
-  (with-handlers ((exn:fail:network (lambda (xn) (log-error (~a xn)) players)))
+  (with-handlers ((exn:fail:network? (lambda (xn) (log-error (~a xn)) players)))
     (define nm (parameterize ((current-input-port in) (current-output-port out)) (read-message)))
     (cond
       [(not (string? nm)) players]
