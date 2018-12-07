@@ -109,10 +109,10 @@
 
 ;; Giving-up OutputPort Boolean? -> Void 
 (define (write-giving-up b op mode)
-  (output op mode
-   (with giving-up b
-         (define name actor)
-         (giving-up-pattern name))))
+  (define name (giving-up-actor b))
+  (if mode
+    (write name op)
+    (display (giving-up-pattern name) op)))
 
 ;; Winning-move OutputPort Boolean? -> Void 
 (define (write-winning b op mode)
@@ -229,7 +229,7 @@
 
   (define (jsexpr->action x)
     (match x
-      [`(,name)
+      [(? string? name)
        (giving-up name)]
       [`(,work ,x ,y)
        (winning-move (worker work) (string->e-w x) (string->n-s y))]
@@ -252,5 +252,5 @@
   (check-equal? (jsexpr->action (action->jsexpr gu)) gu "and back gu")
   (check-equal? (jsexpr->action (action->jsexpr wm)) wm "and back wm")
   (check-equal? (jsexpr->action (action->jsexpr mb)) mb "and back wm")
-  (check-exn exn:fail? (lambda () (jsexpr->action "giving up"))))
+  (check-exn exn:fail? (lambda () (jsexpr->action '("giving up")))))
   
