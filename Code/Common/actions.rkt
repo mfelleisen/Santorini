@@ -220,17 +220,23 @@
    action->jsexpr
    jsexpr->action)
 
-  (require (submod ".."))
+  ; (require (submod ".."))
 
-  (define (action->jsexpr b:board)
-    (define board:string (with-output-to-string (lambda () (write b:board))))
-    (define board:json   (with-input-from-string board:string read))
-    board:json)
-
+  (define (action->jsexpr a)
+    (match a
+      [(giving-up name) name]
+      [(winning-move w x y)
+       (list (worker-name+no w) (e-w->string x) (n-s->string y))]
+      [(move-build w x y xb yb)
+       (list (worker-name+no w) (e-w->string x) (n-s->string y) (e-w->string xb) (n-s->string yb))]
+      [_ (error 'action->jsexpr "can't happen: ~e" a)]))
+  
   (define (jsexpr->action x)
     (match x
-      [(? string? name)
-       (giving-up name)]
+      [(? string?) ;; problem?
+       (if (good-player-name? x)
+           (giving-up x)
+           (error (format "bad player name: ~e" x)))]
       [`(,work ,x ,y)
        (winning-move (worker work) (string->e-w x) (string->n-s y))]
       [`(,work ,x ,y ,xb ,yb)
