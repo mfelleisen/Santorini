@@ -82,8 +82,9 @@
 #; (Players Listener -> Players)
 ;; EFFECT accept a connection on the listener
 (define (add-player-from-listener players listener)
-  (define-values (in out) (tcp-accept listener))
-  (add-player players in out))
+  (with-handlers ((exn:fail:network? (lambda (xn) (log-error (~a xn)))))
+    (define-values (in out) (tcp-accept listener))
+    (add-player players in out)))
 
 #; (Players InputPort OutputPort -> Players)
 ;; EFFECT turn a connection on in/out into a player 
