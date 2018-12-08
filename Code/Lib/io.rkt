@@ -28,6 +28,7 @@
 (define REMOTE-PORT    45678)
 (define ACCEPT-TIMEOUT 5) ;; seconds. See (server).
 (define TIMEOUT        5) ;; seconds. See read-json-safely/timeout.
+(define PEEK-LENGTH   32) ;; bytes. See read-json/timeout.
 
 (define (unset-time-out) (set! TIMEOUT 1000000000))
 
@@ -94,7 +95,7 @@
         eof]
        [(list 'exn e)
         (local-require racket/exn)
-        (log-error "Error reading message:\n~a" (exn->string e))
+        (log-error "Error reading message:\n~a~nNext bytes on port:~n~e" (exn->string e) (read-bytes PEEK-LENGTH))
         'error]
        [#f
         (log-error "Timed out waiting for reading to complete.")
