@@ -33,7 +33,11 @@
       [(_ (method ->to <-from))
        (define/override (method arg)
          (send-message (->to arg) out)
-         (<-from (read-message in)))]))
+         (define msg (read-message in))
+         (define dec (<-from msg))
+         (unless dec
+           (log-error (format "received ~a, expected ~a" msg 'method)))
+         dec)]))
   
   (class super%
     (super-new (other "aaxxxx"))
